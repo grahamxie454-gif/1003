@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>自由行行程規劃建議</title>
+</head>
+<body>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
+<style>
+/* Layout: 左側條件面板（手機時置頂）＋右側「挑地區與地點」、登機證式摘要與每日時間軸 */
+:root{
+  --bg:#EEF3F5; --surface:#FFFFFF; --ink:#11283B; --muted:#586E7E; --line:#D3DFE6;
+  --accent:#0E7C86; --accent-ink:#FFFFFF; --stamp:#D9532B; --soft:#E2F0F2;
+  --f-display:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1A24; --surface:#13283A; --ink:#E6EEF3; --muted:#93A8B6; --line:#264054;
+  --accent:#4FC3CB; --accent-ink:#06222A; --stamp:#FF8A63; --soft:#17384A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1A24; --surface:#13283A; --ink:#E6EEF3; --muted:#93A8B6; --line:#264054;
+  --accent:#4FC3CB; --accent-ink:#06222A; --stamp:#FF8A63; --soft:#17384A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.7;padding-inline:16px;padding-block:24px 48px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header h1{font-family:var(--f-display);font-weight:900;font-size:clamp(1.7rem,6vw,2.4rem);line-height:1.25;margin:0;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.demo{display:inline-block;margin-top:10px;font-size:12px;letter-spacing:.06em;color:var(--stamp);border:1px solid var(--stamp);border-radius:4px;padding:1px 8px}
+.grid{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:20px;align-items:start}
+@media(max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:18px}
+@media(min-width:821px){.panel{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow-y:auto}}
+fieldset{border:0;margin:0;padding:0;min-width:0}
+legend,.lab{font-size:12px;letter-spacing:.1em;color:var(--muted);font-weight:700;padding:0;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative;display:inline-block}
+.chip input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.chip span{display:block;border:1px solid var(--line);border-radius:999px;padding:4px 14px;background:var(--bg);font-size:14px;user-select:none}
+.chip input:checked+span{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.chip input:focus-visible+span{outline:2px solid var(--stamp);outline-offset:2px}
+.hint{font-size:12px;color:var(--muted);margin:6px 0 0}
+.range{display:flex;align-items:center;gap:12px}
+.range input{flex:1;min-width:0;accent-color:var(--accent)}
+.range output{font-variant-numeric:tabular-nums;font-weight:700;min-width:3.5em;text-align:right}
+main{min-width:0;display:flex;flex-direction:column;gap:16px}
+#pick,#res{display:flex;flex-direction:column;gap:16px}
+.pick{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.pick h3{margin:0;font-family:var(--f-display);font-size:1.15rem;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.pick h3 small{font-family:var(--f-body);font-weight:400;font-size:12px;color:var(--muted)}
+.spots{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.sp{position:relative;border:1px solid var(--line);border-radius:8px;padding:8px 10px 8px 34px;background:var(--bg);min-width:0;cursor:pointer;display:block}
+.sp input{position:absolute;left:10px;top:11px;width:16px;height:16px;margin:0;accent-color:var(--accent)}
+.sp b{display:block;font-weight:700;line-height:1.4}
+.sp small{display:block;color:var(--muted);font-size:12px;line-height:1.5}
+.sp:has(input:checked){border-color:var(--accent);background:var(--soft)}
+.sp:has(input:focus-visible){outline:2px solid var(--stamp);outline-offset:2px}
+.dgroup{font-size:12px;color:var(--muted);margin:2px 0 -2px;font-weight:700}
+.addrow{display:flex;gap:8px;flex-wrap:wrap}
+.addrow input[type=text],.addrow select{flex:1 1 150px;min-width:0;font:inherit;font-size:14px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.addrow input:focus-visible,.addrow select:focus-visible{outline:2px solid var(--stamp);outline-offset:1px}
+.empty{color:var(--muted);font-size:14px;margin:0}
+.warn{border:1px solid var(--stamp);border-radius:8px;padding:8px 12px;color:var(--stamp);font-size:14px;margin:0}
+.pass{background:var(--surface);border:1px solid var(--line);border-radius:10px;display:flex;flex-wrap:wrap;overflow:hidden}
+.pass .main{flex:1 1 320px;min-width:0;padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.pass .stub{flex:0 1 240px;min-width:0;padding:18px 20px;background:var(--soft);border-left:2px dashed var(--line);display:flex;flex-direction:column;gap:2px;justify-content:center}
+@media(max-width:620px){.pass .stub{flex-basis:100%;border-left:0;border-top:2px dashed var(--line)}}
+.route{display:flex;align-items:center;gap:12px;font-family:var(--f-display);font-weight:900;font-size:clamp(1.6rem,7vw,2.2rem);line-height:1.1}
+.route small{display:block;font-family:var(--f-body);font-weight:400;font-size:12px;color:var(--muted);letter-spacing:.04em}
+.route .arrow{flex:1;min-width:24px;height:2px;background:var(--line);position:relative}
+.route .arrow::after{content:"";position:absolute;right:0;top:-4px;border:5px solid transparent;border-left:8px solid var(--line);border-right:0}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px 16px;margin:0}
+.facts dt{font-size:12px;color:var(--muted);letter-spacing:.06em}
+.facts dd{margin:0;font-weight:500}
+.stub .lbl{font-size:12px;color:var(--muted);letter-spacing:.08em}
+.stub .total{font-family:var(--f-display);font-weight:900;font-size:1.9rem;font-variant-numeric:tabular-nums;color:var(--stamp);line-height:1.2}
+.stub .sub{font-size:13px;color:var(--muted)}
+.bar{display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px;margin-top:8px}
+.bar span{display:block}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-top:6px;font-variant-numeric:tabular-nums}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
+.c1{background:var(--accent)}.c2{background:var(--stamp)}.c3{background:#7C93A3}.c4{background:#E0B341}.c5{background:#8E6BBF}
+.days{display:flex;flex-direction:column;gap:16px}
+.day{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 18px 8px}
+.day h3{margin:0 0 4px;font-family:var(--f-display);font-size:1.15rem;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.day h3 em{font-style:normal;font-family:var(--f-body);font-size:12px;border-radius:4px;padding:0 7px;letter-spacing:.06em}
+.day h3 em.city{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.day h3 em.area{color:var(--stamp);border:1px solid var(--stamp)}
+.note{margin:0 0 10px;color:var(--muted);font-size:13px}
+.slot{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.slot .t{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;line-height:1.5}
+.slot .t b{display:block;color:var(--ink);font-size:14px}
+.slot .n{font-weight:700;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.tag{font-size:11px;font-weight:500;color:var(--accent);background:var(--soft);border-radius:4px;padding:0 7px}
+.slot p{margin:2px 0 0;color:var(--muted);font-size:14px}
+.slot .meta{font-size:12px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+.slot.free .n{color:var(--muted);font-weight:500}
+.tips{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.tips h3{margin:0 0 6px;font-family:var(--f-display);font-size:1.05rem}
+.tips ul{margin:0 0 12px;padding-left:1.2em;color:var(--muted)}
+.tips ul:last-child{margin-bottom:0}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);padding:7px 18px;font-weight:700}
+button.ghost{background:transparent;color:var(--accent);padding:6px 14px}
+button:focus-visible{outline:2px solid var(--stamp);outline-offset:2px}
+.status{font-size:13px;color:var(--muted)}
+textarea.fallback{width:100%;min-height:140px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit;font-size:13px}
+footer{color:var(--muted);font-size:12px}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>自由行行程規劃建議</h1>
+    <p>先選國家與城市，再挑地區與想去的地點，也可以自己新增。系統依天數與交通方式排出每日行程與每人預算概估。</p>
+    <span class="demo">示範資料，實際價格與營業時間請以官方資訊為準</span>
+  </header>
+
+  <div class="grid">
+    <form class="panel" id="f" onsubmit="return false">
+      <fieldset><legend>1. 國家（可多選）</legend><div class="chips" id="co"></div></fieldset>
+      <fieldset><legend>2. 城市（可多選）</legend><div class="chips" id="ci"></div></fieldset>
+      <fieldset>
+        <legend>3. 旅遊天數（3–10 天）</legend>
+        <div class="range"><input type="range" id="days" min="3" max="10" value="5" aria-label="旅遊天數"><output id="daysOut" for="days">5 天</output></div>
+      </fieldset>
+      <fieldset><legend>4. 旅遊風格（可複選）</legend><div class="chips" id="styles"></div></fieldset>
+      <fieldset>
+        <legend>5. 交通工具（可複選）</legend>
+        <div class="chips" id="modes"></div>
+        <p class="hint">市區交通與城際移動都會依你的選擇估價。</p>
+      </fieldset>
+      <fieldset><legend>6. 預算等級</legend><div class="chips" id="tier"></div></fieldset>
+      <fieldset><legend>7. 行程步調</legend><div class="chips" id="pace"></div></fieldset>
+    </form>
+
+    <main aria-live="polite">
+      <div id="pick"></div>
+      <div id="res"></div>
+    </main>
+  </div>
+  <footer>價格為新台幣概估，含機票、住宿（雙人分攤）、餐飲、交通與景點門票。</footer>
+</div>
+
+<script>
+var STYLE={f:'美食',c:'文化',n:'自然',s:'購物',x:'自訂'};
+var ORD={c:0,n:0,x:1,s:1,f:2};
+var SLOT={a:['上午','09:00'],p:['下午','13:30'],e:['晚上','18:30']};
+var TIERS=[['節省',0.9],['適中',1],['舒適',1.3]];
+var MODES={metro:'地鐵',bus:'公車',train:'火車',drive:'自駕'};
+var LOCAL={metro:150,bus:100,train:120,drive:1500};
+var MODE_TXT={metro:'市區主力，買儲值卡或一日券最划算。',bus:'補足地鐵到不了的區域，留意末班車時間。',train:'城際移動首選，熱門路線建議先訂位。',drive:'需國際駕照或當地認可的駕照譯本，租車前確認保險與停車。'};
+
+// 國家：flight 為從桃園出發的來回機票概估（新台幣）
+var CO={
+jp:{n:'日本',flight:14000,fh:'約 3 小時',season:'3–4 月賞櫻、11 月賞楓',drive:'日本靠左行駛，需台灣駕照與日文譯本。',tips:['買 IC 卡（西瓜卡、ICOCA）搭電車與購物。','寺社與市場早上去，人潮少很多。']},
+kr:{n:'韓國',flight:9000,fh:'約 2.5 小時',season:'4 月櫻花、10 月楓葉',drive:'韓國靠右行駛，需國際駕照。',tips:['T-money 卡可搭地鐵公車與便利商店。','熱門烤肉店晚餐建議先排隊登記。']},
+th:{n:'泰國',flight:11000,fh:'約 3.5–4 小時',season:'11–2 月涼季最舒適',drive:'泰國靠左行駛，租車需國際駕照，市區塞車嚴重。',tips:['用 Grab 叫車，不用議價。','進寺廟需穿過膝短褲與有袖上衣。']},
+tw:{n:'台灣',flight:0,fh:'國內交通',season:'全年皆宜，7–9 月注意颱風',drive:'台灣靠右行駛，帶有效駕照即可。',tips:['悠遊卡通用於捷運與公車。','夏季午後常有雷陣雨，帶折傘。']},
+fr:{n:'法國',flight:38000,fh:'約 14 小時（含轉機）',season:'5–6 月、9–10 月',drive:'法國靠右行駛，需國際駕照，市區停車困難。',tips:['熱門景點先上網訂時段票。','留意扒手，包包背在身前。']},
+uk:{n:'英國',flight:40000,fh:'約 15 小時（含轉機）',season:'5–9 月',drive:'英國靠左行駛，倫敦市區有壅塞費，不建議自駕。',tips:['可用感應式信用卡直接搭地鐵。','許多博物館免費，特展另外收費。']},
+it:{n:'義大利',flight:38000,fh:'約 15 小時（含轉機）',season:'4–6 月、9–10 月',drive:'義大利靠右行駛，古城區多為限制通行區（ZTL），誤闖會被罰款。',tips:['進教堂需遮住肩膀與膝蓋。','火車票上車前要先在月台打印機刷票。']},
+us:{n:'美國',flight:36000,fh:'約 13–15 小時（含轉機）',season:'4–6 月、9–11 月',drive:'美國靠右行駛，需國際駕照，曼哈頓不建議開車。',tips:['餐費另加 18–20% 小費。','地鐵可直接刷感應式信用卡。']},
+sg:{n:'新加坡',flight:11000,fh:'約 4.5 小時',season:'全年炎熱，2–4 月較乾',drive:'新加坡靠左行駛，市區有電子道路收費，不建議自駕。',tips:['小販中心有些只收現金。','室內冷氣強，帶薄外套。']}
+};
+
+// 城市：hotel 為雙人房每晚、food 為每人每日餐費，各依節省／適中／舒適三級。
+// d 為地區，內含地點 [名稱, 風格, 費用, 說明]
+var C={
+tyo:{n:'東京',co:'jp',code:'TYO',hotel:[1800,3500,7000],food:[1500,2500,4000],d:{
+ '淺草・上野':[['淺草寺與仲見世通','c',0,'雷門與人形燒小吃'],['上野恩賜公園','n',0,'湖畔散步，春天賞櫻'],['阿美橫丁','s',0,'藥妝零食批發街'],['淺草壽喜燒午餐','f',900,'老店鐵鍋壽喜燒']],
+ '新宿・澀谷・原宿':[['明治神宮','c',0,'都心森林中的神社'],['新宿御苑','n',100,'寬闊庭園，適合野餐'],['竹下通與表參道','s',0,'潮流小店與可麗餅'],['新宿思い出橫丁','f',600,'小店串燒，逐家品嚐']],
+ '台場・銀座':[['teamLab Planets','c',900,'沉浸式數位藝術'],['台場海濱公園','n',0,'海景與夜景'],['銀座購物散步','s',0,'百貨與藥妝'],['築地場外市場','f',400,'海鮮串燒與玉子燒']]}},
+osa:{n:'大阪',co:'jp',code:'OSA',hotel:[1500,3000,6000],food:[1300,2200,3600],d:{
+ '難波・心齋橋':[['難波八阪神社','c',0,'巨大獅子頭舞台'],['難波公園空中花園','n',0,'購物中心屋頂綠地'],['心齋橋筋商店街','s',0,'藥妝與伴手禮'],['道頓堀章魚燒','f',300,'招牌名物，多家比較']],
+ '大阪城・梅田':[['大阪城天守閣','c',200,'護城河與天守眺望'],['梅田空中庭園','n',400,'日落與夜景'],['梅田 LUCUA 購物','s',0,'百貨與生活雜貨'],['中崎町咖啡小店','f',300,'老屋改造咖啡廳']],
+ '新世界・天王寺':[['通天閣','c',200,'復古展望台'],['天王寺公園','n',0,'市中心大草地'],['阿倍野 HARUKAS','s',0,'百貨與高空展望'],['新世界串炸','f',400,'醬汁只能沾一次']]}},
+kyo:{n:'京都',co:'jp',code:'UKY',hotel:[1800,3500,7500],food:[1300,2200,3600],d:{
+ '嵐山・嵯峨野':[['天龍寺','c',150,'世界遺產庭園'],['竹林小徑','n',0,'清晨最安靜'],['嵐山商店街','s',0,'和菓子與紀念品'],['嵐山湯豆腐','f',500,'京都傳統料理']],
+ '東山・祇園':[['清水寺','c',150,'舞台俯瞰京都'],['哲學之道','n',0,'沿水渠散步'],['二年坂與產寧坂','s',0,'老街伴手禮'],['祇園抹茶甜點','f',350,'茶屋下午茶']],
+ '伏見・宇治':[['伏見稻荷大社','c',0,'千本鳥居'],['宇治川畔散步','n',0,'平等院周邊河岸'],['宇治茶葉專賣店','s',0,'抹茶與茶具'],['宇治抹茶蕎麥麵','f',300,'當地名產']]}},
+sel:{n:'首爾',co:'kr',code:'SEL',hotel:[1500,2800,5500],food:[1100,1900,3200],d:{
+ '景福宮・三清洞':[['景福宮','c',100,'10:00 看守門將換崗'],['清溪川散步','n',0,'市區溪流步道'],['三清洞選物店','s',0,'文創與咖啡'],['廣藏市場','f',300,'綠豆煎餅與拌飯']],
+ '明洞・南山':[['N 首爾塔','c',250,'纜車上山看夜景'],['南山公園步道','n',0,'市區綠意'],['明洞美妝街','s',0,'保養品常有贈品'],['明洞刀削麵與餃子','f',300,'人氣老店']],
+ '弘大・漢江':[['弘大街頭藝術','c',0,'塗鴉與街頭表演'],['汝矣島漢江公園','n',200,'野餐叫外送'],['弘大潮流小店','s',0,'潮牌與選物'],['弘大烤肉','f',700,'五花肉配生菜']]}},
+pus:{n:'釜山',co:'kr',code:'PUS',hotel:[1200,2400,5000],food:[1000,1700,2800],d:{
+ '海雲台・廣安里':[['海岸列車與天空膠囊','c',400,'沿海岸線的觀光列車'],['廣安里海灘夜景','n',0,'廣安大橋點燈'],['海雲台傳統市場','s',0,'小吃與乾貨'],['海雲台豬肉湯飯','f',300,'釜山靈魂食物']],
+ '甘川洞・南浦洞':[['甘川洞文化村','c',0,'彩色山城'],['太宗台','n',150,'海岬懸崖景觀'],['國際市場','s',0,'傳統批發市場'],['札嘎其海鮮市場','f',500,'現撈現吃']],
+ '西面・東萊':[['梵魚寺','c',0,'山中古剎'],['金井山步道','n',0,'登高望釜山'],['西面地下街','s',0,'平價服飾'],['西面辣炒年糕街','f',200,'街頭小吃']]}},
+bkk:{n:'曼谷',co:'th',code:'BKK',hotel:[1000,2000,4500],food:[700,1200,2200],d:{
+ '舊城區':[['大皇宮與玉佛寺','c',400,'8:30 開門就進場'],['皇家田廣場','n',0,'市民公園'],['考山路','s',0,'背包客街夜生活'],['老店泰式炒河粉','f',150,'現炒一盤約 60–100 泰銖']],
+ '暹羅・是隆':[['吉姆湯普森故居','c',150,'柚木古宅與泰絲'],['倫披尼公園','n',0,'早晨最涼快'],['暹羅商圈購物','s',0,'冷氣商場可避暑'],['商場美食廣場','f',250,'平價泰式料理']],
+ '河濱・唐人街':[['鄭王廟','c',100,'搭渡船過河'],['昭披耶河渡船','n',30,'日落河景'],['Asiatique 河濱夜市','s',0,'摩天輪與河景餐廳'],['耀華力路海鮮','f',500,'唐人街夜晚最熱鬧']]}},
+cnx:{n:'清邁',co:'th',code:'CNX',hotel:[800,1500,3500],food:[600,1000,1800],d:{
+ '古城區':[['帕辛寺','c',0,'蘭納風格古剎'],['古城護城河步道','n',0,'傍晚慢走'],['週日夜市','s',0,'手作與小吃，只在週日'],['北部咖哩麵','f',100,'清邁招牌']],
+ '素帖山・尼曼':[['素帖寺','c',150,'山頂金塔望清邁'],['素帖山步道','n',0,'林間健行'],['尼曼路文創小店','s',0,'設計選物'],['尼曼咖啡甜點','f',250,'人氣咖啡廳']],
+ '郊區':[['隧道寺','c',0,'地下佛龕與森林'],['大象保育園','n',1500,'選擇不騎乘的保育園'],['山康烹手工藝村','s',0,'傘與絲織品'],['山區咖啡農莊午餐','f',200,'景觀餐廳']]}},
+tpe:{n:'台北',co:'tw',code:'TSA',hotel:[1500,3000,6000],food:[900,1500,2500],d:{
+ '西門・萬華':[['龍山寺','c',0,'香火鼎盛古剎'],['植物園','n',0,'荷花池與日式老建築'],['西門町','s',0,'流行服飾與娃娃機'],['西門町麵線小吃','f',100,'排隊老店']],
+ '信義・大安':[['台北 101 觀景台','c',600,'89 樓室內觀景'],['象山步道','n',0,'登高拍 101'],['信義商圈','s',0,'百貨與書店'],['小籠包午餐','f',500,'名店小籠包']],
+ '士林・北投':[['故宮博物院','c',350,'翠玉白菜與肉形石'],['陽明山國家公園','n',0,'火山地形與花季'],['天母商圈選物','s',0,'選物店與老屋咖啡'],['士林夜市小吃','f',300,'大雞排與蚵仔煎']]}},
+tnn:{n:'台南',co:'tw',code:'TNN',hotel:[1000,2000,4000],food:[800,1300,2200],d:{
+ '中西區':[['赤崁樓','c',50,'荷蘭時期古蹟'],['台南公園','n',0,'市區綠地'],['神農街','s',0,'老街文創小店'],['國華街小吃','f',300,'碗粿、蝦仁飯']],
+ '安平':[['安平古堡','c',70,'荷蘭城堡遺址'],['漁光島海景','n',0,'夕陽與海風'],['安平老街','s',0,'蜜餞與伴手禮'],['安平蝦捲與豆花','f',200,'老街必吃']],
+ '七股・北門':[['七股鹽山','c',100,'白色鹽堆景觀'],['七股潟湖','n',350,'搭船看蚵田'],['鹽鄉特產店','s',0,'鹽製品伴手禮'],['七股海鮮午餐','f',500,'現撈海產']]}},
+par:{n:'巴黎',co:'fr',code:'PAR',hotel:[3500,6500,13000],food:[1800,3000,5000],d:{
+ '羅浮宮・瑪黑區':[['羅浮宮','c',600,'先訂時段票'],['杜樂麗花園','n',0,'市中心綠地'],['老佛爺百貨','s',0,'穹頂與頂樓露台'],['瑪黑區可麗餅','f',250,'街邊現做']],
+ '艾菲爾鐵塔・七區':[['艾菲爾鐵塔','c',600,'傍晚登塔看日落'],['戰神廣場','n',0,'鐵塔前草地野餐'],['塞納河畔舊書攤','s',0,'明信片與老版畫'],['河畔法式午餐','f',900,'前菜加主餐套餐']],
+ '蒙馬特':[['聖心堂','c',0,'白色圓頂教堂'],['蒙馬特山坡階梯','n',0,'山坡與小葡萄園'],['藝術家廣場畫攤','s',0,'現場畫像'],['蒙馬特小酒館','f',1000,'老式晚餐']]}},
+lon:{n:'倫敦',co:'uk',code:'LON',hotel:[4000,7000,14000],food:[1800,3000,5000],d:{
+ '西敏寺・國會':[['西敏寺','c',1000,'皇室典禮教堂'],['聖詹姆斯公園','n',0,'鵜鶘與湖景'],['攝政街購物','s',0,'連鎖與旗艦店'],['傳統炸魚薯條','f',500,'酒館午餐']],
+ '肯辛頓・南肯':[['自然史博物館','c',0,'免費，恐龍骨架大廳'],['海德公園','n',0,'湖畔慢走'],['哈洛德百貨','s',0,'美食廳與伴手禮'],['英式下午茶','f',1300,'三層架點心']],
+ '倫敦塔・南岸':[['倫敦塔','c',1400,'皇家珠寶展'],['泰晤士河南岸步道','n',0,'沿河看塔橋'],['南岸書市','s',0,'舊書與街頭市集'],['波羅市場','f',500,'各國熟食攤']]}},
+rom:{n:'羅馬',co:'it',code:'ROM',hotel:[3000,5500,11000],food:[1500,2500,4200],d:{
+ '古羅馬・鬥獸場':[['古羅馬競技場','c',600,'含古羅馬廣場套票'],['阿皮亞古道','n',0,'古道騎單車'],['Monti 區古著店','s',0,'小巷獨立選物'],['羅馬手工披薩','f',300,'薄脆餅皮']],
+ '梵蒂岡':[['梵蒂岡博物館','c',700,'含西斯汀禮拜堂'],['賈尼科洛山丘','n',0,'日落俯瞰羅馬'],['Prati 區市場','s',0,'當地食材與雜貨'],['義式冰淇淋與咖啡','f',200,'逛累了休息']],
+ '萬神殿・特拉斯提弗列':[['萬神殿','c',100,'古羅馬圓頂神殿'],['波各賽公園','n',0,'湖畔與花園'],['納沃納廣場街頭','s',0,'畫家與手作'],['特拉斯提弗列小酒館','f',700,'在地人的夜晚']]}},
+flr:{n:'佛羅倫斯',co:'it',code:'FLR',hotel:[3000,5500,10000],food:[1500,2500,4000],d:{
+ '老城區':[['聖母百花大教堂','c',800,'登圓頂看全城'],['波波里花園','n',300,'文藝復興庭園'],['皮革市場','s',0,'皮件與圍巾'],['佛羅倫斯牛排','f',1200,'丁骨牛排']],
+ '舊橋・河對岸':[['烏菲茲美術館','c',700,'文藝復興名作'],['米開朗基羅廣場','n',0,'日落全景'],['舊橋金飾店','s',0,'橋上珠寶店'],['河對岸小餐館','f',700,'家常托斯卡尼菜']],
+ '近郊・托斯卡尼':[['比薩斜塔','c',500,'搭火車約 1 小時'],['奇揚地葡萄園','n',0,'丘陵風景'],['手工陶瓷店','s',0,'彩繪餐具'],['酒莊午餐','f',1200,'試酒與午餐']]}},
+nyc:{n:'紐約',co:'us',code:'NYC',hotel:[5000,8500,15000],food:[2000,3500,6000],d:{
+ '曼哈頓中城':[['帝國大廈','c',1400,'日落時段最熱門'],['中央公園','n',0,'租單車繞一圈'],['第五大道購物','s',0,'旗艦店密集'],['紐約街頭披薩','f',200,'一片即吃']],
+ '下城・布魯克林':[['自由女神渡輪','c',800,'含展望碼頭'],['布魯克林大橋步行','n',0,'傍晚看曼哈頓天際線'],['SoHo 選物店','s',0,'設計小店'],['布魯克林貝果','f',250,'早餐首選']],
+ '切爾西・高線':[['惠特尼美術館','c',800,'當代美國藝術'],['高線公園','n',0,'空中鐵道公園'],['切爾西市場選物','s',0,'手作與食材'],['切爾西市場美食','f',500,'龍蝦與塔可']]}},
+sin:{n:'新加坡',co:'sg',code:'SIN',hotel:[2500,4500,9000],food:[1000,1800,3200],d:{
+ '濱海灣':[['金沙空中花園','c',800,'頂樓觀景台'],['濱海灣花園','n',0,'超級樹燈光秀'],['濱海灣購物中心','s',0,'精品與室內運河'],['海南雞飯','f',150,'美食廣場必吃']],
+ '烏節路・植物園':[['新加坡國家美術館','c',500,'東南亞藝術'],['新加坡植物園','n',0,'世界遺產蘭花園'],['烏節路商場','s',0,'冷氣逛街'],['肉骨茶','f',300,'胡椒湯底']],
+ '牛車水・小印度':[['佛牙寺','c',0,'唐風佛寺'],['麥里芝蓄水池步道','n',0,'樹冠步道'],['牛車水街區','s',0,'伴手禮與小店'],['老巴剎沙嗲','f',250,'炭烤沙嗲']]}}
+};
+
+var st={co:['jp'],ci:['tyo'],days:5,styles:['f','c'],modes:['metro','train'],tier:1,pace:'full'};
+var sel={},uid=0;
+var $=function(i){return document.getElementById(i)};
+var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var fmt=function(n){return 'NT$ '+(Math.round(n/100)*100).toLocaleString('zh-TW')};
+
+function chip(type,name,val,text,on,extra){
+  return '<label class="chip"><input type="'+type+'" name="'+name+'" value="'+esc(val)+'"'+(on?' checked':'')+(extra||'')+'><span>'+esc(text)+'</span></label>';
+}
+function buildStatic(){
+  $('co').innerHTML=Object.keys(CO).map(function(k){return chip('checkbox','co',k,CO[k].n,st.co.indexOf(k)>-1)}).join('');
+  $('styles').innerHTML=['f','c','n','s'].map(function(k){return chip('checkbox','styles',k,STYLE[k],st.styles.indexOf(k)>-1)}).join('');
+  $('modes').innerHTML=Object.keys(MODES).map(function(k){return chip('checkbox','modes',k,MODES[k],st.modes.indexOf(k)>-1)}).join('');
+  $('tier').innerHTML=TIERS.map(function(t,i){return chip('radio','tier',i,t[0],i===st.tier)}).join('');
+  $('pace').innerHTML=[['full','緊湊（含上午）'],['relax','悠閒（睡到飽）']].map(function(p){return chip('radio','pace',p[0],p[1],p[0]===st.pace)}).join('');
+}
+function buildCities(){
+  $('ci').innerHTML=Object.keys(C).filter(function(k){return st.co.indexOf(C[k].co)>-1}).map(function(k){
+    return chip('checkbox','ci',k,C[k].n,st.ci.indexOf(k)>-1)}).join('');
+}
+function ensureSel(k){
+  if(!sel[k])sel[k]={d:Object.keys(C[k].d).slice(0,2),off:{},cd:[],cs:[]};
+  return sel[k];
+}
+var styleOk=function(s){return !st.styles.length||st.styles.indexOf(s)>-1};
+var byOrd=function(a,b){return ORD[a.s]-ORD[b.s]};
+function customObj(c){return {id:c.id,name:c.name,s:'x',cost:0,desc:'自訂地點，費用未計入',dist:c.d||'自訂'}}
+// 回傳目前可挑選的地點；all=true 時含已取消勾選者
+function citySpots(k,all){
+  var s=ensureSel(k),out=[];
+  s.d.forEach(function(dn){
+    (C[k].d[dn]||[]).map(function(sp,i){return {id:k+'|'+dn+'|'+i,name:sp[0],s:sp[1],cost:sp[2],desc:sp[3],dist:dn}})
+      .filter(function(x){return styleOk(x.s)}).sort(byOrd).forEach(function(x){out.push(x)});
+    s.cs.filter(function(c){return c.d===dn}).forEach(function(c){out.push(customObj(c))});
+  });
+  s.cs.filter(function(c){return !c.d}).forEach(function(c){out.push(customObj(c))});
+  return all?out:out.filter(function(x){return !s.off[x.id]});
+}
+
+function renderPick(){
+  var h='';
+  st.ci.forEach(function(k){
+    var s=ensureSel(k),c=C[k],ds=Object.keys(c.d).concat(s.cd);
+    h+='<section class="pick"><h3>'+c.n+'<small>'+CO[c.co].n+'</small></h3>'+
+      '<div><div class="lab">地區（可多選）</div><div class="chips">'+
+      ds.map(function(d){return chip('checkbox','d_'+k,d,d,s.d.indexOf(d)>-1,' data-k="'+k+'" data-d="'+esc(d)+'"')}).join('')+'</div></div>'+
+      '<div class="addrow"><input type="text" id="cd_'+k+'" maxlength="20" placeholder="自訂地區，例如：中野" aria-label="自訂地區"><button type="button" class="ghost" data-act="addd" data-k="'+k+'">新增地區</button></div>';
+    var list=citySpots(k,true);
+    h+='<div><div class="lab">建議地點（已預選，可取消勾選）</div>';
+    if(!s.d.length)h+='<p class="empty">請先選擇至少一個地區。</p>';
+    else if(!list.length)h+='<p class="empty">這些地區沒有符合所選風格的建議地點，可改選風格或自訂地點。</p>';
+    else{
+      var last='';
+      list.forEach(function(x,i){
+        if(x.dist!==last){last=x.dist;h+=(i?'</div>':'')+'<p class="dgroup">'+esc(x.dist)+'</p><div class="spots">'}
+        h+='<label class="sp"><input type="checkbox" data-k="'+k+'" data-id="'+esc(x.id)+'"'+(s.off[x.id]?'':' checked')+'><b>'+esc(x.name)+'</b><small>'+STYLE[x.s]+'・'+(x.cost?'約 '+fmt(x.cost):'免費')+'・'+esc(x.desc)+'</small></label>';
+      });
+      h+='</div>';
+    }
+    h+='</div><div class="addrow"><input type="text" id="cs_'+k+'" maxlength="30" placeholder="自訂地點，例如：某某咖啡廳" aria-label="自訂地點"><select id="cl_'+k+'" aria-label="自訂地點所屬地區"><option value="">不指定地區</option>'+
+      s.d.map(function(d){return '<option value="'+esc(d)+'">'+esc(d)+'</option>'}).join('')+'</select><button type="button" class="ghost" data-act="adds" data-k="'+k+'">新增地點</button></div></section>';
+  });
+  $('pick').innerHTML=h;
+}
+
+function plan(){
+  var cities=st.ci.slice(0,st.days),over=st.ci.length>st.days;
+  var n=cities.length,base=Math.floor(st.days/n),rem=st.days%n,perDay=st.pace==='relax'?2:3;
+  var slots=st.pace==='relax'?['p','e']:['a','p','e'];
+  var days=[],spotCost=0,left=[],used=0;
+  cities.forEach(function(k,ci){
+    var cd=base+(ci<rem?1:0),list=citySpots(k,false);
+    for(var i=0;i<cd;i++){
+      var chunk=list.slice(i*perDay,(i+1)*perDay).sort(byOrd);
+      var items=slots.map(function(sl,j){return chunk[j]?{slot:sl,s:chunk[j]}:{slot:sl,free:true}});
+      chunk.forEach(function(x){spotCost+=x.cost});
+      days.push({city:k,items:items,first:i===0});
+    }
+    list.slice(cd*perDay).forEach(function(x){left.push(x.name)});
+  });
+  return {days:days,spots:spotCost,left:left,over:over,cities:cities};
+}
+function hopName(){
+  if(st.modes.indexOf('train')>-1)return '火車';
+  if(st.modes.indexOf('drive')>-1)return '自駕';
+  if(st.modes.indexOf('bus')>-1)return '長途巴士';
+  return '大眾運輸';
+}
+
+function renderRes(){
+  var p=plan(),cs=p.cities,n=cs.length,total=st.days,nights=total-1;
+  var modes=st.modes.length?st.modes:['metro'];
+  var m=TIERS[st.tier][1],t=st.tier;
+  var cos=[];cs.forEach(function(k){if(cos.indexOf(C[k].co)<0)cos.push(C[k].co)});
+  var maxFl=0;cos.forEach(function(c){maxFl=Math.max(maxFl,CO[c].flight)});
+  var fl=maxFl?(maxFl+3000*(cos.length-1))*m:0;
+  var hotel=0,food=0;
+  p.days.forEach(function(d,i){
+    food+=C[d.city].food[t];
+    if(i<total-1)hotel+=C[d.city].hotel[t]/2;
+  });
+  var local=0;modes.forEach(function(x){local+=LOCAL[x]});local/=modes.length;
+  var hop=modes.indexOf('train')>-1?1000:(modes.indexOf('drive')>-1?800:1500);
+  var tr=total*local+(n-1)*hop;
+  var tot=fl+hotel+food+tr+p.spots;
+  var parts=[['機票',fl,'c1'],['住宿',hotel,'c2'],['餐飲',food,'c3'],['交通',tr,'c5'],['景點門票餐費',p.spots,'c4']].filter(function(x){return x[1]>0});
+  var first=C[cs[0]],fc=CO[first.co];
+  var h='';
+  if(p.over)h+='<p class="warn">天數不足以安排 '+st.ci.length+' 座城市，目前只排前 '+n+' 座。請增加天數或減少城市。</p>';
+  h+='<section class="pass"><div class="main"><div class="route"><div>TPE<small>桃園</small></div><span class="arrow"></span><div>'+first.code+'<small>'+first.n+(n>1?' 等 '+n+' 城':'')+'</small></div></div>'+
+   '<dl class="facts"><div><dt>行程</dt><dd>'+total+' 天 '+nights+' 夜</dd></div><div><dt>城市</dt><dd>'+cs.map(function(k){return C[k].n}).join(' → ')+'</dd></div><div><dt>飛行時間</dt><dd>'+fc.fh+'</dd></div><div><dt>最佳季節</dt><dd>'+fc.season+'</dd></div></dl></div>'+
+   '<div class="stub"><span class="lbl">每人預算概估</span><span class="total">'+fmt(tot)+'</span><span class="sub">'+TIERS[t][0]+'等級・不含額外購物</span>'+
+   '<div class="bar">'+parts.map(function(x){return '<span class="'+x[2]+'" style="width:'+(x[1]/tot*100)+'%"></span>'}).join('')+'</div>'+
+   '<div class="legend">'+parts.map(function(x){return '<span><i class="'+x[2]+'"></i>'+x[0]+' '+fmt(x[1]).replace('NT$ ','')+'</span>'}).join('')+'</div></div></section>';
+  h+='<section class="days">';
+  var prev='';
+  p.days.forEach(function(d,i){
+    var no=i+1,notes=[];
+    if(no===1)notes.push('抵達日，先到飯店放行李再出發。');
+    if(d.first&&prev)notes.push('上午搭乘'+hopName()+'前往'+C[d.city].n+'，約半天移動。');
+    if(no===total)notes.push('返程日，預留至少 3 小時前往機場。');
+    prev=d.city;
+    var area=d.items.filter(function(x){return x.s}).map(function(x){return x.s.dist}).filter(function(v,j,a){return a.indexOf(v)===j}).join('、');
+    h+='<article class="day"><h3>第 '+no+' 天<em class="city">'+C[d.city].n+'</em>'+(area?'<em class="area">'+esc(area)+'</em>':'')+'</h3>'+(notes.length?'<p class="note">'+notes.join('')+'</p>':'');
+    d.items.forEach(function(x){
+      var tm=SLOT[x.slot];
+      if(x.free){h+='<div class="slot free"><div class="t"><b>'+tm[0]+'</b>'+tm[1]+'</div><div><div class="n">自由活動</div><p>預留彈性，可在地區內加選地點，或回飯店休息。</p></div></div>';return}
+      var s=x.s;
+      h+='<div class="slot"><div class="t"><b>'+tm[0]+'</b>'+tm[1]+'</div><div><div class="n">'+esc(s.name)+'<span class="tag">'+STYLE[s.s]+'</span></div><p>'+esc(s.desc)+'</p><div class="meta">'+esc(s.dist)+'・'+(s.s==='x'?'自訂':(s.cost?'約 '+fmt(s.cost):'免費'))+'</div></div></div>';
+    });
+    h+='</article>';
+  });
+  h+='</section>';
+  if(p.left.length)h+='<p class="warn">以下地點因天數不足沒有排入，可增加天數或取消其他地點：'+p.left.map(esc).join('、')+'</p>';
+  h+='<section class="tips"><h3>交通建議</h3><ul>'+modes.map(function(x){return '<li><b>'+MODES[x]+'</b>：'+MODE_TXT[x]+'</li>'}).join('')+
+    (modes.indexOf('drive')>-1?cos.map(function(c){return '<li>'+CO[c].n+'：'+CO[c].drive+'</li>'}).join(''):'')+'</ul>'+
+    '<h3>出發前小提醒</h3><ul>'+cos.map(function(c){return CO[c].tips.map(function(x){return '<li>'+CO[c].n+'：'+x+'</li>'}).join('')}).join('')+'</ul></section>';
+  h+='<div class="actions"><button type="button" id="copy">複製行程文字</button><span class="status" id="cs"></span></div><div id="fb"></div>';
+  $('res').innerHTML=h;
+  $('copy').onclick=function(){copyText(toText(p,tot))};
+}
+function toText(p,tot){
+  var L=[p.cities.map(function(k){return C[k].n}).join('、')+' '+st.days+' 天自由行（每人約 '+fmt(tot)+'）'];
+  p.days.forEach(function(d,i){
+    L.push('','第 '+(i+1)+' 天 '+C[d.city].n);
+    d.items.forEach(function(x){L.push(SLOT[x.slot][0]+' '+SLOT[x.slot][1]+'　'+(x.free?'自由活動':x.s.name+'（'+x.s.dist+'）'))});
+  });
+  return L.join('\n');
+}
+function copyText(t){
+  var ok=function(){$('cs').textContent='已複製';$('fb').innerHTML=''};
+  var bad=function(){
+    $('fb').innerHTML='<textarea class="fallback" id="ta" readonly></textarea>';
+    var ta=$('ta');ta.value=t;ta.focus();ta.select();$('cs').textContent='請按住文字手動複製';
+  };
+  try{navigator.clipboard.writeText(t).then(ok,bad)}catch(e){bad()}
+}
+function render(){renderPick();renderRes()}
+
+$('f').addEventListener('change',function(e){
+  var f=new FormData($('f')),coChanged=e.target.name==='co';
+  var co=f.getAll('co');
+  if(!co.length){co=st.co;buildStatic();}
+  st.co=co;
+  var ci=Object.keys(C).filter(function(k){return co.indexOf(C[k].co)>-1&&(coChanged?st.ci.indexOf(k)>-1:f.getAll('ci').indexOf(k)>-1)});
+  co.forEach(function(c){
+    if(!ci.some(function(k){return C[k].co===c})){ci.push(Object.keys(C).filter(function(k){return C[k].co===c})[0])}
+  });
+  st.ci=Object.keys(C).filter(function(k){return ci.indexOf(k)>-1});
+  st.days=+$('days').value;
+  st.styles=f.getAll('styles');
+  st.modes=f.getAll('modes');
+  st.tier=+f.get('tier');
+  st.pace=f.get('pace');
+  $('daysOut').textContent=st.days+' 天';
+  if(coChanged||e.target.name==='ci')buildCities();
+  render();
+});
+$('pick').addEventListener('change',function(e){
+  var el=e.target,k=el.dataset.k;
+  if(!k)return;
+  var s=ensureSel(k);
+  if(el.dataset.d!==undefined){
+    var d=el.dataset.d,i=s.d.indexOf(d);
+    if(el.checked&&i<0)s.d.push(d);
+    if(!el.checked&&i>-1)s.d.splice(i,1);
+    var all=Object.keys(C[k].d).concat(s.cd);
+    s.d.sort(function(a,b){return all.indexOf(a)-all.indexOf(b)});
+  }else if(el.dataset.id){
+    if(el.checked)delete s.off[el.dataset.id];else s.off[el.dataset.id]=1;
+  }
+  render();
+});
+$('pick').addEventListener('click',function(e){
+  var b=e.target.closest('button[data-act]');
+  if(!b)return;
+  var k=b.dataset.k,s=ensureSel(k);
+  if(b.dataset.act==='addd'){
+    var v=$('cd_'+k).value.trim();
+    if(!v)return;
+    if(Object.keys(C[k].d).concat(s.cd).indexOf(v)<0)s.cd.push(v);
+    if(s.d.indexOf(v)<0)s.d.push(v);
+  }else{
+    var nm=$('cs_'+k).value.trim();
+    if(!nm)return;
+    s.cs.push({id:'x'+(++uid),name:nm,d:$('cl_'+k).value});
+  }
+  render();
+});
+$('pick').addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&e.target.matches('input[type=text]')){
+    e.preventDefault();
+    var b=e.target.parentNode.querySelector('button[data-act]');
+    if(b)b.click();
+  }
+});
+buildStatic();buildCities();render();
+</script>
+
+</body>
+</html>
