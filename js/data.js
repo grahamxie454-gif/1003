@@ -1,3 +1,4 @@
+var SAVE_BLOCK=false;
 // ================= 資料庫 =================
 async function loadBuiltin(){
   var r=await Promise.all(['countries','cities','districts','spots'].map(function(t){return sb.from(t).select('*').order('sort',{ascending:true}).order('id',{ascending:true})}));
@@ -19,6 +20,7 @@ function packTrip(){
   return {st:st,sel:sel,uid:uid,cuid:cuid,days:DAYS,cc:cc,cx:cx};
 }
 function openTrip(row){
+  SAVE_BLOCK=false;
   TRIP=row;
   var d=row.data||{},s=d.st||{};
   buildBuiltin();
@@ -57,13 +59,19 @@ function save(){
   clearTimeout(saveTimer);saveTimer=setTimeout(doSave,700);
 }
 async function doSave(){
-  if(!TRIP||!dirty)return;
+  if(!TRIP||!dirty||SAVE_BLOCK)return;
   dirty=false;clearTimeout(saveTimer);
   var data=packTrip(),id=TRIP.id;
   var upd={data:data,updated_at:new Date().toISOString()};
   if(TRIP.share_enabled&&typeof buildSnapshot==='function'){upd.share_data=buildSnapshot(plan());upd.share_updated_at=upd.updated_at}
-  var r=await sb.from('trips').update(upd).eq('id',id);
-  if(TRIP&&TRIP.id===id)TRIP.data=data;
+  // 樂觀鎖：若行程在別處被更新（例如管理員核准收錄後已替你換成內建資料），就不要覆蓋
+  var r=await sb.from('trips').update(upd).eq('id',id).eq('updated_at',TRIP.updated_at).select('id');
+  if(!r.error&&(!r.data||!r.data.length)){
+    SAVE_BLOCK=true;
+    setSave('這份行程已在別處更新（例如管理員核准了你的收錄申請），請重新整理頁面後再編輯，避免覆蓋。');
+    return;
+  }
+  if(TRIP&&TRIP.id===id){TRIP.data=data;if(!r.error)TRIP.updated_at=upd.updated_at}
   setSave(r.error?'儲存失敗：'+r.error.message:'已儲存');
 }
 async function flush(){if(dirty)await doSave()}
