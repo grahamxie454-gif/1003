@@ -13,7 +13,9 @@ async function enter(user){
     if(r.error)throw r.error;
     if(!r.data){$('boot').textContent='找不到這份行程，或擁有者尚未開啟分享。';return}
     SHARE=r.data;ME={id:user.id,email:user.email};
-    $('whoEmail').textContent=user.email;
+    var pf=await sb.from('profiles').select('nickname').eq('id',user.id);
+    ME.nickname=pf.data&&pf.data[0]?pf.data[0].nickname:'';
+    showWho();
     $('sTitle').textContent=SHARE.name;
     $('sSub').textContent='擁有者：'+(SHARE.owner||'')+'　行程更新：'+fmtDT(SHARE.updated_at);
     $('goSlides').href='slideshow.html?trip='+TID;
@@ -40,6 +42,7 @@ function buildItems(){
 
 async function refresh(){
   var res=await Promise.all([loadPhotos(TID),sb.from('trip_notes').select('*').eq('trip_id',TID).order('created_at',{ascending:true})]);
+  await loadPeople(TID);
   PHOTOS=res[0];
   if(res[1].error)throw res[1].error;
   NOTES=res[1].data;
@@ -68,7 +71,7 @@ function renderShare(){
         (r.r?' <span class="rate">★ '+Number(r.r).toFixed(1)+'</span>':'')+(r.c?' <span class="muted">'+money(r.c)+'</span>':'')+tools+'</div></li>';
     }).join('')+'</ol>';
     h+='<div class="notes"><h4>留言</h4>'+(notes.length?notes.map(function(n){
-      return '<p class="note2"><b>'+esc(n.user_email)+'</b> <span class="muted">'+esc(fmtDT(n.created_at))+'</span><br>'+esc(n.body)+
+      return '<p class="note2"><b>'+esc(nameOf(n.user_id,n.user_email))+'</b> <span class="muted">'+esc(fmtDT(n.created_at))+'</span><br>'+esc(n.body)+
         ((n.user_id===ME.id||SHARE.is_owner)?' <button type="button" class="ghost sm x" data-del-note="'+esc(n.id)+'" aria-label="刪除留言">刪除</button>':'')+'</p>';
     }).join(''):'<p class="muted">還沒有留言。</p>')+
       '<div class="noterow"><input type="text" maxlength="500" data-note-in="'+d.no+'" placeholder="寫下這一天的註解或心得" aria-label="第 '+d.no+' 天留言"><button type="button" data-note-add="'+d.no+'">送出</button></div></div></article>';
@@ -117,7 +120,7 @@ function renderModal(keepPending){
     var mine=p.user_id===ME.id;
     h+='<div class="mrow"><a href="slideshow.html?trip='+TID+'&p='+p.id+'" target="_blank" rel="noopener">'+(p.url?'<img src="'+esc(p.url)+'" alt="">':'')+'</a><div class="mcol">'+
       '<input type="text" maxlength="100" data-cap-id="'+esc(p.id)+'" value="'+esc(p.caption||'')+'" placeholder="註解"'+(mine?'':' disabled')+' aria-label="照片註解">'+
-      '<span class="muted">'+esc(p.user_email)+'・上傳 '+esc(fmtDT(p.created_at))+(p.taken_at?'・拍攝 '+esc(fmtDT(p.taken_at)):'')+'</span>'+
+      '<span class="muted">'+esc(nameOf(p.user_id,p.user_email))+'・上傳 '+esc(fmtDT(p.created_at))+(p.taken_at?'・拍攝 '+esc(fmtDT(p.taken_at)):'')+'</span>'+
       '<div class="mvbar">'+(mine?'<button type="button" class="sm" data-cap-save="'+esc(p.id)+'">儲存註解</button>':'')+
       (mine?'<button type="button" class="ghost sm x" data-del-photo="'+esc(p.id)+'">刪除照片</button>':'<span class="muted">只有上傳者能修改或刪除</span>')+'</div></div></div>';
   });
@@ -222,3 +225,4 @@ async function deletePhoto(id,msgEl){
   }catch(err){say('刪除失敗：'+(err.message||err))}
 }
 bootPage();
+function onNickChanged(){renderShare();if(MOD&&!$('modal').hidden)renderModal(true)}

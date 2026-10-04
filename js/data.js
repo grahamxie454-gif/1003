@@ -45,7 +45,7 @@ function openTrip(row){
   Object.keys(DAYS).forEach(function(n){if(DAYS[n])delete DAYS[n].flights});
   $('tripName').value=row.name;
   rebuildAll(true);
-  if(TRIP.share_enabled&&(!TRIP.share_data||TRIP.share_data.v!==2))save();
+  if(TRIP.share_enabled&&(!TRIP.share_data||TRIP.share_data.v!==3))save();
 }
 function buildTripSel(){
   $('tripSel').innerHTML=TRIPS.map(function(t){return '<option value="'+esc(t.id)+'"'+(TRIP&&t.id===TRIP.id?' selected':'')+'>'+esc(t.name)+'</option>'}).join('');
@@ -119,7 +119,7 @@ async function enter(user){
     ME=p.data;
     step='讀取行程與景點資料';
     await Promise.all([loadBuiltin(),loadTrips(),loadRoutes()]);
-    $('whoEmail').textContent=ME.email;$('whoRole').textContent=ME.role==='admin'?'管理員':'一般使用者';
+    showWho();$('whoRole').textContent=ME.role==='admin'?'管理員':'一般使用者';
     $('adminTab').hidden=ME.role!=='admin';
     $('boot').hidden=true;$('app').hidden=false;
     step='顯示行程';

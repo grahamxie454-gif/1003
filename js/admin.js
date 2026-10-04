@@ -34,22 +34,22 @@ var fmtDate=function(s){var d=new Date(s);return isNaN(d)?'':d.toLocaleString('z
 async function adminUsers(){
   var r=await sb.from('profiles').select('*').order('created_at',{ascending:true});
   if(r.error)throw r.error;
-  var h='<p class="muted">共 '+r.data.length+' 位使用者。管理員可進入後台；停用的帳號無法使用系統。至少要保留一位啟用中的管理員。</p><div class="tblwrap"><table class="t"><thead><tr><th>電子郵件</th><th>角色</th><th>狀態</th><th>註冊時間</th></tr></thead><tbody>';
+  var h='<p class="muted">共 '+r.data.length+' 位使用者。管理員可進入後台；停用的帳號無法使用系統。至少要保留一位啟用中的管理員。</p><div class="tblwrap"><table class="t"><thead><tr><th>暱稱</th><th>電子郵件</th><th>角色</th><th>狀態</th><th>註冊時間</th></tr></thead><tbody>';
   r.data.forEach(function(u){
     var me=u.id===ME.id;
-    h+='<tr><td>'+esc(u.email)+(me?'（你）':'')+'</td><td><select data-uid="'+esc(u.id)+'" data-u="role"'+(me?' disabled':'')+'><option value="user"'+(u.role==='user'?' selected':'')+'>一般使用者</option><option value="admin"'+(u.role==='admin'?' selected':'')+'>管理員</option></select></td>'+
+    h+='<tr><td>'+esc(u.nickname||emailName(u.email))+'</td><td>'+esc(u.email)+(me?'（你）':'')+'</td><td><select data-uid="'+esc(u.id)+'" data-u="role"'+(me?' disabled':'')+'><option value="user"'+(u.role==='user'?' selected':'')+'>一般使用者</option><option value="admin"'+(u.role==='admin'?' selected':'')+'>管理員</option></select></td>'+
       '<td><select data-uid="'+esc(u.id)+'" data-u="disabled"'+(me?' disabled':'')+'><option value="0"'+(!u.disabled?' selected':'')+'>啟用</option><option value="1"'+(u.disabled?' selected':'')+'>停用</option></select></td><td>'+esc(fmtDate(u.created_at))+'</td></tr>';
   });
   $('adminBody').innerHTML=h+'</tbody></table></div>';
 }
 async function adminTrips(){
-  var r=await sb.from('trips').select('id,name,data,updated_at,user_id,profiles(email)').order('updated_at',{ascending:false});
+  var r=await sb.from('trips').select('id,name,data,updated_at,user_id,profiles(email,nickname)').order('updated_at',{ascending:false});
   if(r.error)throw r.error;
   var h='<p class="muted">共 '+r.data.length+' 份行程。</p><div class="tblwrap"><table class="t"><thead><tr><th>使用者</th><th>行程名稱</th><th>天數</th><th>城市</th><th>更新時間</th><th></th></tr></thead><tbody>';
   r.data.forEach(function(t){
     var d=t.data||{},s=d.st||{},cx=d.cx||{};
     var names=(s.ci||[]).map(function(k){return cx[k]?cx[k].n:(C[k]?C[k].n:k)}).join('、');
-    h+='<tr><td>'+esc(t.profiles?t.profiles.email:'')+'</td><td>'+esc(t.name)+'</td><td>'+esc(s.days||'')+'</td><td>'+esc(names)+'</td><td>'+esc(fmtDate(t.updated_at))+'</td><td><button type="button" class="ghost danger" data-del-trip="'+esc(t.id)+'">刪除</button></td></tr>';
+    h+='<tr><td>'+esc(t.profiles?(t.profiles.nickname||emailName(t.profiles.email))+'（'+t.profiles.email+'）':'')+'</td><td>'+esc(t.name)+'</td><td>'+esc(s.days||'')+'</td><td>'+esc(names)+'</td><td>'+esc(fmtDate(t.updated_at))+'</td><td><button type="button" class="ghost danger" data-del-trip="'+esc(t.id)+'">刪除</button></td></tr>';
   });
   $('adminBody').innerHTML=h+'</tbody></table></div>';
 }
