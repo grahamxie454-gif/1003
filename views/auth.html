@@ -1,0 +1,13 @@
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab on" id="tabLogin" role="tab">登入</button>
+      <button type="button" class="tab" id="tabSignup" role="tab">註冊</button>
+    </div>
+    <h2 id="authTitle">登入</h2>
+    <form id="authForm" autocomplete="on">
+      <div class="field"><label for="aemail">電子郵件</label><input type="email" id="aemail" autocomplete="email" required></div>
+      <div class="field"><label for="apass">密碼（至少 8 個字元）</label><input type="password" id="apass" minlength="8" autocomplete="current-password" required></div>
+      <div class="field" id="apass2Wrap" hidden><label for="apass2">再輸入一次密碼</label><input type="password" id="apass2" minlength="8" autocomplete="new-password"></div>
+      <button type="submit" id="authBtn">登入</button>
+    </form>
+    <p class="msg" id="authMsg" hidden></p>
+    <p class="muted">註冊後會寄驗證信到你的信箱，點擊連結完成驗證才能登入。</p>

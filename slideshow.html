@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>照片幻燈片</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="slidebody">
+<div class="wrap" id="loginWrap">
+  <header>
+    <h1>照片幻燈片</h1>
+    <p>請先登入已註冊的帳號，才能瀏覽照片。</p>
+  </header>
+  <p class="msg" id="boot">載入中…</p>
+  <section id="auth" class="card" hidden></section>
+</div>
+<div id="app" class="slides" hidden>
+  <div class="slidebar">
+    <a class="maplink" id="backLink" href="#">← 回到行程</a>
+    <span id="slideInfo" class="muted"></span>
+    <span class="grow"></span>
+    <button type="button" class="ghost sm" id="slPrev" aria-label="上一張">◀</button>
+    <button type="button" class="ghost sm" id="slPlay" aria-label="播放或暫停">▶ 播放</button>
+    <button type="button" class="ghost sm" id="slNext" aria-label="下一張">▶</button>
+    <button type="button" class="ghost sm" id="slFull" aria-label="全螢幕">全螢幕</button>
+  </div>
+  <div class="slidestage"><img id="slideImg" alt=""></div>
+  <div class="slidecap" id="slideCap"></div>
+  <div class="strip" id="strip"></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="js/core.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/page.js"></script>
+<script src="js/slideshow.js"></script>
+</body>
+</html>
