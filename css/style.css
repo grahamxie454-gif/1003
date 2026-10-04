@@ -283,3 +283,14 @@ body.slidebody{background:var(--bg)}
 .tn.l0[draggable="true"]{cursor:grab}
 .tn.l0.dropbefore{box-shadow:0 -3px 0 0 var(--stamp)}
 .tn.l0.dropafter{box-shadow:0 3px 0 0 var(--stamp)}
+
+/* ===== 收錄申請 ===== */
+.reqtag{font-size:11px;border-radius:4px;padding:0 6px;margin-left:4px;white-space:nowrap}
+.reqtag.wait{background:rgba(214,160,40,.18);color:#8a6100}
+.reqtag.ok{background:rgba(46,139,87,.15);color:#1f7a47}
+.reqtag.no{background:rgba(214,69,69,.12);color:#c0392b}
+.reqlist{list-style:none;margin:6px 0 0;padding:0;font-size:13px;display:flex;flex-direction:column;gap:6px}
+.reqcard{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:8px 0;background:var(--bg)}
+.reqcard .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+.reqcard .row input,.reqcard .row select{flex:1 1 110px;min-width:0}
+.reqcard pre{white-space:pre-wrap;font-size:12px;margin:4px 0;color:var(--muted)}

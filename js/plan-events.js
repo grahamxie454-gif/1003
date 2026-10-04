@@ -16,10 +16,11 @@ on('f','change',function(e){
   if(nm==='co'||nm==='ci'){buildStatic();buildCities()}
   render();
 });
-on('f','click',function(e){
+on('f','click',async function(e){
   var b=e.target.closest('button[data-act]');
   if(!b)return;
   var a=b.dataset.act,k=b.dataset.k;
+  if(a==='req'){b.disabled=true;await submitRequest(b.dataset.kind,k);rebuildAll(true);return}
   if(a==='addco'){
     var nm=$('nco').value.trim();if(!nm)return;
     var fl=parseInt($('nfl').value,10);
@@ -68,12 +69,13 @@ on('pick','click',async function(e){
   var b=e.target.closest('button[data-act]');
   if(!b)return;
   var k=b.dataset.k,s=ensureSel(k);
+  if(['delcs','delcd','req','reqcancel'].indexOf(b.dataset.act)>-1){await handleCustomAct(b,k,s);return}
   if(b.dataset.act==='addd'){
     var v=$('cd_'+k).value.trim();
     if(!v)return;
     if(Object.keys(C[k].d).concat(s.cd).indexOf(v)<0)s.cd.push(v);
     if(s.d.indexOf(v)<0)s.d.push(v);
-  }else{
+  }else if(b.dataset.act==='adds'){
     var nm=$('cs_'+k).value.trim(),url=$('cu_'+k).value.trim(),info=null;
     if(url){
       if(!/^https:\/\/(maps\.app\.goo\.gl|goo\.gl|(www\.)?google\.[a-z.]+|maps\.google\.[a-z.]+)\//i.test(url)){setSave('請貼上 Google 地圖的分享連結。');return}

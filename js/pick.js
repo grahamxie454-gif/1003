@@ -22,8 +22,8 @@ function buildAdder(){
       Object.keys(CO).map(function(k){return '<option value="'+esc(k)+'">'+esc(CO[k].n)+'</option>'}).join('')+'</select>'+
       '<input type="number" id="nkm" min="1" placeholder="距其他已選城市約幾公里（預設 150）" aria-label="與其他城市的距離"><button type="button" class="ghost" data-act="addci">新增城市</button></div>'+
     '<p class="hint">自訂城市以預設費用估算，距離用來推算城際移動時間。新增後到右側加入地區與地點。</p>'+
-    ((cus.length||cuc.length)?'<ul>'+cus.map(function(k){return '<li><span>國家：'+esc(CO[k].n)+'</span><button type="button" class="ghost" data-act="delco" data-k="'+esc(k)+'">移除</button></li>'}).join('')+
-      cuc.map(function(k){return '<li><span>城市：'+esc(C[k].n)+'（'+esc(CO[C[k].co].n)+'）</span><button type="button" class="ghost" data-act="delci" data-k="'+esc(k)+'">移除</button></li>'}).join('')+'</ul>':'');
+    ((cus.length||cuc.length)?'<ul>'+cus.map(function(k){return '<li><span>國家：'+esc(CO[k].n)+'</span>'+reqUi(k,'country','data-k="'+esc(k)+'"')+'<button type="button" class="ghost" data-act="delco" data-k="'+esc(k)+'">移除</button></li>'}).join('')+
+      cuc.map(function(k){return '<li><span>城市：'+esc(C[k].n)+'（'+esc(CO[C[k].co].n)+'）</span>'+reqUi(k,'city','data-k="'+esc(k)+'"')+'<button type="button" class="ghost" data-act="delci" data-k="'+esc(k)+'">移除</button></li>'}).join('')+'</ul>':'');
 }
 function normalize(){
   st.co=st.co.filter(function(k){return CO[k]});
@@ -45,7 +45,7 @@ var styleOk=function(){return true};
 var byOrd=function(a,b){return ORD[a.s]-ORD[b.s]};
 function customObj(k,c){
   var has=typeof c.lat==='number';
-  return {id:c.id,k:k,name:c.name,s:c.s||'x',cost:c.cost||0,url:c.url||'',rating:c.rating||null,lat:has?c.lat:null,lng:has?c.lng:null,stay:(st.stay&&st.stay[c.id])||(c.s==='f'?75:60),
+  return {custom:true,id:c.id,k:k,name:c.name,s:c.s||'x',cost:c.cost||0,url:c.url||'',rating:c.rating||null,lat:has?c.lat:null,lng:has?c.lng:null,stay:(st.stay&&st.stay[c.id])||(c.s==='f'?75:60),
     desc:'自訂地點'+(has?'，座標 '+c.lat+', '+c.lng:'，位置為估計')+(c.cost?'':'，費用未計入'),dist:c.d||'自訂'};
 }
 function costTxt(x){return x.cost?'約 '+fmt(x.cost):(x.s==='x'?'自訂，費用未計':'免費')}
@@ -94,7 +94,7 @@ function renderPick(p){
       var chosen=list.filter(function(x){return on&&!s.off[x.id]}),okn=chosen.filter(function(x){return placed[x.id]}).length;
       var dkey=k+'|'+dn,dopen=isOpenT(dkey,false);
       h+='<div class="tn l0 '+treeCls(chosen.length,okn)+'"'+(dn===''?'':' draggable="true" data-dk="'+esc(k)+'" data-dn="'+esc(dn)+'" title="按住拖曳可調整排程優先順序"')+'>'+(dn===''?'':'<span class="grip" aria-hidden="true">⋮⋮</span>')+'<button type="button" class="tgl" data-tk="'+esc(dkey)+'" aria-expanded="'+dopen+'" aria-label="展開或收合">'+(dopen?'▾':'▸')+'</button>'+
-        '<label><input type="checkbox" data-k="'+esc(k)+'" data-d="'+esc(dn)+'"'+(on?' checked':'')+(dn===''?' disabled':'')+'><b>'+esc(dn||'未指定地區')+'</b></label><span class="cnt">'+okn+'/'+chosen.length+' 已排入</span></div>';
+        '<label><input type="checkbox" data-k="'+esc(k)+'" data-d="'+esc(dn)+'"'+(on?' checked':'')+(dn===''?' disabled':'')+'><b>'+esc(dn||'未指定地區')+'</b></label><span class="cnt">'+okn+'/'+chosen.length+' 已排入</span>'+(s.cd.indexOf(dn)>-1?reqUi('dist|'+k+'|'+dn,'district','data-k="'+esc(k)+'" data-dn="'+esc(dn)+'"')+'<button type="button" class="ghost sm x" data-act="delcd" data-k="'+esc(k)+'" data-dn="'+esc(dn)+'" aria-label="刪除自訂地區">✕</button>':'')+'</div>';
       if(!dopen)return;
       Object.keys(STYLE).forEach(function(sty){
         var sl=list.filter(function(x){return x.s===sty});
@@ -107,7 +107,7 @@ function renderPick(p){
         sl.forEach(function(x){
           var chk=on&&!s.off[x.id];
           h+='<div class="tn l2 '+(chk?(placed[x.id]?'ok':'bad'):'off')+'"><label class="sp"><input type="checkbox" data-k="'+esc(k)+'" data-id="'+esc(x.id)+'"'+(s.off[x.id]?'':' checked')+'><b>'+esc(x.name)+'</b> '+rateTxt(x)+'</label>'+
-            '<span class="cnt">'+(x.s==='f'?'餐廳・':'')+costTxt(x)+'・停留 '+(x.stay||stayOf(x))+' 分・<a class="maplink" href="'+esc(mapSearch(x))+'" target="_blank" rel="noopener">地圖</a></span></div>';
+            '<span class="cnt">'+(x.s==='f'?'餐廳・':'')+costTxt(x)+'・停留 '+(x.stay||stayOf(x))+' 分・<a class="maplink" href="'+esc(mapSearch(x))+'" target="_blank" rel="noopener">地圖</a></span>'+(x.custom?reqUi(x.id,'spot','data-k="'+esc(k)+'" data-id="'+esc(x.id)+'"')+'<button type="button" class="ghost sm x" data-act="delcs" data-k="'+esc(k)+'" data-id="'+esc(x.id)+'" aria-label="刪除自訂景點">✕</button>':'')+'</div>';
         });
       });
     });
@@ -115,6 +115,7 @@ function renderPick(p){
       '<div class="addrow"><input type="text" id="cs_'+k+'" maxlength="30" placeholder="自訂地點，例如：某某咖啡廳" aria-label="自訂地點"><select id="cl_'+k+'" aria-label="自訂地點所屬地區"><option value="">不指定地區</option>'+
       s.d.map(function(d){return '<option value="'+esc(d)+'">'+esc(d)+'</option>'}).join('')+'</select><select id="ct_'+k+'" aria-label="自訂地點類型"><option value="x">類型：自訂</option><option value="f">美食</option><option value="c">文化</option><option value="n">自然</option><option value="s">購物</option></select><input type="url" id="cu_'+k+'" placeholder="Google 地圖分享連結（選填，自動帶入名稱與評分）" aria-label="Google 地圖連結"><input type="text" id="cg_'+k+'" placeholder="座標（選填），例如 25.0330, 121.5654" aria-label="自訂地點座標" inputmode="decimal"><input type="number" id="cc_'+k+'" min="0" step="100" placeholder="費用 NT$（選填）" aria-label="自訂地點費用"><button type="button" class="ghost" data-act="adds" data-k="'+esc(k)+'">新增地點</button></div></section>';
   });
+  h+=myRequestsHtml();
   $('pick').innerHTML=h;
   [].forEach.call($('pick').querySelectorAll('input[data-ind]'),function(i){i.indeterminate=true});
 }

@@ -28,6 +28,7 @@ async function renderAdmin(){
   try{
     if(ASUB==='users')await adminUsers();
     else if(ASUB==='trips')await adminTrips();
+    else if(ASUB==='requests')await adminRequests();
     else adminData();
   }catch(err){body.innerHTML='';aMsg('載入失敗：'+(err.message||err),true)}
 }
@@ -181,3 +182,60 @@ async function rowAction(b){
   }catch(err){aMsg('操作失敗：'+(err.message||err),true)}
 }
 
+
+// ===== 收錄申請審核 =====
+function reqSummary(x){
+  var p=x.payload||{},t='';
+  if(x.kind==='spot')t='城市代碼 '+p.city_id+'・地區「'+(p.district||'（未指定）')+'」・類型 '+(STYLE[p.style]||p.style)+'・費用 '+(p.cost||0)+'・停留 '+(p.stay||60)+' 分'+(p.url?'・'+p.url:'');
+  else if(x.kind==='district')t='城市代碼 '+p.city_id+'・含 '+((p.spots||[]).length)+' 個景點：'+(p.spots||[]).map(function(s){return s.name}).join('、');
+  else if(x.kind==='city')t='所屬國家代碼 '+p.country_id+'・地區 '+((p.districts||[]).length)+' 個：'+(p.districts||[]).map(function(d){return d.name+'('+(d.spots||[]).length+')'}).join('、');
+  else t='機票 '+(p.flight||'')+'・飛行 '+(p.fh||'')+'・最佳季節 '+(p.season||'');
+  return t;
+}
+function reqControls(x){
+  var id=esc(x.id),p=x.payload||{},h='';
+  if(x.kind==='country')h+='<input type="text" data-ov="id" maxlength="12" placeholder="國家代碼（小寫英文，如 vn）" aria-label="國家代碼">';
+  if(x.kind==='city')h+='<input type="text" data-ov="id" maxlength="12" placeholder="城市代碼（如 okw）" aria-label="城市代碼"><input type="text" data-ov="code" maxlength="6" placeholder="機場代碼（選填）" aria-label="機場代碼"><input type="number" step="any" data-ov="lat" placeholder="緯度" aria-label="緯度"><input type="number" step="any" data-ov="lng" placeholder="經度" aria-label="經度">';
+  if(x.kind==='district')h+='<input type="number" step="any" data-ov="lat" placeholder="地區緯度（選填）" aria-label="緯度"><input type="number" step="any" data-ov="lng" placeholder="地區經度（選填）" aria-label="經度">';
+  if(x.kind==='spot')h+='<select data-ov="style" aria-label="景點類型"><option value="">類型…</option>'+['f','c','n','s'].map(function(s){return '<option value="'+s+'"'+(p.style===s?' selected':'')+'>'+STYLE[s]+'</option>'}).join('')+'</select><input type="text" data-ov="descr" maxlength="80" placeholder="簡短說明（選填）" aria-label="說明">';
+  return h+'<input type="text" data-note maxlength="100" placeholder="退回原因（退回時填）" aria-label="退回原因"><button type="button" data-req-ok="'+id+'">核准並收錄</button><button type="button" class="ghost danger" data-req-no="'+id+'">退回</button>';
+}
+async function adminRequests(){
+  var r=await sb.from('builtin_requests').select('*,profiles(email,nickname)').order('created_at',{ascending:false}).limit(200);
+  if(r.error)throw r.error;
+  var pend=r.data.filter(function(x){return x.status==='pending'}),done=r.data.filter(function(x){return x.status!=='pending'}).slice(0,30);
+  var who=function(x){return x.profiles?(x.profiles.nickname||emailName(x.profiles.email))+'（'+x.profiles.email+'）':''};
+  var h='<p class="muted">待審核 '+pend.length+' 件。核准後會直接寫入內建資料庫，所有使用者都看得到；國家與城市需要填代碼，城市還要填經緯度。</p>';
+  if(!pend.length)h+='<p class="muted">目前沒有待審核的申請。</p>';
+  pend.forEach(function(x){
+    h+='<div class="reqcard" data-rid="'+esc(x.id)+'"><b>'+KIND_TXT[x.kind]+'：'+esc((x.payload&&x.payload.name)||'')+'</b> <span class="muted">申請人 '+esc(who(x))+'・'+esc(fmtDate(x.created_at))+'</span><pre>'+esc(reqSummary(x))+'</pre><div class="row">'+reqControls(x)+'</div></div>';
+  });
+  if(done.length)h+='<h3>最近處理過的申請</h3><div class="tblwrap"><table class="t"><thead><tr><th>類型</th><th>名稱</th><th>申請人</th><th>結果</th><th>說明</th><th>時間</th></tr></thead><tbody>'+
+    done.map(function(x){return '<tr><td>'+KIND_TXT[x.kind]+'</td><td>'+esc((x.payload&&x.payload.name)||'')+'</td><td>'+esc(who(x))+'</td><td>'+(x.status==='approved'?'已核准':'已退回')+'</td><td>'+esc(x.admin_note||'')+'</td><td>'+esc(fmtDate(x.decided_at))+'</td></tr>'}).join('')+'</tbody></table></div>';
+  $('adminBody').innerHTML=h;
+}
+on('adminBody','click',async function(e){
+  var ok=e.target.closest('button[data-req-ok]'),no=e.target.closest('button[data-req-no]');
+  if(!ok&&!no)return;
+  var card=e.target.closest('.reqcard'),id=card.dataset.rid,btn=ok||no;
+  var ov={};
+  [].forEach.call(card.querySelectorAll('[data-ov]'),function(el){
+    var v=el.value.trim();if(v==='')return;
+    ov[el.dataset.ov]=(el.type==='number')?parseFloat(v):v;
+  });
+  btn.disabled=true;
+  try{
+    if(ok){
+      var r=await sb.rpc('approve_builtin_request',{p_id:id,p_ov:ov});
+      if(r.error)throw r.error;
+      await loadBuiltin();
+      aMsg(r.data||'已核准');
+    }else{
+      var note=card.querySelector('[data-note]').value.trim();
+      var r2=await sb.rpc('reject_builtin_request',{p_id:id,p_note:note});
+      if(r2.error)throw r2.error;
+      aMsg('已退回');
+    }
+    await adminRequests();
+  }catch(err){aMsg('操作失敗：'+(err.message||err),true);btn.disabled=false}
+});

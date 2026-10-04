@@ -119,6 +119,7 @@ async function enter(user){
     ME=p.data;
     step='讀取行程與景點資料';
     await Promise.all([loadBuiltin(),loadTrips(),loadRoutes()]);
+    await loadRequests();
     showWho();$('whoRole').textContent=ME.role==='admin'?'管理員':'一般使用者';
     $('adminTab').hidden=ME.role!=='admin';
     $('boot').hidden=true;$('app').hidden=false;
