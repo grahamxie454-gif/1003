@@ -109,18 +109,23 @@ on('tripSel','change',async function(){
 async function enter(user){
   $('boot').hidden=false;$('boot').textContent='載入中…';$('auth').hidden=true;
   try{
-    var p=await sb.from('profiles').select('*').eq('id',user.id).single();
-    if(p.error)throw p.error;
+    var step='讀取帳號資料';
+    var pr=await sb.from('profiles').select('*').eq('id',user.id);
+    if(pr.error)throw pr.error;
+    if(!pr.data||pr.data.length!==1)throw new Error('找不到帳號資料（登入狀態可能尚未生效，請重新整理頁面後再登入）');
+    var p={data:pr.data[0]};
     if(p.data.disabled){await sb.auth.signOut();showAuth('這個帳號已被停用，請聯絡管理員。');return}
     ME=p.data;
+    step='讀取行程與景點資料';
     await Promise.all([loadBuiltin(),loadTrips(),loadRoutes()]);
     $('whoEmail').textContent=ME.email;$('whoRole').textContent=ME.role==='admin'?'管理員':'一般使用者';
     $('adminTab').hidden=ME.role!=='admin';
     $('boot').hidden=true;$('app').hidden=false;
+    step='顯示行程';
     showView('plan');
     buildTripSel();openTrip(TRIPS[0]);
   }catch(err){
-    $('boot').hidden=true;$('auth').hidden=false;setMsg($('authMsg'),'載入失敗：'+(err.message||err),true);
+    $('boot').hidden=true;$('auth').hidden=false;setMsg($('authMsg'),'載入失敗（'+(typeof step==='string'?step:'登入後')+'）：'+(err.message||err),true);
   }
 }
 
