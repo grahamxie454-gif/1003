@@ -49,15 +49,7 @@ async function refresh(){
 
 function money(c){return c>0?'約 NT$ '+(Math.round(c/10)*10).toLocaleString('zh-TW'):''}
 function itemPhotos(k){return PHOTOS.filter(function(p){return p.item_key===k})}
-function photoCard(p){
-  var mine=p.user_id===ME.id||SHARE.is_owner,it=p.item_key&&ITEMS[p.item_key];
-  return '<figure class="ph"><a href="slideshow.html?trip='+TID+'&p='+p.id+'" target="_blank" rel="noopener">'+(p.url?'<img loading="lazy" src="'+esc(p.url)+'" alt="'+esc(p.caption||'旅遊照片')+'">':'<span class="muted">無法載入</span>')+'</a>'+
-    '<figcaption>'+(p.caption?'<b>'+esc(p.caption)+'</b><br>':'')+'<span class="muted">'+(it?esc(it.name)+'・':'')+esc(p.user_email)+'・上傳 '+esc(fmtDT(p.created_at))+(p.taken_at?'・拍攝 '+esc(fmtDT(p.taken_at)):'')+'</span>'+
-    (mine?' <button type="button" class="ghost sm x" data-del-photo="'+esc(p.id)+'" aria-label="刪除照片">刪除</button>':'')+'</figcaption></figure>';
-}
 function renderShare(){
-  $('photoCnt').textContent='（'+PHOTOS.length+' 張，依拍照時間排序；要新增請在下方各行程項目按「照片」）';
-  $('photos').innerHTML=PHOTOS.length?PHOTOS.map(photoCard).join(''):'<p class="muted">還沒有照片。在下方行程的景點、餐廳旁按「照片」就能上傳。</p>';
   var days=(SHARE.share_data&&SHARE.share_data.days)||[],h='';
   if(!days.length)h='<p class="muted">擁有者尚未發佈行程內容。</p>';
   days.forEach(function(d){
@@ -127,7 +119,7 @@ function renderModal(keepPending){
       '<input type="text" maxlength="100" data-cap-id="'+esc(p.id)+'" value="'+esc(p.caption||'')+'" placeholder="註解"'+(mine?'':' disabled')+' aria-label="照片註解">'+
       '<span class="muted">'+esc(p.user_email)+'・上傳 '+esc(fmtDT(p.created_at))+(p.taken_at?'・拍攝 '+esc(fmtDT(p.taken_at)):'')+'</span>'+
       '<div class="mvbar">'+(mine?'<button type="button" class="sm" data-cap-save="'+esc(p.id)+'">儲存註解</button>':'')+
-      ((mine||SHARE.is_owner)?'<button type="button" class="ghost sm x" data-del-photo="'+esc(p.id)+'">刪除照片</button>':'')+'</div></div></div>';
+      (mine?'<button type="button" class="ghost sm x" data-del-photo="'+esc(p.id)+'">刪除照片</button>':'<span class="muted">只有上傳者能修改或刪除</span>')+'</div></div></div>';
   });
   h+='<h3>新增照片</h3><input type="file" id="mFiles" accept="image/jpeg,image/png,image/webp" multiple aria-label="選擇照片">';
   MOD.pending.forEach(function(p,i){
@@ -209,16 +201,12 @@ on('mBody','click',async function(e){
     $('mSt').innerHTML='已上傳 '+ok+' 張'+(fail?'，失敗 '+fail+' 張（已保留在清單中，可再試一次）':'')+'。<a class="maplink" href="slideshow.html?trip='+TID+'" target="_blank" rel="noopener">開啟照片幻燈片（依拍照時間排序）</a>';
   }
 });
-on('photos','click',function(e){
-  var b=e.target.closest('button[data-del-photo]');
-  if(b)deletePhoto(b.dataset.delPhoto);
-});
 async function deletePhoto(id){
   var p=PHOTOS.filter(function(x){return x.id===id})[0];
-  if(!p||!confirm('確定刪除這張照片？'))return;
+  if(!p||p.user_id!==ME.id||!confirm('確定刪除這張照片？'))return;
   var r=await sb.from('trip_photos').delete().eq('id',id);
   if(r.error){alert('刪除失敗：'+r.error.message);return}
-  if(p.user_id===ME.id)await sb.storage.from('trip-photos').remove([p.path]);
+  await sb.storage.from('trip-photos').remove([p.path]);
   await refresh();
 }
 bootPage();
