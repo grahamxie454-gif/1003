@@ -278,3 +278,8 @@ body.slidebody{background:var(--bg)}
 .mrow img{width:96px;height:72px;object-fit:cover;border-radius:6px;flex:none}
 .mcol{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
 .mcol input{width:100%}
+
+/* ===== 地區拖曳排序 ===== */
+.tn.l0[draggable="true"]{cursor:grab}
+.tn.l0.dropbefore{box-shadow:0 -3px 0 0 var(--stamp)}
+.tn.l0.dropafter{box-shadow:0 3px 0 0 var(--stamp)}

@@ -60,8 +60,15 @@ function distSpots(k,dn){
   s.cs.filter(function(c){return c.d===dn}).forEach(function(c){out.push(customObj(k,c))});
   return out;
 }
+function sortByDord(k,ds){
+  var s=ensureSel(k),d=s.dord||[];
+  if(!d.length)return ds.slice();
+  var out=d.filter(function(x){return ds.indexOf(x)>-1});
+  ds.forEach(function(x){if(out.indexOf(x)<0)out.push(x)});
+  return out;
+}
 function citySpots(k,all,ordered){
-  var s=ensureSel(k),out=[],ds=ordered?orderDistricts(k,s.d):s.d;
+  var s=ensureSel(k),out=[],ds=ordered?(s.dord&&s.dord.length?sortByDord(k,s.d):orderDistricts(k,s.d)):s.d;
   ds.forEach(function(dn){distSpots(k,dn).forEach(function(x){out.push(x)})});
   s.cs.filter(function(c){return !c.d}).forEach(function(c){out.push(customObj(k,c))});
   return all?out:out.filter(function(x){return !s.off[x.id]});
@@ -74,19 +81,19 @@ function renderPick(p){
   p=p||LASTP;LASTP=p;
   var placed={};
   p.days.forEach(function(d){d.rows.forEach(function(r){if((r.type==='sight'||r.type==='meal')&&r.s)placed[r.s.id]=1})});
-  var h='<div class="legendt"><span class="tk ok">已排入行程</span><span class="tk bad">已選但未排入</span><span class="tk off">未選</span></div>';
+  var h='<p class="hint">地區預設全部收合。按住地區列拖曳可調整順序：自動排程時，未固定的景點會優先排排在前面的地區。</p><div class="legendt"><span class="tk ok">已排入行程</span><span class="tk bad">已選但未排入</span><span class="tk off">未選</span></div>';
   st.ci.forEach(function(k){
     var s=ensureSel(k),c=C[k],ds=Object.keys(c.d).concat(s.cd);
     h+='<section class="pick"><h3>'+esc(c.n)+'<small>'+esc(CO[c.co].n)+'</small></h3>';
-    var groups=ds.slice();
+    var groups=sortByDord(k,ds);
     if(s.cs.some(function(x){return !x.d}))groups.push('');
     if(!groups.length)h+='<p class="empty">這是自訂城市，請先新增地區，再新增地點。</p>';
     h+='<div class="tree">';
     groups.forEach(function(dn){
       var on=dn===''||s.d.indexOf(dn)>-1,list=dn===''?s.cs.filter(function(x){return !x.d}).map(function(x){return customObj(k,x)}):distSpots(k,dn);
       var chosen=list.filter(function(x){return on&&!s.off[x.id]}),okn=chosen.filter(function(x){return placed[x.id]}).length;
-      var dkey=k+'|'+dn,dopen=isOpenT(dkey,on);
-      h+='<div class="tn l0 '+treeCls(chosen.length,okn)+'"><button type="button" class="tgl" data-tk="'+esc(dkey)+'" aria-expanded="'+dopen+'" aria-label="展開或收合">'+(dopen?'▾':'▸')+'</button>'+
+      var dkey=k+'|'+dn,dopen=isOpenT(dkey,false);
+      h+='<div class="tn l0 '+treeCls(chosen.length,okn)+'"'+(dn===''?'':' draggable="true" data-dk="'+esc(k)+'" data-dn="'+esc(dn)+'" title="按住拖曳可調整排程優先順序"')+'>'+(dn===''?'':'<span class="grip" aria-hidden="true">⋮⋮</span>')+'<button type="button" class="tgl" data-tk="'+esc(dkey)+'" aria-expanded="'+dopen+'" aria-label="展開或收合">'+(dopen?'▾':'▸')+'</button>'+
         '<label><input type="checkbox" data-k="'+esc(k)+'" data-d="'+esc(dn)+'"'+(on?' checked':'')+(dn===''?' disabled':'')+'><b>'+esc(dn||'未指定地區')+'</b></label><span class="cnt">'+okn+'/'+chosen.length+' 已排入</span></div>';
       if(!dopen)return;
       Object.keys(STYLE).forEach(function(sty){

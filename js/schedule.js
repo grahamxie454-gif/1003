@@ -91,16 +91,26 @@ function simDay(o){
     if(cur){var bd=1e9;pref.forEach(function(i){var d=hav(cur,spotLL(o.food[i]));if(d<bd){bd=d;best=i}})}
     return o.food.splice(best,1)[0];
   }
-  function gap(a,b){if(b-a>=30)rows.push({type:'free',key:'g'+(gi++),start:a,end:b})}
+  // 空檔：長度可由使用者調整（DAYS[天].gaps[鍵].m），或刪除（.del）。鍵依空檔出現的順序編號。
+  var GP=(DAYS[o.no]&&DAYS[o.no].gaps)||{},MMIN=(DAYS[o.no]&&DAYS[o.no].mealMin)||{};
+  function gapLen(a,b){
+    var nat=b-a;
+    if(nat<30)return {len:nat>0?nat:0,row:null};
+    var k='g'+(gi++),ov=GP[k];
+    if(ov&&ov.del)return {len:0,row:null};
+    var len=(ov&&ov.m>0)?ov.m:nat;
+    return {len:len,row:{type:'free',key:k,start:a,end:a+len,nat:nat}};
+  }
   function meal(m,maxGap){
     var rest=pickFood(),tgt=rest?spotLL(rest):cur;
     var lg=(cur&&rest)?leg(curQ,mapQ(rest),cur,tgt,ms):null,arr=t+(lg?lg.min:0);
     if(rest&&m.lo-arr>maxGap){o.food.unshift(rest);rest=null;tgt=cur;lg=null;arr=t}
-    var s0=Math.max(arr,m.lo),en=Math.min(s0+m.dur,m.hi);
-    if(en-s0<45||en>o.end){if(rest)o.food.unshift(rest);return false}
+    var g=gapLen(arr,Math.max(arr,m.lo)),s0=arr+g.len;
+    var dur=rest?((st.stay&&st.stay[rest.id])||m.dur):(MMIN[m.k]||m.dur),en=s0+dur;
+    if(s0>m.hi||en>o.end){if(rest)o.food.unshift(rest);return false}
     if(lg)mv(lg,rest.name,mapQ(rest),t);
-    gap(arr,s0);
-    rows.push({type:'meal',n:m.n,key:m.k,s:rest,start:s0,end:en,cost:rest?rest.cost:0});
+    if(g.row)rows.push(g.row);
+    rows.push({type:'meal',n:m.n,key:m.k,s:rest,start:s0,end:en,cost:rest?rest.cost:0,over:s0<m.lo||s0>m.hi});
     if(rest){cost+=rest.cost;cur=tgt;curName=rest.name;curQ=mapQ(rest);dayD[rest.dist]=dayD[rest.dist]||0}
     t=en;return true;
   }
@@ -116,9 +126,8 @@ function simDay(o){
     var ret=hl?leg(xq,hlQ,tgt,hl,ms).min:0;
     if(isFood(x)){
       // 人為放入的餐廳：照順序排，超出用餐時段會標示紅框
-      while(meals.length&&arr>meals[0].hi-45)meals.shift();
-      var mm=meals[0],en2=arr+75,over2=!mm||arr<mm.lo||arr>mm.hi-45||arr+ret>o.end;
-      if(mm&&!over2)en2=Math.min(arr+mm.dur,mm.hi);
+      while(meals.length&&arr>meals[0].hi)meals.shift();
+      var mm=meals[0],en2=arr+((st.stay&&st.stay[x.id])||75),over2=!mm||arr<mm.lo||arr>mm.hi;
       if(mm)meals.shift();
       if(lg)mv(lg,x.name,xq,t);
       rows.push({type:'meal',n:mm?mm.n:'用餐',key:'f_'+x.id,s:x,start:arr,end:en2,cost:x.cost,over:over2});
@@ -139,8 +148,9 @@ function simDay(o){
   }
   if(!o.off){
     var retm=(hl&&cur!==hl)?leg(curQ,hlQ,cur,hl,ms).min:0;
-    gap(t,o.end-retm);
-    if(o.end-retm-t>=30)t=o.end-retm;
+    var tg=gapLen(t,o.end-retm);
+    if(tg.row)rows.push(tg.row);
+    t+=tg.len;
   }
   if(hl&&cur!==hl){var rl=leg(curQ,hlQ,cur,hl,ms);mv(rl,hn,hlQ,t);t+=rl.min}
   var loc=0;ms.forEach(function(x){loc+=LOCAL[x]});loc/=ms.length;

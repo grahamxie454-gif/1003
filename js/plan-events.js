@@ -282,6 +282,14 @@ on('res','click',function(e){
     if(st.fix&&st.fix[arr[j]]){setSave('相鄰的項目已固定，無法交換。');return}
     var t=arr[i];arr[i]=arr[j];arr[j]=t;
     st.lay=L;render();
+  }else if(a==='gapdel'){
+    var gdv=dayRec(b.dataset.no);gdv.gaps=gdv.gaps||{};
+    gdv.gaps[b.dataset.key]={del:1};
+    render();
+  }else if(a==='gaprestore'){
+    var gdr=dayRec(b.dataset.no);
+    if(gdr.gaps)Object.keys(gdr.gaps).forEach(function(k){if(gdr.gaps[k].del)delete gdr.gaps[k]});
+    render();
   }else if(a==='pin'){
     st.fix=st.fix||{};
     if(st.fix[id])delete st.fix[id];else st.fix[id]=+b.dataset.day;
@@ -304,6 +312,18 @@ on('res','change',function(e){
     if(tv)dd.txt[el.dataset.tk]=tv;else delete dd.txt[el.dataset.tk];
     render();return;
   }
+  if(el.dataset.gapkey){
+    var gv=parseInt(el.value,10),gdd=dayRec(el.dataset.no);
+    gdd.gaps=gdd.gaps||{};
+    if(gv>=5&&gv<=720)gdd.gaps[el.dataset.gapkey]={m:gv};else delete gdd.gaps[el.dataset.gapkey];
+    render();return;
+  }
+  if(el.dataset.mealmin){
+    var mv_=parseInt(el.value,10),mdd=dayRec(el.dataset.no);
+    mdd.mealMin=mdd.mealMin||{};
+    if(mv_>=15&&mv_<=240)mdd.mealMin[el.dataset.mealmin]=mv_;else delete mdd.mealMin[el.dataset.mealmin];
+    render();return;
+  }
   if(el.dataset.stay){
     var v=parseInt(el.value,10);
     if(v>=15&&v<=720)st.stay[el.dataset.stay]=v;else delete st.stay[el.dataset.stay];
@@ -313,3 +333,37 @@ on('res','change',function(e){
   moveSpot(el.dataset.mv,el.value,9999);
 });
 
+
+// ===== 地區樹狀清單：拖曳地區調整排程優先順序 =====
+var PDRAG=null;
+function pClear(){[].forEach.call(document.querySelectorAll('#pick .dropbefore,#pick .dropafter'),function(x){x.classList.remove('dropbefore','dropafter')})}
+on('pick','dragstart',function(e){
+  var r=e.target.closest&&e.target.closest('.tn.l0[data-dn]');
+  if(!r)return;
+  PDRAG={k:r.dataset.dk,dn:r.dataset.dn};
+  e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',r.dataset.dn);
+});
+on('pick','dragend',function(){PDRAG=null;pClear()});
+on('pick','dragover',function(e){
+  if(!PDRAG)return;
+  var r=e.target.closest('.tn.l0[data-dn]');
+  if(!r||r.dataset.dk!==PDRAG.k)return;
+  e.preventDefault();pClear();
+  var b=r.getBoundingClientRect();
+  r.classList.add(e.clientY>b.top+b.height/2?'dropafter':'dropbefore');
+});
+on('pick','drop',function(e){
+  if(!PDRAG)return;
+  var r=e.target.closest('.tn.l0[data-dn]');
+  if(!r||r.dataset.dk!==PDRAG.k)return;
+  e.preventDefault();
+  var b=r.getBoundingClientRect(),after=e.clientY>b.top+b.height/2,k=PDRAG.k,dn=PDRAG.dn,to=r.dataset.dn;
+  PDRAG=null;pClear();
+  if(dn===to)return;
+  var s=ensureSel(k),list=sortByDord(k,Object.keys(C[k].d).concat(s.cd));
+  list=list.filter(function(x){return x!==dn});
+  var i=list.indexOf(to);
+  list.splice(after?i+1:i,0,dn);
+  s.dord=list;
+  render();
+});

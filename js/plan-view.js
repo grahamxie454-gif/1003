@@ -70,6 +70,8 @@ function renderRes(p){
     if(tr0.on)h+='<div class="tourbox"><input type="text" class="w2" maxlength="40" data-no="'+d.no+'" data-f="tname" value="'+esc(tr0.name||'')+'" placeholder="名稱，例如：富士山一日遊" aria-label="當地自由行名稱">'+
       '<input type="number" min="0" step="100" data-no="'+d.no+'" data-f="tcost" value="'+(tr0.cost||'')+'" placeholder="費用 NT$" aria-label="當地自由行費用">'+
       '<input type="url" class="w2" data-no="'+d.no+'" data-f="turl" value="'+esc(tr0.url||'')+'" placeholder="行程連結（貼上網址）" aria-label="當地自由行連結"></div>';
+    var gd=(dr.gaps?Object.keys(dr.gaps).filter(function(k){return dr.gaps[k].del}).length:0);
+    if(gd)h+='<p class="note">已刪除 '+gd+' 段空檔。<button type="button" class="ghost sm" data-act="gaprestore" data-no="'+d.no+'">還原</button></p>';
     h+=dayEditor(d);
     if(d.off&&!d.tour)h+='<p class="note">今天休息，不安排景點與用餐；其餘景點會順延到其他天。</p>';
     else if(!d.rows.length)h+='<p class="note">當天沒有可安排的行程。</p>';
@@ -133,7 +135,7 @@ function rowHtml(r,d,p){
   else if(r.type==='buffer')b='<span class="soft">'+esc(r.text)+'（'+fmtMin(r.end-r.start)+'）</span>';
   else if(r.type==='free'){
     cls='fr';
-    b='<input type="text" class="freetxt" data-no="'+d.no+'" data-tk="'+r.key+'" maxlength="40" value="'+esc(txtOf(d,r.key,''))+'" placeholder="自行安排行程（可改文字）" aria-label="空檔安排"> <span class="soft">'+fmtMin(r.end-r.start)+'</span>';
+    b='<input type="text" class="freetxt" data-no="'+d.no+'" data-tk="'+r.key+'" maxlength="40" value="'+esc(txtOf(d,r.key,''))+'" placeholder="自行安排行程（可改文字）" aria-label="空檔安排"> <label class="stayin"><input type="number" min="5" max="720" step="5" data-no="'+d.no+'" data-gapkey="'+r.key+'" value="'+(r.end-r.start)+'" aria-label="空檔分鐘"> 分</label> <button type="button" class="ghost sm x" data-act="gapdel" data-no="'+d.no+'" data-key="'+r.key+'" aria-label="刪除這段空檔">✕</button>';
   }
   else if(r.type==='hop'){cls='mv';b='<span class="soft">↓ '+MNAME[r.hop.mode]+'前往'+esc(C[r.hop.to].n)+'・約 '+fmtMin(r.hop.min)+'・約 '+fmtKm(r.hop.km)+'・約 '+fmt(r.hop.cost)+'</span>'}
   else if(r.type==='move'){cls='mv';b='<span class="soft">↓ '+MNAME[r.lg.mode]+'約 '+fmtMin(r.lg.min)+'・約 '+fmtKm(r.lg.km)+(r.cost?'・約 NT$ '+r.cost:'')+'・前往 '+esc(r.to)+(r.lg.g?' <span class="gtag">Google</span>':' <span class="gtag est">估算</span>')+' <a class="maplink" href="'+esc(inf.link)+'" target="_blank" rel="noopener">路線</a></span>'}
@@ -142,11 +144,11 @@ function rowHtml(r,d,p){
     if(r.s){
       var pm=!!r.s.pin;
       cls+=' sg'+(pm?' pinned':'');
-      b='<div class="n"><span class="grip" aria-hidden="true" title="拖曳調整順序">⋮⋮</span><span class="tag meal">'+r.n+'</span><b>'+esc(r.s.name)+'</b>'+rateTxt(r.s)+'<a class="maplink" href="'+esc(mapSearch(r.s))+'" target="_blank" rel="noopener">看地圖</a></div><div class="meta">'+esc(r.s.dist)+'・用餐約 '+fmtMin(r.end-r.start)+'・'+costTxt(r.s)+'</div>'+itemCtl(r.s,d,p,pm);
-      if(r.over)b+='<p class="overnote">⚠ 超出建議用餐時段（午餐 11:00–13:30、晚餐 17:30–20:00）或當天結束時間。</p>';
+      b='<div class="n"><span class="grip" aria-hidden="true" title="拖曳調整順序">⋮⋮</span><span class="tag meal">'+r.n+'</span><b>'+esc(r.s.name)+'</b>'+rateTxt(r.s)+'<a class="maplink" href="'+esc(mapSearch(r.s))+'" target="_blank" rel="noopener">看地圖</a></div><div class="meta">'+esc(r.s.dist)+'・<label class="stayin">用餐 <input type="number" min="15" max="240" step="5" data-stay="'+esc(r.s.id)+'" value="'+(r.end-r.start)+'" aria-label="用餐分鐘"> 分</label>・'+costTxt(r.s)+'</div>'+itemCtl(r.s,d,p,pm);
+      if(r.over)b+='<p class="overnote">⚠ 用餐開始時間不在建議時段內（午餐 11:00–13:30、晚餐 17:30–20:00）。</p>';
       li=(pm?'':' draggable="true"')+' data-id="'+esc(r.s.id)+'" data-day="'+d.no+'" data-city="'+esc(d.city)+'"';
     }else{
-      b='<div class="n"><span class="tag meal">'+r.n+'</span><input type="text" class="freetxt" data-no="'+d.no+'" data-tk="'+r.key+'" maxlength="40" value="'+esc(txtOf(d,r.key,''))+'" placeholder="自行安排用餐（可改文字）" aria-label="用餐安排"></div><div class="meta">用餐約 '+fmtMin(r.end-r.start)+'。從下方「未排入」拖入餐廳，或在樹狀選單勾選美食。</div>';
+      b='<div class="n"><span class="tag meal">'+r.n+'</span><input type="text" class="freetxt" data-no="'+d.no+'" data-tk="'+r.key+'" maxlength="40" value="'+esc(txtOf(d,r.key,''))+'" placeholder="自行安排用餐（可改文字）" aria-label="用餐安排"></div><div class="meta"><label class="stayin">用餐 <input type="number" min="15" max="240" step="5" data-no="'+d.no+'" data-mealmin="'+r.key+'" value="'+(r.end-r.start)+'" aria-label="用餐分鐘"> 分</label>。從下方「未排入」拖入餐廳，或在樹狀選單勾選美食。</div>';
     }
   }else if(r.type==='sight'){
     cls='sg'+(r.s.pin?' pinned':'');
