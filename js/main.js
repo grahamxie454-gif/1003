@@ -4,6 +4,7 @@
     await Promise.all([
       loadView($('auth'),'views/auth.html'),
       loadView($('viewPlan'),'views/plan.html'),
+      loadView($('viewShared'),'views/shared.html'),
       loadView($('viewAdmin'),'views/admin.html')
     ]);
   }catch(err){$('boot').textContent='無法載入頁面：'+err.message;return}

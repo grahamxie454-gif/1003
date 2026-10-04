@@ -28,7 +28,7 @@ var LSPD={metro:[30,12],bus:[18,12],train:[40,15],drive:[28,15]};
 function localLeg(a,b,ms){
   var km=hav(a,b),route=km*1.3,best={mode:'',min:1e9};
   ms.forEach(function(m){var t=LSPD[m][1]+route/LSPD[m][0]*60;if(t<best.min)best={mode:m,min:t}});
-  if(route<=2){var w=route/5*60;if(w<best.min)best={mode:'walk',min:w}}
+  if(route<1.5)best={mode:'walk',min:route/5*60};
   return {km:route,min:round5(best.min),mode:best.mode};
 }
 function hopKm(a,b){

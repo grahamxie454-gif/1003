@@ -77,14 +77,15 @@ on('pick','click',async function(e){
     var nm=$('cs_'+k).value.trim(),url=$('cu_'+k).value.trim(),info=null;
     if(url){
       if(!/^https:\/\/(maps\.app\.goo\.gl|goo\.gl|(www\.)?google\.[a-z.]+|maps\.google\.[a-z.]+)\//i.test(url)){setSave('請貼上 Google 地圖的分享連結。');return}
-      b.disabled=true;setSave('正在讀取 Google 地圖連結…');
-      try{
-        var r=await sb.functions.invoke('trip-tools',{body:{action:'place',url:url}});
-        info=r.data&&!r.data.error?r.data:null;
-      }catch(err){info=null}
-      b.disabled=false;
-      if(!info){setSave('讀取連結失敗，請手動輸入名稱。')}
-      else setSave(info.rating?'已帶入名稱與評分 ★'+info.rating:'已帶入名稱（未取得評分）');
+      if(PLACEINFO[k]&&PLACEINFO[k].url===url)info=PLACEINFO[k].info;
+      else{
+        b.disabled=true;setSave('正在讀取 Google 地圖連結…');
+        try{
+          var r=await sb.functions.invoke('trip-tools',{body:{action:'place',url:url}});
+          info=r.data&&!r.data.error?r.data:null;
+        }catch(err){info=null}
+        b.disabled=false;
+      }
     }
     if(!nm&&info&&info.name)nm=info.name;
     if(!nm){setSave('請輸入地點名稱，或貼上含名稱的 Google 地圖連結。');return}
@@ -366,4 +367,28 @@ on('pick','drop',function(e){
   list.splice(after?i+1:i,0,dn);
   s.dord=list;
   render();
+});
+
+// ===== 新增景點：貼上 Google 地圖連結後，自動帶入名稱（與座標、評分） =====
+var PLACEINFO={};
+async function fillFromMapLink(inp){
+  var k=inp.id.slice(3),url=inp.value.trim(),nameEl=$('cs_'+k);
+  if(!url||!nameEl)return;
+  if(!/^https:\/\/(maps\.app\.goo\.gl|goo\.gl|(www\.)?google\.[a-z.]+|maps\.google\.[a-z.]+)\//i.test(url)){setSave('請貼上 Google 地圖的分享連結。');return}
+  var local=mapName(url);
+  if(local&&!nameEl.value.trim())nameEl.value=local;
+  setSave('正在讀取 Google 地圖連結…');
+  try{
+    var r=await sb.functions.invoke('trip-tools',{body:{action:'place',url:url}});
+    var info=r.data&&!r.data.error?r.data:null;
+    if(!info||!info.name){setSave(local?'已帶入名稱（無法取得評分與座標）':'讀取連結失敗，請手動輸入名稱。');return}
+    PLACEINFO[k]={url:url,info:info};
+    if(!nameEl.value.trim()||nameEl.value.trim()===local)nameEl.value=info.name;
+    var g=$('cg_'+k);
+    if(g&&!g.value.trim()&&typeof info.lat==='number')g.value=info.lat+', '+info.lng;
+    setSave('已帶入名稱：'+info.name+(info.rating?'・評分 ★'+info.rating:''));
+  }catch(err){setSave(local?'已帶入名稱（無法取得評分與座標）':'讀取連結失敗，請手動輸入名稱。')}
+}
+on('pick','change',function(e){
+  if(e.target.id&&e.target.id.indexOf('cu_')===0)fillFromMapLink(e.target);
 });

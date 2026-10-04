@@ -20,6 +20,7 @@ async function enter(user){
     $('sSub').textContent='擁有者：'+(SHARE.owner||'')+'　行程更新：'+fmtDT(SHARE.updated_at);
     $('goSlides').href='slideshow.html?trip='+TID;
     buildItems();
+    if(!SHARE.is_owner)sb.rpc('record_shared_visit',{p_trip:TID}).then(function(){},function(){});
     await refresh();
     $('boot').hidden=true;$('app').hidden=false;
     clearInterval(pollTimer);

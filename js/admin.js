@@ -3,7 +3,8 @@ var AV='plan',ASUB='users',AF={country:'',city:'',district:''};
 function showView(v){
   AV=v;
   document.querySelectorAll('[data-view]').forEach(function(b){b.classList.toggle('on',b.dataset.view===v)});
-  $('viewPlan').hidden=v!=='plan';$('viewAdmin').hidden=v!=='admin';
+  $('viewPlan').hidden=v!=='plan';$('viewAdmin').hidden=v!=='admin';$('viewShared').hidden=v!=='shared';
+  if(v==='shared')renderSharedList();
   if(v==='admin')renderAdmin();
 }
 onSel('.topbar','click',async function(e){

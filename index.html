@@ -26,6 +26,7 @@
       <div class="who"><span id="whoEmail"></span><span class="role" id="whoRole"></span><span class="nick" id="nickForm" hidden><input type="text" id="nickIn" maxlength="20" aria-label="暱稱"><button type="button" class="sm" id="nickSave">儲存</button><button type="button" class="ghost sm" id="nickCancel">取消</button><span class="muted" id="nickMsg"></span></span><button type="button" class="ghost sm" id="nickEdit" aria-label="修改暱稱">改暱稱</button></div>
       <div class="tabs">
         <button type="button" class="tab on" data-view="plan">行程規劃</button>
+        <button type="button" class="tab" data-view="shared">共享行程</button>
         <button type="button" class="tab" data-view="admin" id="adminTab" hidden>管理後台</button>
         <button type="button" class="tab" id="logout">登出</button>
       </div>
@@ -33,6 +34,8 @@
 
     <!-- 行程規劃：views/plan.html -->
     <div id="viewPlan" style="display:flex;flex-direction:column;gap:16px"></div>
+    <!-- 共享行程：views/shared.html -->
+    <div id="viewShared" hidden style="display:flex;flex-direction:column;gap:16px"></div>
     <!-- 管理後台：views/admin.html -->
     <div id="viewAdmin" hidden style="display:flex;flex-direction:column;gap:16px"></div>
   </div>
@@ -50,6 +53,7 @@
 <script src="js/plan-view.js"></script>
 <script src="js/plan-events.js"></script>
 <script src="js/share.js"></script>
+<script src="js/shared-list.js"></script>
 <script src="js/admin.js"></script>
 <script src="js/main.js"></script>
 </body>

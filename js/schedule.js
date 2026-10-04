@@ -21,45 +21,65 @@ function dayTimes(no){
 var MEALS=[{n:'午餐',k:'lunch',lo:660,hi:810,dur:75},{n:'晚餐',k:'dinner',lo:1050,hi:1200,dur:75}];
 function stayOf(x){return x.stay>0?x.stay:({c:90,n:75,s:60,x:60,f:75}[x.s]||60)}
 var isFood=function(x){return x.s==='f'};
-// ---- Google 路線時間：有快取就用 Google 的時間，沒有就先用估算並排隊向 Google 取得 ----
-var ROUTE={},ROUTE_NEED={},ROUTE_TRIED={},ROUTE_OFF=false,ROUTE_MSG='',routeTimer=null;
+// ---- 移動時間 ----
+// 規劃與調整順序時一律先用估算值，不會自動呼叫 Google。
+// 行程確定後按「用 Google 計算路線時間」：依各路段的出發日期與時間查詢（時間以 15 分鐘為單位），
+// 1.5 公里內用步行，1.5 公里以上用大眾運輸（自駕日用開車）。步行與已查過的結果會存入快取，不會重複計算。
+var ROUTE={},ROUTE_NEED={},ROUTE_TRIED={},ROUTE_MSG='',ROUTE_BUSY=false,LEGDAY=1,LEGCO='';
+var TZ={jp:9,kr:9,tw:8,sg:8,th:7,fr:1,it:1,uk:0,us:-5};
 function gMode(m){return m==='walk'?'WALK':(m==='drive'?'DRIVE':'TRANSIT')}
-function leg(fq,tq,a,b,ms){
-  var est=localLeg(a,b,ms),key=gMode(est.mode)+'|'+fq+'|'+tq,h=ROUTE[key];
-  if(h)return {km:h.m/1000,min:round5(h.s/60),mode:est.mode,g:true};
-  if(!ROUTE_OFF&&!ROUTE_TRIED[key])ROUTE_NEED[key]={key:key,mode:gMode(est.mode),from:fq,to:tq};
+// 第幾天的日期（YYYY-MM-DD）。有填去程日期就用它；沒填就用明天起算，過去的日期往後順延到未來的同一個星期幾
+function dayDateISO(no){
+  var base=st.fl.out.date&&!isNaN(Date.parse(st.fl.out.date))?Date.parse(st.fl.out.date):Date.now()+864e5;
+  var t=base+(no-1)*864e5,now=Date.now();
+  while(t<now)t+=7*864e5;
+  return new Date(t).toISOString().slice(0,10);
+}
+function legDep(at){
+  var m=Math.min(1425,Math.max(0,Math.round(at/15)*15)),tz=TZ[LEGCO]!==undefined?TZ[LEGCO]:8,a=Math.abs(tz);
+  var pad=function(n){return ('0'+n).slice(-2)};
+  return dayDateISO(LEGDAY)+'T'+pad(Math.floor(m/60))+':'+pad(m%60)+':00'+(tz<0?'-':'+')+pad(a)+':00';
+}
+function leg(fq,tq,a,b,ms,at){
+  var est=localLeg(a,b,ms),g=gMode(est.mode),dep=g==='TRANSIT'?legDep(at||0):'';
+  var key=g+'|'+fq+'|'+tq+(dep?'|'+dep:''),h=ROUTE[key];
+  if(h)return {km:h.m/1000,min:Math.max(15,Math.round(h.s/60/15)*15),mode:est.mode,g:true};
+  if(!ROUTE_TRIED[key])ROUTE_NEED[key]={key:key,mode:g,from:fq,to:tq,dep:dep};
   return est;
 }
-function scheduleRoutes(){
-  clearTimeout(routeTimer);
-  if(ROUTE_OFF||!Object.keys(ROUTE_NEED).length)return;
-  routeTimer=setTimeout(fetchRoutes,1200);
-}
-async function fetchRoutes(){
-  var keys=Object.keys(ROUTE_NEED).filter(function(k){return !ROUTE[k]&&!ROUTE_TRIED[k]}).slice(0,20);
-  if(!keys.length||!sb)return;
-  var legs=keys.map(function(k){return ROUTE_NEED[k]});
-  keys.forEach(function(k){ROUTE_TRIED[k]=1;delete ROUTE_NEED[k]});
-  ROUTE_MSG='正在向 Google 取得路線時間…';var st0=$('routeStat');if(st0)st0.textContent=ROUTE_MSG;
+function setRouteMsg(t){ROUTE_MSG=t;var el=$('routeStat');if(el)el.textContent=t;var b=$('calcRoutes');if(b)b.disabled=ROUTE_BUSY}
+async function calcRoutes(){
+  if(ROUTE_BUSY||!sb)return;
+  ROUTE_BUSY=true;ROUTE_TRIED={};
+  var got=0,fails=0,lastErr='',stop='';
   try{
-    var r=await sb.functions.invoke('route-times',{body:{legs:legs}});
-    var d=r.data||{},got=0;
-    if(r.error){
-      var detail=r.error.message||'呼叫失敗';
-      try{if(r.error.context&&r.error.context.text){var tx=await r.error.context.text();if(tx)detail+='：'+tx.slice(0,200)}}catch(e2){}
-      throw new Error(detail);
+    for(var pass=0;pass<4&&!stop;pass++){
+      ROUTE_NEED={};plan();
+      var keys=Object.keys(ROUTE_NEED).filter(function(k){return !ROUTE[k]&&!ROUTE_TRIED[k]});
+      if(!keys.length)break;
+      for(var i=0;i<keys.length&&!stop;i+=20){
+        var batch=keys.slice(i,i+20);
+        batch.forEach(function(k){ROUTE_TRIED[k]=1});
+        setRouteMsg('向 Google 計算路線時間中…（第 '+(pass+1)+' 輪，'+Math.min(i+20,keys.length)+' / '+keys.length+' 段）');
+        var legs=batch.map(function(k){return ROUTE_NEED[k]});
+        var r=await sb.functions.invoke('route-times',{body:{legs:legs}});
+        if(r.error){
+          var detail=r.error.message||'呼叫失敗';
+          try{if(r.error.context&&r.error.context.text){var tx=await r.error.context.text();if(tx)detail+='：'+tx.slice(0,200)}}catch(e2){}
+          stop='路線查詢失敗：'+detail;break;
+        }
+        var d=r.data||{};
+        if(d.error==='not_configured'){stop='尚未設定 Google 金鑰，路線時間維持估算。';break}
+        (d.results||[]).forEach(function(x){ROUTE[x.key]={s:x.s,m:x.m};got++});
+        if(d.error){stop='路線查詢失敗：'+d.error;break}
+        if(d.capped){stop='今日 Google 查詢額度已用完，其餘路線維持估算，明天可再按一次。';break}
+        fails+=d.fails||0;if(d.lastErr)lastErr=d.lastErr;
+      }
     }
-    if(d.error==='not_configured'){ROUTE_OFF=true;ROUTE_MSG='尚未設定 Google 金鑰，路線時間使用估算。'}
-    else if(d.error){ROUTE_OFF=true;ROUTE_MSG='路線查詢失敗：'+d.error}
-    else{
-      (d.results||[]).forEach(function(x){ROUTE[x.key]={s:x.s,m:x.m};got++});
-      if(d.capped){ROUTE_OFF=true;ROUTE_MSG='今日 Google 查詢額度已用完，其餘路線時間使用估算。'}
-      else if(d.fails&&!got)ROUTE_MSG='部分路段 Google 無法規劃（'+d.fails+' 段），這些路段使用估算。'+(d.lastErr?'原因：'+d.lastErr:'');
-      else ROUTE_MSG='';
-    }
-    if(got)render(true);else{var s1=$('routeStat');if(s1)s1.textContent=ROUTE_MSG}
-    scheduleRoutes();
-  }catch(err){ROUTE_OFF=true;ROUTE_MSG='路線查詢失敗，路線時間使用估算。原因：'+(err.message||err);var s2=$('routeStat');if(s2)s2.textContent=ROUTE_MSG}
+  }catch(err){stop='路線查詢失敗：'+(err.message||err)}
+  ROUTE_BUSY=false;
+  render(true);
+  setRouteMsg(stop||('Google 路線時間計算完成：本次新查詢 '+got+' 段'+(fails?'，'+fails+' 段 Google 無法規劃（維持估算）'+(lastErr?'，原因：'+lastErr:''):'')+'。'));
 }
 async function loadRoutes(){
   try{
@@ -73,6 +93,7 @@ async function loadRoutes(){
 }
 
 function simDay(o){
+  LEGDAY=o.no;LEGCO=C[o.k]?C[o.k].co:'';
   var ms=o.ms,rows=[],t=Math.max(o.start,o.ready),cur=null,curName='',curQ='',hl=null,hn='',hlQ='',
     meals=o.off?[]:MEALS.slice(),q=o.queue.slice(),skipped=[],cost=0,travel=0,sights=0,guard=0,gi=0,dayD={};
   if(o.hotel){hn=o.hotel.name;hlQ=hotelQ(o.hotel,o.k);if(typeof o.hotel.lat==='number'){hl=[o.hotel.lat,o.hotel.lng];cur=hl;curName=hn;curQ=hlQ}}
@@ -103,7 +124,7 @@ function simDay(o){
   }
   function meal(m,maxGap){
     var rest=pickFood(),tgt=rest?spotLL(rest):cur;
-    var lg=(cur&&rest)?leg(curQ,mapQ(rest),cur,tgt,ms):null,arr=t+(lg?lg.min:0);
+    var lg=(cur&&rest)?leg(curQ,mapQ(rest),cur,tgt,ms,t):null,arr=t+(lg?lg.min:0);
     if(rest&&m.lo-arr>maxGap){o.food.unshift(rest);rest=null;tgt=cur;lg=null;arr=t}
     var g=gapLen(arr,Math.max(arr,m.lo)),s0=arr+g.len;
     var dur=rest?((st.stay&&st.stay[rest.id])||m.dur):(MMIN[m.k]||m.dur),en=s0+dur;
@@ -122,8 +143,8 @@ function simDay(o){
     }
     var tgt=spotLL(x),xq=mapQ(x);
     if(!cur&&o.hotel){hl=[tgt[0]+0.012,tgt[1]+0.012];cur=hl;curName=hn;curQ=hlQ}
-    var lg=cur?leg(curQ,xq,cur,tgt,ms):null,arr=t+(lg?lg.min:0);
-    var ret=hl?leg(xq,hlQ,tgt,hl,ms).min:0;
+    var lg=cur?leg(curQ,xq,cur,tgt,ms,t):null,arr=t+(lg?lg.min:0);
+    var ret=hl?leg(xq,hlQ,tgt,hl,ms,arr+(isFood(x)?75:stayOf(x))).min:0;
     if(isFood(x)){
       // 人為放入的餐廳：照順序排，超出用餐時段會標示紅框
       while(meals.length&&arr>meals[0].hi)meals.shift();
@@ -147,36 +168,29 @@ function simDay(o){
     cost+=x.cost;sights++;dayD[x.dist]=1;cur=tgt;curName=x.name;curQ=xq;t=en;q.shift();
   }
   if(!o.off){
-    var retm=(hl&&cur!==hl)?leg(curQ,hlQ,cur,hl,ms).min:0;
+    var retm=(hl&&cur!==hl)?leg(curQ,hlQ,cur,hl,ms,t).min:0;
     var tg=gapLen(t,o.end-retm);
     if(tg.row)rows.push(tg.row);
     t+=tg.len;
   }
-  if(hl&&cur!==hl){var rl=leg(curQ,hlQ,cur,hl,ms);mv(rl,hn,hlQ,t);t+=rl.min}
+  if(hl&&cur!==hl){var rl=leg(curQ,hlQ,cur,hl,ms,t);mv(rl,hn,hlQ,t);t+=rl.min}
   var loc=0;ms.forEach(function(x){loc+=LOCAL[x]});loc/=ms.length;
   var paid=rows.filter(function(r){return r.type==='move'&&r.lg.mode!=='walk'});
   paid.forEach(function(r){r.cost=Math.round(loc/paid.length/10)*10});
   return {rows:rows,rest:skipped.concat(q),cost:cost,travel:travel,end:t};
 }
-// 自動排程時挑出當天的景點：同地區優先；只有當天該區景點 ≤1 個時才加入另一區；最多兩區
+// 自動排程時挑出當天的景點：只取同一個地區的景點（依樹狀清單的地區順序）
 function pickExtras(rem,pinned,cap){
+  // 預設同一天只排一個地區；有空檔時，由使用者自行把另一個地區的景點指派進來（最多兩區）
   var D=[];
   pinned.forEach(function(x){if(!isFood(x)&&D.indexOf(x.dist)<0)D.push(x.dist)});
   if(D.length>=2||cap<=0)return [];
-  var order=[];
-  rem.forEach(function(x){if(order.indexOf(x.dist)<0)order.push(x.dist)});
-  var primary=D.length?D[0]:order[0];
+  var primary=D.length?D[0]:(rem[0]&&rem[0].dist);
   if(primary===undefined)return [];
-  var out=rem.filter(function(x){return x.dist===primary}).slice(0,cap);
-  var base=pinned.filter(function(x){return !isFood(x)}).length+out.length;
-  if(base<=1&&out.length<cap){
-    var sec=order.filter(function(d){return d!==primary})[0];
-    if(sec!==undefined)out=out.concat(rem.filter(function(x){return x.dist===sec}).slice(0,cap-out.length));
-  }
-  return out;
+  return rem.filter(function(x){return x.dist===primary}).slice(0,cap);
 }
 // 排程邏輯：
-// 1. 自動排程：同地區的景點排同一天；某區當天只有 1 個景點時才加另一區，最多兩區。
+// 1. 自動排程：同一天只排一個地區的景點；有空檔時由使用者自行指派另一個地區（最多兩區，系統會擋第三區）。
 // 2. 餐廳依午餐 11:00–13:30、晚餐 17:30–20:00 安排；沒有餐廳或沒安排時，產生可編輯的「自行安排用餐」。
 // 3. 手動拖拉後（st.lay）位置固定；「固定」開啟的項目（st.fix）在重新排程時不會被移動。
 // 4. 放不下或被移出的項目放在各城市最後一天的「未排入」區。
