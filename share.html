@@ -23,19 +23,14 @@
         <button type="button" class="tab" id="logout">登出</button>
       </div>
     </div>
-    <section class="card" id="upBox">
-      <h2>上傳照片</h2>
-      <p class="hint">系統會自動記錄上傳者與上傳時間，並讀取照片的拍攝時間來排序。照片會先縮小再上傳，並移除定位資訊。</p>
-      <div class="uprow">
-        <input type="file" id="upFiles" accept="image/jpeg,image/png,image/webp" multiple aria-label="選擇照片">
-        <select id="upDay" aria-label="這些照片屬於哪一天"></select>
-        <input type="text" id="upCap" maxlength="100" placeholder="註解（選填）" aria-label="照片註解">
-        <button type="button" id="upGo">上傳</button>
-      </div>
-      <p class="status" id="upSt"></p>
-    </section>
     <section class="card" id="photoBox"><h2>照片 <span class="muted" id="photoCnt"></span></h2><div id="photos" class="photos"></div></section>
     <section id="itin"></section>
+  </div>
+  <div id="modal" class="modal" hidden>
+    <div class="modalbox" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+      <div class="modalhead"><h2 id="mTitle"></h2><button type="button" class="ghost sm" id="mClose">關閉</button></div>
+      <div id="mBody"></div>
+    </div>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>

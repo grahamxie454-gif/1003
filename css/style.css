@@ -265,3 +265,16 @@ body.slidebody{background:var(--bg)}
 .strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
 .strip img{height:64px;width:auto;border-radius:6px;opacity:.55;cursor:pointer;border:2px solid transparent}
 .strip img.on{opacity:1;border-color:var(--stamp)}
+
+/* ===== 行程項目的照片視窗 ===== */
+.thumb{height:36px;width:48px;object-fit:cover;border-radius:4px;cursor:pointer;border:1px solid var(--line)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow-y:auto;z-index:50}
+.modal[hidden]{display:none}
+.modalbox{background:var(--surface);color:var(--ink);border-radius:12px;max-width:640px;width:100%;padding:16px 18px}
+.modalhead{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.modalhead h2{margin:0;font-size:1.1rem}
+.modalbox h3{font-size:14px;margin:14px 0 6px}
+.mrow{display:flex;gap:10px;margin:8px 0;align-items:flex-start}
+.mrow img{width:96px;height:72px;object-fit:cover;border-radius:6px;flex:none}
+.mcol{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
+.mcol input{width:100%}

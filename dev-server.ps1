@@ -13,9 +13,11 @@ while ($l.IsListening) {
     $b = [IO.File]::ReadAllBytes($f)
     $ext = [IO.Path]::GetExtension($f).ToLower()
     $c.Response.ContentType = $(if ($types.ContainsKey($ext)) { $types[$ext] } else { 'application/octet-stream' })
+    $c.Response.Headers.Add('Cache-Control','no-store')
     $c.Response.OutputStream.Write($b, 0, $b.Length)
   } else { $c.Response.StatusCode = 404 }
   $c.Response.Close()
 }
+
 
 
