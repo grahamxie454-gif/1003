@@ -178,7 +178,13 @@ on('mBody','click',async function(e){
     await refresh();
     $('mSt').textContent='註解已儲存。';
   }else if(b.dataset.delPhoto){
-    await deletePhoto(b.dataset.delPhoto);
+    if(!b.dataset.sure){
+      b.dataset.sure='1';b.textContent='再按一次確認刪除';
+      setTimeout(function(){if(b.isConnected){delete b.dataset.sure;b.textContent='刪除照片'}},4000);
+      return;
+    }
+    b.disabled=true;
+    await deletePhoto(b.dataset.delPhoto,st_);
   }else if(b.id==='mUpload'){
     b.disabled=true;
     var ok=0,fail=0,list=MOD.pending.slice();
@@ -201,12 +207,18 @@ on('mBody','click',async function(e){
     $('mSt').innerHTML='已上傳 '+ok+' 張'+(fail?'，失敗 '+fail+' 張（已保留在清單中，可再試一次）':'')+'。<a class="maplink" href="slideshow.html?trip='+TID+'" target="_blank" rel="noopener">開啟照片幻燈片（依拍照時間排序）</a>';
   }
 });
-async function deletePhoto(id){
+async function deletePhoto(id,msgEl){
+  var say=function(t){var el=document.getElementById('mSt')||msgEl;if(el)el.textContent=t};
   var p=PHOTOS.filter(function(x){return x.id===id})[0];
-  if(!p||p.user_id!==ME.id||!confirm('確定刪除這張照片？'))return;
-  var r=await sb.from('trip_photos').delete().eq('id',id);
-  if(r.error){alert('刪除失敗：'+r.error.message);return}
-  await sb.storage.from('trip-photos').remove([p.path]);
-  await refresh();
+  if(!p){say('找不到這張照片，請重新整理頁面。');return}
+  if(p.user_id!==ME.id){say('只有上傳者能刪除這張照片。');return}
+  try{
+    var r=await sb.from('trip_photos').delete().eq('id',id).select('id');
+    if(r.error)throw r.error;
+    if(!r.data||!r.data.length)throw new Error('沒有權限刪除，或照片已被刪除');
+    var rm=await sb.storage.from('trip-photos').remove([p.path]);
+    await refresh();
+    say(rm.error?'照片已從清單刪除（檔案清除失敗：'+rm.error.message+'）':'照片已刪除。');
+  }catch(err){say('刪除失敗：'+(err.message||err))}
 }
 bootPage();
