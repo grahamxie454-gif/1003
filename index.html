@@ -151,6 +151,16 @@ button.tab.on{background:var(--accent);color:var(--accent-ink);border-color:var(
 details.dd{margin:0 0 8px;font-size:14px}
 details.dd summary{cursor:pointer;color:var(--accent);font-weight:700;font-size:13px}
 details.dd summary:focus-visible{outline:2px solid var(--stamp);outline-offset:2px}
+.flt .fl{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.flt .fl b{font-size:14px}
+.flt .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.flt .row input,.flt .row label{flex:1 1 90px;min-width:0}
+.flt .row label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.flt .fmsg{font-size:12px;color:var(--muted);margin:0}
+.flt .fmsg.err{color:var(--stamp)}
+.rate{font-size:12px;font-weight:700;color:var(--stamp);white-space:nowrap}
+.timebox{display:inline-flex;align-items:center;gap:4px;font-size:13px}
+.timebox input{width:auto}
 .ddbody{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .ddrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .ddrow input,.ddrow select{flex:1 1 110px}
@@ -235,6 +245,7 @@ button.danger{background:transparent;color:var(--stamp);border-color:var(--stamp
           </fieldset>
           <fieldset><legend>6. 預算等級</legend><div class="chips" id="tier"></div></fieldset>
           <fieldset><legend>7. 行程步調</legend><div class="chips" id="pace"></div></fieldset>
+          <fieldset class="flt"><legend>8. 去程與回程航班（選填）</legend><div id="flights"></div></fieldset>
           <button type="button" class="ghost" data-act="reset">清除這份行程的自訂內容並重設</button>
         </form>
         <main aria-live="polite">
@@ -254,7 +265,7 @@ button.danger{background:transparent;color:var(--stamp);border-color:var(--stamp
       <div id="adminBody" class="card"></div>
     </div>
   </div>
-  <footer>價格為新台幣概估，含機票、住宿（雙人分攤）、餐飲、交通與景點門票。移動時間依直線距離與各交通工具的平均速度推算，自訂項目的位置為估計值，出發前請以地圖軟體確認。行程儲存在你的帳號中，換裝置登入也看得到。</footer>
+  <footer>價格為新台幣概估，含機票、住宿（雙人分攤）、餐飲、交通與景點門票。景點評分為 Google 地圖評分的參考值，可能已變動，請以地圖為準；航班時間請以航空公司公告為準。移動時間依直線距離與各交通工具的平均速度推算，自訂項目的位置為估計值，出發前請以地圖軟體確認。行程儲存在你的帳號中，換裝置登入也看得到。</footer>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -271,15 +282,16 @@ var fmtKm=function(k){return k<10?(Math.round(k*10)/10)+' 公里':Math.round(k)+
 var STYLE={f:'美食',c:'文化',n:'自然',s:'購物',x:'自訂'};
 var ORD={c:0,n:0,x:1,s:1,f:2};
 var SLOT={a:['上午','09:00'],p:['下午','13:30'],e:['晚上','18:30']};
-var SLOTW={a:[540,750],p:[810,1050],e:[1110,1290]};
+function slotWin(b){return {a:[b,b+210],p:[b+270,b+510],e:[b+570,b+750]}}
+function minStr(m){m=Math.max(0,Math.min(1439,Math.round(m)));return ('0'+Math.floor(m/60)).slice(-2)+':'+('0'+m%60).slice(-2)}
 var TIERS=[['節省',0.9],['適中',1],['舒適',1.3]];
 var MODES={metro:'地鐵',bus:'公車',train:'火車',drive:'自駕'};
 var LOCAL={metro:150,bus:100,train:120,drive:1500};
 var MODE_TXT={metro:'市區主力，買儲值卡或一日券最划算。',bus:'補足地鐵到不了的區域，留意末班車時間。',train:'城際移動首選，熱門路線建議先訂位。',drive:'需國際駕照或當地認可的駕照譯本，租車前確認保險與停車。'};
 var MNAME={metro:'地鐵',bus:'公車',train:'火車',drive:'自駕',walk:'步行',flight:'飛機'};
 
-var sb=null,ME=null,DB=null,CO={},C={},TRIPS=[],TRIP=null,saveTimer=null,dirty=false;
-var DEF=function(){return {co:['jp'],ci:['tyo'],days:5,styles:['f','c'],modes:['metro','train'],tier:1,pace:'full',auto:true}};
+var HMSG={},sb=null,ME=null,DB=null,CO={},C={},TRIPS=[],TRIP=null,saveTimer=null,dirty=false;
+var DEF=function(){return {co:['jp'],ci:['tyo'],days:5,styles:['f','c'],modes:['metro','train'],tier:1,pace:'full',auto:true,fl:{out:{},ret:{}}}};
 var st=DEF(),sel={},uid=0,cuid=0,DAYS={},OPEN={};
 
 // ================= 登入與註冊 =================
@@ -345,7 +357,7 @@ function buildBuiltin(){
   DB.cities.forEach(function(c){if(CO[c.country_id])C[c.id]={n:c.name,co:c.country_id,code:c.code,lat:c.lat,lng:c.lng,hotel:c.hotel,food:c.food,d:{},pos:{}}});
   var dm={};
   DB.districts.forEach(function(d){if(C[d.city_id]){C[d.city_id].d[d.name]=[];C[d.city_id].pos[d.name]=[d.lat,d.lng];dm[d.id]=[d.city_id,d.name]}});
-  DB.spots.forEach(function(s){var p=dm[s.district_id];if(p)C[p[0]].d[p[1]].push([s.name,s.style,s.cost,s.descr,s.id])});
+  DB.spots.forEach(function(s){var p=dm[s.district_id];if(p)C[p[0]].d[p[1]].push([s.name,s.style,s.cost,s.descr,s.id,s.rating==null?null:+s.rating,s.maps_url||''])});
 }
 function packTrip(){
   var cc={},cx={};
@@ -369,6 +381,13 @@ function openTrip(row){
   if(s.pace==='full'||s.pace==='relax')st.pace=s.pace;
   st.auto=s.auto!==false;
   sel=d.sel||{};uid=d.uid||0;cuid=d.cuid||0;DAYS=d.days||{};OPEN={};
+  ['out','ret'].forEach(function(k){st.fl[k]=Object.assign({},s.fl&&s.fl[k])});
+  // 舊版每日航班 → 去程／回程
+  var d1=DAYS[1]&&DAYS[1].flights,dN=DAYS[st.days]&&DAYS[st.days].flights;
+  var oa=(d1||[]).filter(function(f){return f.kind==='arrive'})[0],rd=(dN||[]).filter(function(f){return f.kind==='depart'})[0];
+  if(oa&&!st.fl.out.arr)st.fl.out={no:oa.no,from:oa.from,to:oa.to,arr:oa.time};
+  if(rd&&!st.fl.ret.dep)st.fl.ret={no:rd.no,from:rd.from,to:rd.to,dep:rd.time};
+  Object.keys(DAYS).forEach(function(n){if(DAYS[n])delete DAYS[n].flights});
   $('tripName').value=row.name;
   rebuildAll(true);
 }
@@ -545,7 +564,7 @@ function buildAdder(){
   var cus=Object.keys(CO).filter(function(k){return CO[k].custom}),cuc=Object.keys(C).filter(function(k){return C[k].custom});
   $('adder').innerHTML=
     '<div class="addrow"><input type="text" id="nco" maxlength="12" placeholder="國家名稱，例如：越南" aria-label="新國家名稱"><input type="number" id="nfl" min="0" step="1000" placeholder="來回機票 NT$（選填）" aria-label="來回機票"><button type="button" class="ghost" data-act="addco">新增國家</button></div>'+
-    '<div class="addrow"><input type="text" id="nci" maxlength="14" placeholder="城市名稱，例如：福岡" aria-label="新城市名稱"><select id="ncc" aria-label="城市所屬國家">'+
+    '<div class="addrow"><input type="text" id="nci" maxlength="14" placeholder="城市名稱，例如：沖繩" aria-label="新城市名稱"><select id="ncc" aria-label="城市所屬國家">'+
       Object.keys(CO).map(function(k){return '<option value="'+esc(k)+'">'+esc(CO[k].n)+'</option>'}).join('')+'</select>'+
       '<input type="number" id="nkm" min="1" placeholder="距其他已選城市約幾公里（預設 150）" aria-label="與其他城市的距離"><button type="button" class="ghost" data-act="addci">新增城市</button></div>'+
     '<p class="hint">自訂城市以預設費用估算，距離用來推算城際移動時間。新增後到右側加入地區與地點。</p>'+
@@ -579,7 +598,7 @@ function costTxt(x){return x.cost?'約 '+fmt(x.cost):(x.s==='x'?'自訂，費用
 function citySpots(k,all,ordered){
   var s=ensureSel(k),out=[],ds=ordered?orderDistricts(k,s.d):s.d;
   ds.forEach(function(dn){
-    (C[k].d[dn]||[]).map(function(sp){return {id:k+'|'+sp[4],k:k,name:sp[0],s:sp[1],cost:sp[2],desc:sp[3],dist:dn}})
+    (C[k].d[dn]||[]).map(function(sp){return {id:k+'|'+sp[4],k:k,name:sp[0],s:sp[1],cost:sp[2],desc:sp[3],dist:dn,rating:sp[5],url:sp[6]}})
       .filter(function(x){return styleOk(x.s)}).sort(byOrd).forEach(function(x){out.push(x)});
     s.cs.filter(function(c){return c.d===dn}).forEach(function(c){out.push(customObj(k,c))});
   });
@@ -602,7 +621,7 @@ function renderPick(){
       var last=null;
       list.forEach(function(x,i){
         if(x.dist!==last){last=x.dist;h+=(i?'</div>':'')+'<p class="dgroup">'+esc(x.dist)+'</p><div class="spots">'}
-        h+='<label class="sp"><input type="checkbox" data-k="'+esc(k)+'" data-id="'+esc(x.id)+'"'+(s.off[x.id]?'':' checked')+'><b>'+esc(x.name)+'</b><small>'+STYLE[x.s]+'・'+costTxt(x)+'・'+esc(x.desc)+'</small></label>';
+        h+='<label class="sp"><input type="checkbox" data-k="'+esc(k)+'" data-id="'+esc(x.id)+'"'+(s.off[x.id]?'':' checked')+'><b>'+esc(x.name)+' '+rateTxt(x)+'</b><small>'+STYLE[x.s]+'・'+costTxt(x)+'・'+esc(x.desc)+'・<a class="maplink" href="'+esc(mapSearch(x))+'" target="_blank" rel="noopener">地圖</a></small></label>';
       });
       h+='</div>';
     }
@@ -621,7 +640,16 @@ function alloc(list,total){
   return fl.map(function(v){return v+1});
 }
 function toMin(t){var m=/^(\d{1,2}):(\d{2})$/.exec(t||'');return m?(+m[1])*60+(+m[2]):null}
-function dayFlights(no){return ((DAYS[no]&&DAYS[no].flights)||[]).filter(function(f){return toMin(f.time)!==null})}
+function dayFlights(no){
+  var out=[],o=st.fl.out,r=st.fl.ret;
+  if(no===1&&toMin(o.arr)!==null)out.push({kind:'arrive',no:o.no,from:o.from,to:o.to,time:o.arr});
+  if(no===st.days&&toMin(r.dep)!==null)out.push({kind:'depart',no:r.no,from:r.from,to:r.to,time:r.dep});
+  return out;
+}
+function dayTimes(no){
+  var r=DAYS[no]||{},s=toMin(r.start),e=toMin(r.end);
+  return {start:s!==null?s:540,end:e!==null?e:1290};
+}
 function plan(){
   var ordered=orderCities(st.ci.filter(function(k){return C[k]}));
   var over=ordered.length>st.days,cities=ordered.slice(0,st.days),total=st.days;
@@ -638,26 +666,32 @@ function plan(){
       if(dayNo===1&&foreign&&!hasArr)slots=st.pace==='relax'?['e']:['p','e'];
       if(arrive&&!hasArr)slots=arrive.min>240?['e']:slots.filter(function(s){return s!=='a'});
       if(dayNo===total&&!hasDep)slots=foreign?slots.filter(function(s){return s==='a'}):slots.filter(function(s){return s!=='e'});
+      var tmr=dayTimes(dayNo),W=slotWin(tmr.start),ready=0,limit=1440,lo={};
       fls.forEach(function(f){
         var t=toMin(f.time);
-        slots=f.kind==='arrive'?slots.filter(function(s){return SLOTW[s][0]>=t+90}):slots.filter(function(s){return SLOTW[s][1]<=t-180});
+        if(f.kind==='arrive')ready=Math.max(ready,t+90);else limit=Math.min(limit,t-180);
+      });
+      slots=slots.filter(function(s){
+        var a=Math.max(W[s][0],ready),b=Math.min(W[s][1],tmr.end,limit);
+        if(b-a<90)return false;
+        lo[s]=a;return true;
       });
       var chunk=list.slice(ptr,ptr+slots.length);ptr+=chunk.length;
       if(chunk.every(function(x){return x.dist===chunk[0].dist}))chunk.sort(byOrd);
       var items=[],legs=[],travel=arrive?arrive.min:0,legStart=null,legEnd=null;
       chunk.forEach(function(x,j){
-        items.push({slot:slots[j],s:x});spotCost+=x.cost;
+        items.push({slot:slots[j],s:x,t:lo[slots[j]]});spotCost+=x.cost;
         if(j>0){var lg=localLeg(spotLL(chunk[j-1]),spotLL(x),ms);legs[j]=lg;travel+=lg.min}
       });
-      if(slots.length>chunk.length)items.push({slot:slots[chunk.length],free:true});
+      if(slots.length>chunk.length)items.push({slot:slots[chunk.length],free:true,t:lo[slots[chunk.length]]});
       var hot=null;
-      for(var j2=dayNo;j2>=1&&dayCity[j2]===k;j2--){var hh=DAYS[j2]&&DAYS[j2].hotel;if(hh&&hh.name){hot=hh;break}}
+      for(var j2=dayNo;j2>=1&&dayCity[j2]===k;j2--){var hh=DAYS[j2]&&DAYS[j2].hotel;if(hh&&(hh.name||hh.url)){hot={name:hh.name||'住宿（地圖連結）',url:hh.url,lat:hh.lat,lng:hh.lng,cost:hh.cost};break}}
       if(hot&&chunk.length){
         var hl=typeof hot.lat==='number'?[hot.lat,hot.lng]:(function(b){return [b[0]+0.012,b[1]+0.012]})(spotLL(chunk[0]));
         legStart=localLeg(hl,spotLL(chunk[0]),ms);legEnd=localLeg(spotLL(chunk[chunk.length-1]),hl,ms);
         travel+=legStart.min+legEnd.min;
       }
-      days.push({no:dayNo,city:k,items:items,legs:legs,legStart:legStart,legEnd:legEnd,arrive:arrive,travel:travel,first:i===0,foreign:foreign,drive:drv,ms:ms,hotel:hot,flights:fls,flightLimited:fls.length>0});
+      days.push({no:dayNo,city:k,items:items,legs:legs,legStart:legStart,legEnd:legEnd,arrive:arrive,travel:travel,first:i===0,foreign:foreign,drive:drv,ms:ms,hotel:hot,flights:fls,flightLimited:fls.length>0,tStart:tmr.start,tEnd:Math.min(tmr.end,limit),ready:ready});
     }
     list.slice(ptr).forEach(function(x){left.push(x.name)});
   });
@@ -665,7 +699,8 @@ function plan(){
 }
 
 function mapQ(x){if(typeof x.lat==='number')return x.lat+','+x.lng;return x.name+' '+C[x.k].n+' '+CO[C[x.k].co].n}
-function mapSearch(x){return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(mapQ(x))}
+function mapSearch(x){return x.url||'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(mapQ(x))}
+function rateTxt(x){return x.rating?'<span class="rate" title="Google 地圖評分（參考值）">★ '+x.rating.toFixed(1)+'</span>':''}
 function hotelQ(h,city){return typeof h.lat==='number'?h.lat+','+h.lng:h.name+' '+C[city].n}
 function mapRoute(spots,d){
   var mode=d.drive?'driving':'transit',h=d.hotel;
@@ -678,20 +713,14 @@ function mapRoute(spots,d){
 }
 function flightTxt(f){return (f.kind==='arrive'?'抵達':'離開')+' '+(f.no||'')+' '+(f.from||'')+(f.to?' → '+f.to:'')+' '+(f.time||'')}
 function dayEditor(d){
-  var no=d.no,x=DAYS[no]||{},h=x.hotel||{},fl=x.flights||[],inh=!h.name&&d.hotel;
-  var s='<details class="dd" data-no="'+no+'"'+(OPEN[no]?' open':'')+'><summary>住宿與航班'+(d.hotel?'（住宿：'+esc(d.hotel.name)+(fl.length?'・航班 '+fl.length:'')+'）':(fl.length?'（航班 '+fl.length+'）':'（選填）'))+'</summary><div class="ddbody">'+
+  var no=d.no,x=DAYS[no]||{},h=x.hotel||{},inh=!h.name&&!h.url&&d.hotel;
+  var s='<details class="dd" data-no="'+no+'"'+(OPEN[no]?' open':'')+'><summary>住宿'+(d.hotel?'：'+esc(d.hotel.name):'（選填）')+'</summary><div class="ddbody">'+
     '<div class="ddrow"><input type="text" class="w2" data-no="'+no+'" data-f="hname" value="'+esc(h.name||'')+'" placeholder="'+(inh?'沿用：'+esc(d.hotel.name):'今晚住宿名稱')+'" aria-label="住宿名稱">'+
-    '<input type="text" data-no="'+no+'" data-f="hll" value="'+(typeof h.lat==='number'?h.lat+', '+h.lng:'')+'" placeholder="座標（選填）" aria-label="住宿座標">'+
-    '<input type="number" min="0" step="100" data-no="'+no+'" data-f="hcost" value="'+(h.cost||'')+'" placeholder="每晚雙人房 NT$" aria-label="住宿每晚費用"></div>';
-  fl.forEach(function(f,i){
-    s+='<div class="ddrow"><select data-no="'+no+'" data-fi="'+i+'" data-f="kind" aria-label="航班類型"><option value="arrive"'+(f.kind==='arrive'?' selected':'')+'>抵達</option><option value="depart"'+(f.kind==='depart'?' selected':'')+'>離開</option></select>'+
-      '<input type="text" data-no="'+no+'" data-fi="'+i+'" data-f="no" value="'+esc(f.no||'')+'" placeholder="航班 例：CI100" aria-label="航班編號">'+
-      '<input type="text" data-no="'+no+'" data-fi="'+i+'" data-f="from" value="'+esc(f.from||'')+'" placeholder="出發機場" aria-label="出發機場" maxlength="20">'+
-      '<input type="text" data-no="'+no+'" data-fi="'+i+'" data-f="to" value="'+esc(f.to||'')+'" placeholder="抵達機場" aria-label="抵達機場" maxlength="20">'+
-      '<input type="time" data-no="'+no+'" data-fi="'+i+'" data-f="time" value="'+esc(f.time||'')+'" aria-label="航班時間（抵達填降落時間，離開填起飛時間）">'+
-      '<button type="button" class="ghost danger" data-act="delfl" data-no="'+no+'" data-fi="'+i+'">刪除</button></div>';
-  });
-  s+='<div class="ddrow"><button type="button" class="ghost" data-act="addfl" data-no="'+no+'">新增航班</button><span class="muted">抵達填降落時間，離開填起飛時間，系統會預留機場往返時間。</span></div></div></details>';
+    '<input type="number" min="0" step="100" data-no="'+no+'" data-f="hcost" value="'+(h.cost||'')+'" placeholder="每晚雙人房 NT$" aria-label="住宿每晚費用"></div>'+
+    '<div class="ddrow"><input type="url" class="w2" data-no="'+no+'" data-f="hurl" value="'+esc(h.url||'')+'" placeholder="Google 地圖分享連結（在地圖 App 按「分享」複製）" aria-label="住宿 Google 地圖分享連結">'+
+    (h.url?'<a class="maplink" href="'+esc(h.url)+'" target="_blank" rel="noopener">開啟住宿地圖</a>':'')+'</div>'+
+    '<p class="hint">'+esc(HMSG[no]||(typeof h.lat==='number'?'已取得住宿座標，會用來估算每天出發與返回的移動時間。':'貼上分享連結後，系統會嘗試取得座標；取不到時仍可開啟地圖，移動時間以估計值計算。'))+'</p>'+
+    '</div></details>';
   return s;
 }
 
@@ -724,7 +753,9 @@ function renderRes(){
     if(d.no===1&&!d.flights.some(function(f){return f.kind==='arrive'}))notes.push(d.foreign?'抵達日（'+esc(fc.fh)+'），下午才開始行程。':'出發日，先到飯店放行李再出發。');
     if(d.arrive)notes.push('搭乘'+MNAME[d.arrive.mode]+'前往'+esc(C[d.city].n)+'，約 '+fmtMin(d.arrive.min)+'（約 '+fmtKm(d.arrive.km)+'）。'+(d.arrive.min>240&&!d.flights.length?'長途移動，當天只安排晚間行程。':''));
     if(d.no===total&&!d.flights.some(function(f){return f.kind==='depart'}))notes.push(d.foreign?'返程日，預留至少 3 小時前往機場，只安排上午行程。':'返程日，傍晚前結束行程。');
-    if(d.hotel)notes.push('住宿：'+esc(d.hotel.name)+'。');
+    if(d.hotel)notes.push('住宿：'+(d.hotel.url?'<a class="maplink" href="'+esc(d.hotel.url)+'" target="_blank" rel="noopener">'+esc(d.hotel.name)+'</a>':esc(d.hotel.name))+'。');
+    if(d.ready>0)notes.push('抵達後預留 90 分鐘出關與入住，行程最早 '+minStr(d.ready)+' 開始。');
+    if(d.flights.some(function(f){return f.kind==='depart'}))notes.push('起飛前 3 小時抵達機場，行程最晚 '+minStr(d.tEnd)+' 結束。');
     var area=d.items.filter(function(x){return x.s}).map(function(x){return x.s.dist}).filter(function(v,j,a){return a.indexOf(v)===j}).join('、');
     h+='<article class="day"><h3>第 '+d.no+' 天<em class="city">'+esc(C[d.city].n)+'</em>'+(area?'<em class="area">'+esc(area)+'</em>':'')+
       (d.travel?'<em class="move'+(d.travel>180?' long':'')+'">移動約 '+fmtMin(d.travel)+'</em>':'')+'</h3>'+(notes.length?'<p class="note">'+notes.join('')+'</p>':'');
@@ -733,17 +764,20 @@ function renderRes(){
     var dsp=d.items.filter(function(x){return x.s}).map(function(x){return x.s});
     h+='<div class="dayact">';
     if(dsp.length)h+='<a class="maplink" href="'+mapRoute(dsp,d)+'" target="_blank" rel="noopener">在 Google 地圖查看當日'+(dsp.length>1?' '+dsp.length+' 個地點與路線':'地點')+'</a>';
+    var tt=dayTimes(d.no),dr=DAYS[d.no]||{};
+    h+='<span class="timebox"><label>出發 <input type="time" data-no="'+d.no+'" data-f="start" value="'+(dr.start||'')+'" placeholder="09:00" aria-label="當天出發時間（預設 09:00）"></label>'+
+      '<label>回住宿 <input type="time" data-no="'+d.no+'" data-f="end" value="'+(dr.end||'')+'" placeholder="21:30" aria-label="當天回到住宿時間（預設 21:30）"></label></span>';
     if(hasDrive())h+='<label><input type="checkbox" data-no="'+d.no+'" data-f="drive"'+(d.drive?' checked':'')+(onlyDrive()?' disabled':'')+'>今天自駕'+(onlyDrive()?'（只選自駕，自動勾選）':'')+'</label>';
     h+='</div>'+dayEditor(d);
     var firstSpot=-1,lastSpot=-1;
     d.items.forEach(function(x,j){if(x.s){if(firstSpot<0)firstSpot=j;lastSpot=j}});
     d.items.forEach(function(x,j){
-      var tm=SLOT[x.slot];
+      var tm=[SLOT[x.slot][0],minStr(x.t)];
       if(j===firstSpot&&d.legStart)h+='<div class="leg">↓ 從住宿出發：'+MNAME[d.legStart.mode]+'約 '+fmtMin(d.legStart.min)+'・約 '+fmtKm(d.legStart.km)+'</div>';
       if(d.legs[j])h+='<div class="leg">↓ '+MNAME[d.legs[j].mode]+'約 '+fmtMin(d.legs[j].min)+'・約 '+fmtKm(d.legs[j].km)+'</div>';
       if(x.free){h+='<div class="slot free"><div class="t"><b>'+tm[0]+'</b>'+tm[1]+'</div><div><div class="n">自由活動</div><p>預留彈性，可在地區內加選地點，或回飯店休息。</p></div></div>';return}
       var s=x.s;
-      h+='<div class="slot"><div class="t"><b>'+tm[0]+'</b>'+tm[1]+'</div><div><div class="n">'+esc(s.name)+'<span class="tag">'+STYLE[s.s]+'</span><a class="maplink" href="'+mapSearch(s)+'" target="_blank" rel="noopener">看地圖</a></div><p>'+esc(s.desc)+'</p><div class="meta">'+esc(s.dist)+'・'+costTxt(s)+'</div></div></div>';
+      h+='<div class="slot"><div class="t"><b>'+tm[0]+'</b>'+tm[1]+'</div><div><div class="n">'+esc(s.name)+'<span class="tag">'+STYLE[s.s]+'</span>'+rateTxt(s)+'<a class="maplink" href="'+esc(mapSearch(s))+'" target="_blank" rel="noopener">看地圖</a></div><p>'+esc(s.desc)+'</p><div class="meta">'+esc(s.dist)+'・'+costTxt(s)+'</div></div></div>';
       if(j===lastSpot&&d.legEnd)h+='<div class="leg">↓ 返回住宿：'+MNAME[d.legEnd.mode]+'約 '+fmtMin(d.legEnd.min)+'・約 '+fmtKm(d.legEnd.km)+'</div>';
     });
     h+='</article>';
@@ -764,10 +798,10 @@ function toText(p,tot){
   p.days.forEach(function(d){
     L.push('','第 '+d.no+' 天 '+C[d.city].n+(d.arrive?'（'+MNAME[d.arrive.mode]+'移動約 '+fmtMin(d.arrive.min)+'）':'')+(d.drive?'【自駕】':''));
     d.flights.forEach(function(f){L.push('　航班：'+flightTxt(f))});
-    if(d.hotel)L.push('　住宿：'+d.hotel.name);
+    if(d.hotel)L.push('　住宿：'+d.hotel.name+(d.hotel.url?' '+d.hotel.url:''));
     d.items.forEach(function(x,j){
       if(d.legs[j])L.push('　↓ '+MNAME[d.legs[j].mode]+'約 '+fmtMin(d.legs[j].min));
-      L.push(SLOT[x.slot][0]+' '+SLOT[x.slot][1]+'　'+(x.free?'自由活動':x.s.name+'（'+x.s.dist+'）'));
+      L.push(SLOT[x.slot][0]+' '+minStr(x.t)+'　'+(x.free?'自由活動':x.s.name+'（'+x.s.dist+'）'+(x.s.rating?' ★'+x.s.rating.toFixed(1):'')+'　'+mapSearch(x.s)));
     });
   });
   return L.join('\n');
@@ -781,11 +815,11 @@ function copyText(t){
   try{navigator.clipboard.writeText(t).then(ok,bad)}catch(e){bad()}
 }
 function render(skipSave){renderPick();renderRes();if(!skipSave)save()}
-function rebuildAll(skipSave){normalize();buildStatic();buildCities();buildAdder();render(skipSave)}
+function rebuildAll(skipSave){normalize();buildStatic();buildCities();buildAdder();renderFlights();render(skipSave)}
 
 // ================= 事件：規劃頁 =================
 $('f').addEventListener('change',function(e){
-  if(e.target.closest('.adder'))return;
+  if(e.target.closest('.adder,.flt'))return;
   var f=new FormData($('f')),nm=e.target.name;
   if(nm==='co'){var co=f.getAll('co');if(co.length)st.co=co}
   if(nm==='ci')st.ci=f.getAll('ci');
@@ -868,40 +902,109 @@ document.addEventListener('keydown',function(e){
     if(b)b.click();
   }
 });
-// 每日：自駕、住宿、航班
+// 每日：自駕、出發與回程時間、住宿
 function dayRec(no){if(!DAYS[no])DAYS[no]={};return DAYS[no]}
+function mapCoords(u){
+  var m=u.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)||u.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/)||u.match(/[?&](?:q|ll|query|destination|center)=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/);
+  return m?[+m[1],+m[2]]:null;
+}
+function mapName(u){
+  var m=u.match(/\/maps\/place\/([^/@?]+)/);
+  if(!m)return '';
+  try{return decodeURIComponent(m[1].replace(/\+/g,' '))}catch(e){return ''}
+}
+async function resolveHotel(no,url){
+  HMSG[no]='正在從連結取得住宿位置…';
+  try{
+    var r=await sb.functions.invoke('trip-tools',{body:{action:'resolve',url:url}});
+    var h=DAYS[no]&&DAYS[no].hotel;
+    if(!h||h.url!==url)return;
+    if(r.error||!r.data||r.data.error||typeof r.data.lat!=='number'){
+      HMSG[no]='無法自動取得座標，仍可開啟地圖；移動時間以估計值計算。';
+    }else{
+      h.lat=r.data.lat;h.lng=r.data.lng;
+      if(!h.name&&r.data.name)h.name=r.data.name;
+      HMSG[no]='';
+    }
+  }catch(err){HMSG[no]='無法自動取得座標，仍可開啟地圖；移動時間以估計值計算。'}
+  OPEN[no]=true;render();
+}
 $('res').addEventListener('toggle',function(e){
   var el=e.target;if(el.matches&&el.matches('details.dd'))OPEN[el.dataset.no]=el.open;
 },true);
 $('res').addEventListener('change',function(e){
   var el=e.target,no=el.dataset.no,f=el.dataset.f;
   if(!no||!f)return;
-  var d=dayRec(no);
+  var d=dayRec(no),resolveUrl=null;
   if(f==='drive')d.drive=el.checked;
+  else if(f==='start'||f==='end'){
+    if(el.value&&toMin(el.value)===null){return}
+    if(el.value)d[f]=el.value;else delete d[f];
+    var tt=dayTimes(+no);
+    if(tt.end-tt.start<240){delete d[f];el.value='';el.setCustomValidity('出發與回住宿時間至少相隔 4 小時');el.reportValidity();el.setCustomValidity('');return}
+  }
   else if(f==='hname'){d.hotel=d.hotel||{};d.hotel.name=el.value.trim()}
   else if(f==='hcost'){d.hotel=d.hotel||{};var c=parseInt(el.value,10);if(c>0)d.hotel.cost=c;else delete d.hotel.cost}
-  else if(f==='hll'){
-    d.hotel=d.hotel||{};var v=el.value.trim();
-    if(!v){delete d.hotel.lat;delete d.hotel.lng}
-    else{var ll=parseLL(v);if(!ll){el.setCustomValidity('座標格式錯誤');el.reportValidity();el.setCustomValidity('');return}d.hotel.lat=ll[0];d.hotel.lng=ll[1]}
-  }else if(el.dataset.fi!==undefined){
-    var fo=(d.flights||[])[+el.dataset.fi];if(!fo)return;
-    fo[f]=el.value.trim();
+  else if(f==='hurl'){
+    d.hotel=d.hotel||{};var v=el.value.trim();OPEN[no]=true;
+    delete d.hotel.lat;delete d.hotel.lng;HMSG[no]='';
+    if(!v)delete d.hotel.url;
+    else if(!/^https:\/\/(maps\.app\.goo\.gl|goo\.gl|(www\.)?google\.[a-z.]+|maps\.google\.[a-z.]+)\//i.test(v)){
+      delete d.hotel.url;HMSG[no]='請貼上 Google 地圖的分享連結（https://maps.app.goo.gl/… 或 google.com/maps/…）。';
+    }else{
+      d.hotel.url=v;
+      var ll=mapCoords(v);
+      if(ll){d.hotel.lat=ll[0];d.hotel.lng=ll[1];if(!d.hotel.name)d.hotel.name=mapName(v)}
+      else resolveUrl=v;
+    }
   }
   render();
+  if(resolveUrl)resolveHotel(no,resolveUrl);
 });
-$('res').addEventListener('click',function(e){
-  var b=e.target.closest('button[data-act]');
+
+// 去程與回程航班
+var FMSG={out:'',ret:''},FLBUSY={};
+function renderFlights(){
+  var h='';
+  [['out','去程（台灣 → 目的地）','抵達時間決定第 1 天何時開始'],['ret','回程（目的地 → 台灣）','起飛時間決定最後一天何時結束']].forEach(function(L){
+    var k=L[0],f=st.fl[k];
+    h+='<div class="fl"><b>'+L[1]+'</b>'+
+      '<div class="row"><input type="text" data-fk="'+k+'" data-ff="no" value="'+esc(f.no||'')+'" placeholder="航班 例：CI100" maxlength="8" aria-label="'+L[1]+'航班編號">'+
+      '<input type="date" data-fk="'+k+'" data-ff="date" value="'+esc(f.date||'')+'" aria-label="'+L[1]+'日期">'+
+      '<button type="button" class="ghost" data-fk="'+k+'" data-fact="lookup"'+(FLBUSY[k]?' disabled':'')+'>'+(FLBUSY[k]?'查詢中…':'自動查詢')+'</button></div>'+
+      '<div class="row"><input type="text" data-fk="'+k+'" data-ff="from" value="'+esc(f.from||'')+'" placeholder="出發機場" maxlength="20" aria-label="出發機場"><input type="text" data-fk="'+k+'" data-ff="to" value="'+esc(f.to||'')+'" placeholder="抵達機場" maxlength="20" aria-label="抵達機場"></div>'+
+      '<div class="row"><label>起飛時間<input type="time" data-fk="'+k+'" data-ff="dep" value="'+esc(f.dep||'')+'"></label><label>降落時間<input type="time" data-fk="'+k+'" data-ff="arr" value="'+esc(f.arr||'')+'"></label></div>'+
+      '<p class="fmsg'+(FMSG[k]&&FMSG[k][0]==='!'?' err':'')+'">'+esc((FMSG[k]||'').replace(/^!/,'')||L[2]+'。')+'</p></div>';
+  });
+  $('flights').innerHTML=h;
+}
+$('flights').addEventListener('change',function(e){
+  var el=e.target,k=el.dataset.fk,ff=el.dataset.ff;
+  if(!k||!ff)return;
+  var v=el.value.trim();
+  if(ff==='no')v=v.replace(/\s+/g,'').toUpperCase();
+  if(v)st.fl[k][ff]=v;else delete st.fl[k][ff];
+  el.value=v;render();
+});
+$('flights').addEventListener('click',async function(e){
+  var b=e.target.closest('button[data-fact]');
   if(!b)return;
-  var no=+b.dataset.no,d=dayRec(no);
-  if(b.dataset.act==='addfl'){
-    d.flights=d.flights||[];
-    d.flights.push({kind:no===1?'arrive':(no===st.days?'depart':'arrive'),no:'',from:'',to:'',time:''});
-    OPEN[no]=true;
-  }else if(b.dataset.act==='delfl'){
-    (d.flights||[]).splice(+b.dataset.fi,1);
-  }
-  render();
+  e.stopPropagation();
+  var k=b.dataset.fk,f=st.fl[k];
+  if(!f.no||!f.date){FMSG[k]='!請先填航班編號與日期。';renderFlights();return}
+  FLBUSY[k]=true;FMSG[k]='';renderFlights();
+  try{
+    var r=await sb.functions.invoke('trip-tools',{body:{action:'flight',no:f.no,date:f.date}});
+    var d=r.data;
+    if(r.error||!d)FMSG[k]='!查詢失敗，請手動填入時間。';
+    else if(d.error==='not_configured')FMSG[k]='!尚未啟用自動查詢（需先設定航班資料服務金鑰），請手動填入起降時間。';
+    else if(d.error)FMSG[k]='!'+d.error+'，請手動填入。';
+    else{
+      ['from','to','dep','arr'].forEach(function(x){if(d[x])f[x]=d[x]});
+      FMSG[k]='已取得：'+(d.from||'')+' '+(d.dep||'')+' → '+(d.to||'')+' '+(d.arr||'')+(d.nextDay?'（跨日抵達，請自行確認第 1 天的安排）':'')+'。時間為預定時刻，請以航空公司為準。';
+    }
+  }catch(err){FMSG[k]='!查詢失敗，請手動填入時間。'}
+  FLBUSY[k]=false;renderFlights();render();
 });
 
 // ================= 管理後台 =================
@@ -990,7 +1093,7 @@ function colsFor(t){
   if(t==='countries')return [['id','代碼','id'],['name','名稱','text'],['flight','機票 NT$','int'],['fh','飛行時間','text'],['season','最佳季節','text'],['drive','自駕提醒','text'],['tips','小提醒（一行一則）','lines'],['rail','鐵路時速','int'],['sort','排序','int']];
   if(t==='cities')return [['id','代碼','id'],['country_id','國家','sel',cn],['name','名稱','text'],['code','機場代碼','text'],['lat','緯度','num'],['lng','經度','num'],['hotel','住宿（節省,適中,舒適）','ints3'],['food','餐飲（節省,適中,舒適）','ints3'],['sort','排序','int']];
   if(t==='districts')return [['id','編號','auto'],['city_id','城市','sel',ct],['name','名稱','text'],['lat','緯度','num'],['lng','經度','num'],['sort','排序','int']];
-  return [['id','編號','auto'],['district_id','地區','sel',dt],['name','名稱','text'],['style','風格','sel',[['f','美食'],['c','文化'],['n','自然'],['s','購物']]],['cost','費用 NT$','int'],['descr','說明','text'],['sort','排序','int']];
+  return [['id','編號','auto'],['district_id','地區','sel',dt],['name','名稱','text'],['style','風格','sel',[['f','美食'],['c','文化'],['n','自然'],['s','購物']]],['cost','費用 NT$','int'],['rating','Google 評分','numopt'],['maps_url','地圖連結（選填）','text'],['descr','說明','text'],['sort','排序','int']];
 }
 function cellHtml(col,val,rid,isNew){
   var k=col[0],type=col[2],a=' data-c="'+k+'" data-r="'+esc(rid)+'" aria-label="'+esc(col[1])+'"';
@@ -999,7 +1102,7 @@ function cellHtml(col,val,rid,isNew){
   if(type==='sel')return '<select'+a+'>'+col[3].map(function(o){return '<option value="'+esc(o[0])+'"'+(String(o[0])===String(val)?' selected':'')+'>'+esc(o[1])+'</option>'}).join('')+'</select>';
   if(type==='lines')return '<textarea'+a+'>'+esc((val||[]).join('\n'))+'</textarea>';
   if(type==='ints3')return '<input type="text"'+a+' value="'+esc((val||[]).join(','))+'">';
-  return '<input type="'+(type==='text'?'text':'number')+'"'+(type==='num'?' step="any"':'')+a+' value="'+esc(val==null?'':val)+'">';
+  return '<input type="'+(type==='text'?'text':'number')+'"'+(type==='num'||type==='numopt'?' step="any"':'')+a+' value="'+esc(val==null?'':val)+'">';
 }
 function adminData(){
   var t=DSUB,cols=colsFor(t),rows=DB[t].slice();
@@ -1047,6 +1150,7 @@ function readRow(t,rid,isNew){
     var v=el.value;
     if(c[2]==='int'){var n=parseInt(v,10);o[c[0]]=isNaN(n)?0:n}
     else if(c[2]==='num'){var f=parseFloat(v);if(isNaN(f))throw new Error('「'+c[1]+'」請填數字');o[c[0]]=f}
+    else if(c[2]==='numopt'){if(v.trim()==='')o[c[0]]=null;else{var g=parseFloat(v);if(isNaN(g)||g<0||g>5)throw new Error('「'+c[1]+'」請填 0–5 的數字');o[c[0]]=g}}
     else if(c[2]==='lines')o[c[0]]=v.split('\n').map(function(x){return x.trim()}).filter(Boolean);
     else if(c[2]==='ints3'){var a=v.split(/[,，\s]+/).filter(Boolean).map(Number);if(a.length!==3||a.some(isNaN))throw new Error('「'+c[1]+'」請填三個數字，用逗號分隔');o[c[0]]=a}
     else if(c[2]==='sel')o[c[0]]=(c[0]==='district_id')?parseInt(v,10):v;
