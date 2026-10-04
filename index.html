@@ -1432,7 +1432,7 @@ function adminData(){
     rows=rows.filter(function(r){return String(r.district_id)===String(AF.district)});
   }
   var h='<div class="tabs" id="dsubs">'+DT.map(function(x){return '<button type="button" class="tab'+(x===t?' on':'')+'" data-dsub="'+x+'">'+DTL[x]+'</button>'}).join('')+'</div>'+
-    '<div class="adminbar" style="margin:12px 0">'+filt+'<span class="muted">修改後按該列的「儲存」。刪除國家、城市或地區會一併刪除底下的內容。</span></div>'+
+    '<div class="adminbar" style="margin:12px 0">'+filt+(t==='spots'?'<button type="button" class="ghost" id="updRatings">更新 Google 評價（每次最多 30 筆）</button>':'')+'<span class="muted">修改後按該列的「儲存」。刪除國家、城市或地區會一併刪除底下的內容。</span></div>'+
     '<div class="tblwrap"><table class="t"><thead><tr>'+cols.map(function(c){return '<th>'+esc(c[1])+'</th>'}).join('')+'<th></th></tr></thead><tbody>';
   // 新增列
   var defaults={};
@@ -1445,7 +1445,20 @@ function adminData(){
   });
   $('adminBody').innerHTML=h+'</tbody></table></div>';
 }
-document.addEventListener('click',function(e){
+document.addEventListener('click',async function(e){
+  var ub=e.target.closest('#updRatings');
+  if(ub){
+    ub.disabled=true;aMsg('更新中，請稍候…');
+    try{
+      var r=await sb.functions.invoke('update-ratings',{body:{}});
+      var d=r.data||{};
+      if(r.error)throw new Error(r.error.message||'呼叫失敗');
+      if(d.error==='not_configured')aMsg('尚未設定 Google Places 金鑰（GOOGLE_PLACES_KEY）。',true);
+      else if(d.error)aMsg(d.error,true);
+      else{await loadBuiltin();aMsg('已更新 '+d.updated+' 筆，找不到對應地點 '+d.missed+' 筆，還有 '+d.remaining+' 筆待更新（距上次更新超過 30 天者）。');adminData()}
+    }catch(err){aMsg('更新失敗：'+(err.message||err),true)}
+    return;
+  }
   var b=e.target.closest('button[data-dsub]');
   if(b){DSUB=b.dataset.dsub;adminData()}
 });
