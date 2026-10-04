@@ -44,17 +44,22 @@ async function fetchRoutes(){
   try{
     var r=await sb.functions.invoke('route-times',{body:{legs:legs}});
     var d=r.data||{},got=0;
-    if(r.error)throw new Error(r.error.message||'呼叫失敗');
+    if(r.error){
+      var detail=r.error.message||'呼叫失敗';
+      try{if(r.error.context&&r.error.context.text){var tx=await r.error.context.text();if(tx)detail+='：'+tx.slice(0,200)}}catch(e2){}
+      throw new Error(detail);
+    }
     if(d.error==='not_configured'){ROUTE_OFF=true;ROUTE_MSG='尚未設定 Google 金鑰，路線時間使用估算。'}
     else if(d.error){ROUTE_OFF=true;ROUTE_MSG='路線查詢失敗：'+d.error}
     else{
       (d.results||[]).forEach(function(x){ROUTE[x.key]={s:x.s,m:x.m};got++});
       if(d.capped){ROUTE_OFF=true;ROUTE_MSG='今日 Google 查詢額度已用完，其餘路線時間使用估算。'}
+      else if(d.fails&&!got)ROUTE_MSG='部分路段 Google 無法規劃（'+d.fails+' 段），這些路段使用估算。'+(d.lastErr?'原因：'+d.lastErr:'');
       else ROUTE_MSG='';
     }
     if(got)render(true);else{var s1=$('routeStat');if(s1)s1.textContent=ROUTE_MSG}
     scheduleRoutes();
-  }catch(err){ROUTE_OFF=true;ROUTE_MSG='路線查詢失敗，路線時間使用估算。';var s2=$('routeStat');if(s2)s2.textContent=ROUTE_MSG}
+  }catch(err){ROUTE_OFF=true;ROUTE_MSG='路線查詢失敗，路線時間使用估算。原因：'+(err.message||err);var s2=$('routeStat');if(s2)s2.textContent=ROUTE_MSG}
 }
 async function loadRoutes(){
   try{
