@@ -37,6 +37,7 @@ function openTrip(row){
   if(s.pace==='full'||s.pace==='relax')st.pace=s.pace;
   st.auto=s.auto!==false;
   if(s.lay&&typeof s.lay==='object')st.lay=s.lay;
+  if(s.fix&&typeof s.fix==='object')st.fix=s.fix;
   sel=d.sel||{};uid=d.uid||0;cuid=d.cuid||0;DAYS=d.days||{};OPEN={};
   ['out','ret'].forEach(function(k){st.fl[k]=Object.assign({},s.fl&&s.fl[k])});
   // 舊版每日航班 → 去程／回程
