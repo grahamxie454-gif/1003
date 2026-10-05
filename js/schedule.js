@@ -41,10 +41,10 @@ function legDep(at){
   return dayDateISO(LEGDAY)+'T'+pad(Math.floor(m/60))+':'+pad(m%60)+':00'+(tz<0?'-':'+')+pad(a)+':00';
 }
 function leg(fq,tq,a,b,ms,at){
-  var est=localLeg(a,b,ms),g=gMode(est.mode),dep=g==='TRANSIT'?legDep(at||0):'';
-  var key=g+'|'+fq+'|'+tq+(dep?'|'+dep:''),h=ROUTE[key];
-  if(h)return {km:h.m/1000,min:Math.max(15,Math.round(h.s/60/15)*15),mode:est.mode,g:true};
-  if(!ROUTE_TRIED[key])ROUTE_NEED[key]={key:key,mode:g,from:fq,to:tq,dep:dep};
+  var est=localLeg(a,b,ms),g=gMode(est.mode),dep=g==='TRANSIT'?legDep(at||0):'',nav=(g==='TRANSIT'&&LEGCO==='jp');
+  var key=(nav?'NAVI':g)+'|'+fq+'|'+tq+(dep?'|'+dep:''),h=ROUTE[key];
+  if(h)return {km:h.m/1000,min:Math.max(15,Math.round(h.s/60/15)*15),mode:est.mode,g:true,fare:h.f||0,src:nav?'NAVITIME':'Google'};
+  if(!ROUTE_TRIED[key])ROUTE_NEED[key]={key:key,mode:g,prov:nav?'NAVI':'',from:fq,to:tq,dep:dep};
   return est;
 }
 function setRouteMsg(t){ROUTE_MSG=t;var el=$('routeStat');if(el)el.textContent=t;var b=$('calcRoutes');if(b)b.disabled=ROUTE_BUSY}
@@ -70,7 +70,8 @@ async function calcRoutes(){
         }
         var d=r.data||{};
         if(d.error==='not_configured'){stop='尚未設定 Google 金鑰，路線時間維持估算。';break}
-        (d.results||[]).forEach(function(x){ROUTE[x.key]={s:x.s,m:x.m};got++});
+        if(d.error==='not_configured_navitime'){stop='尚未設定 NAVITIME 金鑰（Supabase Secrets：NAVITIME_KEY 或 AERODATABOX_KEY），日本大眾運輸維持估算。';break}
+        (d.results||[]).forEach(function(x){ROUTE[x.key]={s:x.s,m:x.m,f:x.f};got++});
         if(d.error){stop='路線查詢失敗：'+d.error;break}
         if(d.capped){stop='今日 Google 查詢額度已用完，其餘路線維持估算，明天可再按一次。';break}
         fails+=d.fails||0;if(d.lastErr)lastErr=d.lastErr;
@@ -79,14 +80,14 @@ async function calcRoutes(){
   }catch(err){stop='路線查詢失敗：'+(err.message||err)}
   ROUTE_BUSY=false;
   render(true);
-  setRouteMsg(stop||('Google 路線時間計算完成：本次新查詢 '+got+' 段'+(fails?'，'+fails+' 段 Google 無法規劃（維持估算）'+(lastErr?'，原因：'+lastErr:''):'')+'。'));
+  setRouteMsg(stop||('路線時間計算完成：本次新查詢 '+got+' 段'+(fails?'，'+fails+' 段 Google 無法規劃（維持估算）'+(lastErr?'，原因：'+lastErr:''):'')+'。'));
 }
 async function loadRoutes(){
   try{
     for(var from=0;from<5000;from+=1000){
-      var r=await sb.from('route_cache').select('key,secs,meters').range(from,from+999);
+      var r=await sb.from('route_cache').select('key,secs,meters,fare').range(from,from+999);
       if(r.error||!r.data)break;
-      r.data.forEach(function(x){ROUTE[x.key]={s:x.secs,m:x.meters}});
+      r.data.forEach(function(x){ROUTE[x.key]={s:x.secs,m:x.meters,f:x.fare}});
       if(r.data.length<1000)break;
     }
   }catch(e){}
@@ -176,7 +177,7 @@ function simDay(o){
   if(hl&&cur!==hl){var rl=leg(curQ,hlQ,cur,hl,ms,t);mv(rl,hn,hlQ,t);t+=rl.min}
   var loc=0;ms.forEach(function(x){loc+=LOCAL[x]});loc/=ms.length;
   var paid=rows.filter(function(r){return r.type==='move'&&r.lg.mode!=='walk'});
-  paid.forEach(function(r){r.cost=Math.round(loc/paid.length/10)*10});
+  paid.forEach(function(r){r.cost=(r.lg.fare>0)?Math.round(r.lg.fare*0.21/10)*10:Math.round(loc/paid.length/10)*10});
   return {rows:rows,rest:skipped.concat(q),cost:cost,travel:travel,end:t};
 }
 // 自動排程時挑出當天的景點：只取同一個地區的景點（依樹狀清單的地區順序）

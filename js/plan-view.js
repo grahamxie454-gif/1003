@@ -86,7 +86,7 @@ function renderRes(p){
     (modes.indexOf('drive')>-1?cos.map(function(c){return '<li>'+esc(CO[c].n)+'：'+esc(CO[c].drive)+'</li>'}).join(''):'')+'</ul>'+
     '<h3>出發前小提醒</h3><ul>'+cos.map(function(c){return (CO[c].tips||[]).map(function(x){return '<li>'+esc(CO[c].n)+'：'+esc(x)+'</li>'}).join('')}).join('')+'</ul></section>';
   h+='<p class="hint">拖曳景點可調整順序或換天；手動調整後景點位置會固定，重新排程只會重算時間與移動。放不下的景點會留在各城市最後一天的「未排入」區，可拖進任何一天；想讓系統重新分配請按「自動重排」。餐廳只會排在午餐 11:00–13:30、晚餐 17:30–20:00，每餐不超過 90 分鐘。</p>';
-  h+='<div class="actions"><button type="button" id="copy">複製行程文字</button><button type="button" id="calcRoutes">用 Google 計算路線時間</button>'+(st.lay?'<button type="button" class="ghost" id="reflow">自動重排（清除手動順序）</button>':'')+'<span class="status" id="cs"></span></div><p class="hint" id="routeStat">'+routeStatTxt(p)+'</p><div id="fb"></div>';
+  h+='<div class="actions"><button type="button" id="copy">複製行程文字</button><button type="button" id="calcRoutes">計算路線時間（日本用 NAVITIME、其他用 Google）</button>'+(st.lay?'<button type="button" class="ghost" id="reflow">自動重排（清除手動順序）</button>':'')+'<span class="status" id="cs"></span></div><p class="hint" id="routeStat">'+routeStatTxt(p)+'</p><div id="fb"></div>';
   h+=shareBoxHtml();
   $('res').innerHTML=h;
   $('copy').onclick=function(){copyText(toText(p,tot))};
@@ -110,7 +110,7 @@ function rowInfo(r,d){
 function routeStatTxt(p){
   var g=0,e=0;
   p.days.forEach(function(d){d.rows.forEach(function(r){if(r.type==='move'){if(r.lg.g)g++;else e++}})});
-  return (ROUTE_MSG?ROUTE_MSG+' ':'')+'移動時間：Google 規劃 '+g+' 段・估算 '+e+' 段。調整順序時一律先用估算（1.5 公里內步行、以上大眾運輸）；行程確定後再按「用 Google 計算路線時間」，會依各路段的出發日期與時間查詢，並以 15 分鐘為單位顯示。';
+  return (ROUTE_MSG?ROUTE_MSG+' ':'')+'移動時間：Google 規劃 '+g+' 段・估算 '+e+' 段。調整順序時一律先用估算（1.5 公里內步行、以上大眾運輸）；行程確定後再按「計算路線時間（日本用 NAVITIME、其他用 Google）」，會依各路段的出發日期與時間查詢，並以 15 分鐘為單位顯示。';
 }
 function txtOf(d,key,dflt){var t=DAYS[d.no]&&DAYS[d.no].txt&&DAYS[d.no].txt[key];return t||dflt}
 function poolHtml(d,p){
@@ -140,7 +140,7 @@ function rowHtml(r,d,p){
     b='<input type="text" class="freetxt" data-no="'+d.no+'" data-tk="'+r.key+'" maxlength="40" value="'+esc(txtOf(d,r.key,''))+'" placeholder="自行安排行程（可改文字）" aria-label="空檔安排"> <label class="stayin"><input type="number" min="5" max="720" step="5" data-no="'+d.no+'" data-gapkey="'+r.key+'" value="'+(r.end-r.start)+'" aria-label="空檔分鐘"> 分</label> <button type="button" class="ghost sm x" data-act="gapdel" data-no="'+d.no+'" data-key="'+r.key+'" aria-label="刪除這段空檔">✕</button>';
   }
   else if(r.type==='hop'){cls='mv';b='<span class="soft">↓ '+MNAME[r.hop.mode]+'前往'+esc(C[r.hop.to].n)+'・約 '+fmtMin(r.hop.min)+'・約 '+fmtKm(r.hop.km)+'・約 '+fmt(r.hop.cost)+'</span>'}
-  else if(r.type==='move'){cls='mv';b='<span class="soft">↓ '+MNAME[r.lg.mode]+'約 '+fmtMin(r.lg.min)+'・約 '+fmtKm(r.lg.km)+(r.cost?'・約 NT$ '+r.cost:'')+'・前往 '+esc(r.to)+(r.lg.g?' <span class="gtag">Google</span>':' <span class="gtag est">估算</span>')+' <a class="maplink" href="'+esc(inf.link)+'" target="_blank" rel="noopener">路線</a></span>'}
+  else if(r.type==='move'){cls='mv';b='<span class="soft">↓ '+MNAME[r.lg.mode]+'約 '+fmtMin(r.lg.min)+'・約 '+fmtKm(r.lg.km)+(r.cost?'・約 NT$ '+r.cost:'')+'・前往 '+esc(r.to)+(r.lg.g?' <span class="gtag">'+(r.lg.src||'Google')+'</span>':' <span class="gtag est">估算</span>')+' <a class="maplink" href="'+esc(inf.link)+'" target="_blank" rel="noopener">路線</a></span>'}
   else if(r.type==='meal'){
     cls='ml';
     if(r.s){
