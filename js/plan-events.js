@@ -12,7 +12,7 @@ on('f','change',function(e){
   st.auto=f.get('auto')!==null;
   $('daysOut').textContent=st.days+' 天';
   normalize();
-  if(JSON.stringify(st.ci)!==sig){delete st.lay;delete st.fix}
+  if(JSON.stringify(st.ci)!==sig){delete st.lay;delete st.fix;delete st.fixSeq}
   if(nm==='co'||nm==='ci'){buildStatic();buildCities()}
   render();
 });
@@ -323,6 +323,7 @@ on('res','click',function(e){
     if(gdr.gaps)Object.keys(gdr.gaps).forEach(function(k){if(gdr.gaps[k].del)delete gdr.gaps[k]});
     render();
   }else if(a==='pin'){
+    if(!st.lay)st.lay=curLayout().L;
     st.fix=st.fix||{};
     if(st.fix[id])delete st.fix[id];else st.fix[id]=+b.dataset.day;
     render();

@@ -39,6 +39,7 @@ function openTrip(row){
   if(s.lay&&typeof s.lay==='object')st.lay=s.lay;
   if(s.fix&&typeof s.fix==='object')st.fix=s.fix;
   if(s.checkin==='direct')st.checkin='direct';
+  if(s.fixSeq&&typeof s.fixSeq==='object')st.fixSeq=s.fixSeq;
   sel=d.sel||{};uid=d.uid||0;cuid=d.cuid||0;DAYS=d.days||{};OPEN={};
   ['out','ret'].forEach(function(k){st.fl[k]=Object.assign({},s.fl&&s.fl[k])});
   // 舊版每日航班 → 去程／回程
@@ -61,7 +62,10 @@ function save(){
   dirty=true;setSave('儲存中…');
   clearTimeout(saveTimer);saveTimer=setTimeout(doSave,700);
 }
-async function doSave(){
+// 儲存一律排隊執行：前一次還沒完成時，下一次會等它完成再送出（避免用舊的更新時間造成誤判衝突）
+var saveChain=Promise.resolve();
+function doSave(){saveChain=saveChain.then(doSaveNow,doSaveNow);return saveChain}
+async function doSaveNow(){
   if(!TRIP||!dirty||SAVE_BLOCK)return;
   dirty=false;clearTimeout(saveTimer);
   var data=packTrip(),id=TRIP.id;

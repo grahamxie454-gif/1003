@@ -102,7 +102,11 @@ function renderRes(p){
   $('copy').onclick=function(){copyText(toText(p,tot))};
   $('calcRoutes').onclick=calcRoutes;
   $('calcRoutes').disabled=ROUTE_BUSY;
-  if($('reflow'))$('reflow').onclick=function(){delete st.lay;render()};
+  if($('reflow'))$('reflow').onclick=function(){
+    var seq={};
+    if(st.lay&&st.fix)Object.keys(st.lay).forEach(function(n){var a=st.lay[n].filter(function(id){return st.fix[id]===+n});if(a.length)seq[n]=a});
+    st.fixSeq=seq;delete st.lay;render();
+  };
 }
 function dirLink(o,dst,mode){return 'https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(o)+'&destination='+encodeURIComponent(dst)+'&travelmode='+({walk:'walking',drive:'driving'}[mode]||'transit')}
 function rowInfo(r,d){

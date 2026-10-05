@@ -242,6 +242,7 @@ function plan(){
     for(var z=firstDay;z<=lastDay;z++)dayCity[z]=k;
     function pinnedFor(dn){
       var ids=Object.keys(fix).filter(function(id){return fix[id]===dn&&byId[id]});
+      if(!lay&&st.fixSeq&&st.fixSeq[dn])ids.sort(function(a,b){var x=st.fixSeq[dn].indexOf(a),y=st.fixSeq[dn].indexOf(b);return (x<0?999:x)-(y<0?999:y)});
       if(lay&&lay[dn])ids.sort(function(a,b){var x=lay[dn].indexOf(a),y=lay[dn].indexOf(b);return (x<0?999:x)-(y<0?999:y)});
       return ids.map(function(id){return byId[id]});
     }
