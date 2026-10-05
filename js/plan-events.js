@@ -130,20 +130,33 @@ var SRC_TXT={places:'已用 Google 地點資料取得住宿位置（最精準）
 async function resolveHotel(no,url){
   HMSG[no]='正在取得住宿位置…';
   var h0=DAYS[no]&&DAYS[no].hotel;if(h0&&h0.url===url)render(true);
+  var d=null,failed=false;
   try{
     var r=await sb.functions.invoke('trip-tools',{body:{action:'place',url:url}});
-    var h=DAYS[no]&&DAYS[no].hotel;
+    d=r.data;
+    if(r.error||!d||typeof d.lat!=='number'){failed=true;d=null}
+  }catch(err){failed=true}
+  // 同一個連結的每一天（連住同一間飯店）一起更新
+  Object.keys(DAYS).forEach(function(n){
+    var h=DAYS[n]&&DAYS[n].hotel;
     if(!h||h.url!==url)return;
-    var d=r.data;
-    if(r.error||!d||typeof d.lat!=='number'){
-      HMSG[no]=(typeof h.lat==='number'?SRC_TXT.view:'無法自動取得座標，仍可開啟地圖；移動時間以估計值計算。');
-    }else{
-      h.lat=d.lat;h.lng=d.lng;
-      if(!h.name&&d.name)h.name=d.name;
-      HMSG[no]=SRC_TXT[d.src]||'';
-    }
-  }catch(err){HMSG[no]='無法連線取得座標，已使用連結中的位置。'}
+    if(d){h.lat=d.lat;h.lng=d.lng;h.hsrc=d.src||'view';if(!h.name&&d.name)h.name=d.name}
+    else if(typeof h.lat==='number'&&!h.hsrc)h.hsrc='view';
+  });
+  var cur=DAYS[no]&&DAYS[no].hotel;
+  if(cur&&cur.url===url)HMSG[no]=d?(SRC_TXT[d.src]||''):(typeof cur.lat==='number'?SRC_TXT.view:'無法自動取得座標；地圖連結會改用飯店名稱搜尋，移動時間以估計值計算。');
   OPEN[no]=true;render();
+}
+// 舊行程的住宿座標可能只是地圖畫面中心（常是城市中心），開啟行程時自動用 Google 地點資料重新核對一次
+var HTRIED={};
+async function refreshLegacyHotels(){
+  var urls={};
+  Object.keys(DAYS).forEach(function(n){
+    var h=DAYS[n]&&DAYS[n].hotel;
+    if(h&&h.url&&!h.hsrc&&!HTRIED[h.url]&&!urls[h.url])urls[h.url]=n;
+  });
+  var list=Object.keys(urls).slice(0,5);
+  for(var i=0;i<list.length;i++){HTRIED[list[i]]=1;await resolveHotel(urls[list[i]],list[i])}
 }
 on('res','toggle',function(e){
   var el=e.target;if(el.matches&&el.matches('details.dd'))OPEN[el.dataset.no]=el.open;
@@ -173,14 +186,14 @@ on('res','change',function(e){
   else if(f==='hcost'){d.hotel=d.hotel||{};var c=parseInt(el.value,10);if(c>0)d.hotel.cost=c;else delete d.hotel.cost}
   else if(f==='hurl'){
     d.hotel=d.hotel||{};var v=el.value.trim();OPEN[no]=true;
-    delete d.hotel.lat;delete d.hotel.lng;HMSG[no]='';
+    delete d.hotel.lat;delete d.hotel.lng;delete d.hotel.hsrc;HMSG[no]='';
     if(!v)delete d.hotel.url;
     else if(!/^https:\/\/(maps\.app\.goo\.gl|goo\.gl|(www\.)?google\.[a-z.]+|maps\.google\.[a-z.]+)\//i.test(v)){
       delete d.hotel.url;HMSG[no]='請貼上 Google 地圖的分享連結（https://maps.app.goo.gl/… 或 google.com/maps/…）。';
     }else{
       d.hotel.url=v;
       var ll=mapCoords(v);
-      if(ll){d.hotel.lat=ll[0];d.hotel.lng=ll[1];if(!d.hotel.name)d.hotel.name=mapName(v)}
+      if(ll){d.hotel.lat=ll[0];d.hotel.lng=ll[1];d.hotel.hsrc=ll[2];if(!d.hotel.name)d.hotel.name=mapName(v)}
       resolveUrl=v;
     }
   }
@@ -300,7 +313,7 @@ on('res','click',function(e){
     st.lay=L;render();
   }else if(a==='hrefresh'){
     var hd=dayRec(b.dataset.no);
-    if(hd.hotel&&hd.hotel.url){delete hd.hotel.lat;delete hd.hotel.lng;OPEN[b.dataset.no]=true;render(true);resolveHotel(b.dataset.no,hd.hotel.url)}
+    if(hd.hotel&&hd.hotel.url){delete hd.hotel.lat;delete hd.hotel.lng;delete hd.hotel.hsrc;OPEN[b.dataset.no]=true;render(true);resolveHotel(b.dataset.no,hd.hotel.url)}
   }else if(a==='gapdel'){
     var gdv=dayRec(b.dataset.no);gdv.gaps=gdv.gaps||{};
     gdv.gaps[b.dataset.key]={del:1};

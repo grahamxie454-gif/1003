@@ -49,6 +49,7 @@ function openTrip(row){
   Object.keys(DAYS).forEach(function(n){if(DAYS[n])delete DAYS[n].flights});
   $('tripName').value=row.name;
   rebuildAll(true);
+  if(typeof refreshLegacyHotels==='function')refreshLegacyHotels();
   if(TRIP.share_enabled&&(!TRIP.share_data||TRIP.share_data.v!==3))save();
 }
 function buildTripSel(){

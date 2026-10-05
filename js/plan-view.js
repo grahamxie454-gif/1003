@@ -1,7 +1,15 @@
 function mapQ(x){if(typeof x.lat==='number')return x.lat+','+x.lng;return x.name+' '+C[x.k].n+' '+CO[C[x.k].co].n}
 function mapSearch(x){return x.url||'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(mapQ(x))}
 function rateTxt(x){return x.rating?'<span class="rate" title="Google 地圖評分（參考值）">★ '+x.rating.toFixed(1)+'</span>':''}
-function hotelQ(h,city){return typeof h.lat==='number'?h.lat+','+h.lng:h.name+' '+C[city].n}
+// 地圖連結與路線查詢用的住宿位置：座標只有在確定是地點本身時才使用（places／pin）。
+// 舊資料或只取得畫面中心（可能是城市中心）時，改用「飯店名稱＋城市」讓 Google 自己找飯店。
+function hotelQ(h,city){
+  var good=typeof h.lat==='number'&&(h.hsrc==='places'||h.hsrc==='pin');
+  var realName=h.name&&h.name!=='住宿（地圖連結）';
+  if(good)return h.lat+','+h.lng;
+  if(realName)return h.name+' '+C[city].n;
+  return typeof h.lat==='number'?h.lat+','+h.lng:('住宿 '+C[city].n);
+}
 function mapRoute(spots,d){
   // 起點＝前一晚的住宿（第一天為機場），終點＝今晚的住宿（最後一天為機場）
   var mode=d.drive?'driving':'transit';

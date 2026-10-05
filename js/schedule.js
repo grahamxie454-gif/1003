@@ -222,7 +222,7 @@ function plan(){
   // 住宿與機場的地點物件（同一份住宿共用同一個物件，才能判斷「起點＝終點」）
   var HLOC={},ALOC={};
   function hotelFor(n,k2){
-    for(var j=n;j>=1&&dayCity[j]===k2;j--){var hh=DAYS[j]&&DAYS[j].hotel;if(hh&&(hh.name||hh.url))return {j:j,h:{name:hh.name||'住宿（地圖連結）',url:hh.url,lat:hh.lat,lng:hh.lng,cost:hh.cost}}}
+    for(var j=n;j>=1&&dayCity[j]===k2;j--){var hh=DAYS[j]&&DAYS[j].hotel;if(hh&&(hh.name||hh.url))return {j:j,h:{name:hh.name||'住宿（地圖連結）',url:hh.url,lat:hh.lat,lng:hh.lng,hsrc:hh.hsrc,cost:hh.cost}}}
     return null;
   }
   function hotelLoc(rec,k2){
