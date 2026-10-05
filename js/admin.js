@@ -86,7 +86,7 @@ function colsFor(t){
   if(t==='countries')return [['id','代碼','id'],['name','名稱','text'],['flight','機票 NT$','int'],['fh','飛行時間','text'],['season','最佳季節','text'],['drive','自駕提醒','text'],['tips','小提醒（一行一則）','lines'],['rail','鐵路時速','int'],['sort','排序','int']];
   if(t==='cities')return [['id','代碼','id'],['country_id','國家','sel',cn],['name','名稱','text'],['code','機場代碼','text'],['lat','緯度','num'],['lng','經度','num'],['hotel','住宿（節省,適中,舒適）','ints3'],['food','餐飲（節省,適中,舒適）','ints3'],['sort','排序','int']];
   if(t==='districts')return [['id','編號','auto'],['city_id','城市','sel',ct],['name','名稱','text'],['lat','緯度','num'],['lng','經度','num'],['sort','排序','int']];
-  return [['id','編號','auto'],['district_id','地區','sel',dt],['name','名稱','text'],['style','風格','sel',[['f','美食'],['c','文化'],['n','自然'],['s','購物']]],['cost','費用 NT$','int'],['stay','建議停留（分鐘）','int'],['rating','Google 評分','numopt'],['maps_url','地圖連結（選填）','text'],['descr','說明','text'],['sort','排序','int']];
+  return [['id','編號','auto'],['district_id','地區','sel',dt],['name','名稱','text'],['style','風格','sel',[['f','美食'],['c','文化'],['n','自然'],['s','購物']]],['cost','費用 NT$','int'],['stay','建議停留（分鐘）','int'],['rating','Google 評分','numopt'],['lat','緯度','numopt'],['lng','經度','numopt'],['maps_url','地圖連結（選填）','text'],['descr','說明','text'],['sort','排序','int']];
 }
 function cellHtml(col,val,rid,isNew){
   var k=col[0],type=col[2],a=' data-c="'+k+'" data-r="'+esc(rid)+'" aria-label="'+esc(col[1])+'"';
@@ -117,7 +117,7 @@ function adminData(){
     rows=rows.filter(function(r){return String(r.district_id)===String(AF.district)});
   }
   var h='<div class="tabs" id="dsubs">'+DT.map(function(x){return '<button type="button" class="tab'+(x===t?' on':'')+'" data-dsub="'+x+'">'+DTL[x]+'</button>'}).join('')+'</div>'+
-    '<div class="adminbar" style="margin:12px 0">'+filt+(t==='spots'?'<button type="button" class="ghost" id="updRatings">更新 Google 評價（每次最多 30 筆）</button>':'')+'<span class="muted">修改後按該列的「儲存」。刪除國家、城市或地區會一併刪除底下的內容。</span></div>'+
+    '<div class="adminbar" style="margin:12px 0">'+filt+(t==='spots'?'<button type="button" class="ghost" id="updRatings">更新評價與座標（每次最多 30 筆）</button>':'')+'<span class="muted">修改後按該列的「儲存」。刪除國家、城市或地區會一併刪除底下的內容。</span></div>'+
     '<div class="tblwrap"><table class="t"><thead><tr>'+cols.map(function(c){return '<th>'+esc(c[1])+'</th>'}).join('')+'<th></th></tr></thead><tbody>';
   // 新增列
   var defaults={};
@@ -140,7 +140,7 @@ document.addEventListener('click',async function(e){
       if(r.error)throw new Error(r.error.message||'呼叫失敗');
       if(d.error==='not_configured')aMsg('尚未設定 Google Places 金鑰（GOOGLE_PLACES_KEY）。',true);
       else if(d.error)aMsg(d.error,true);
-      else{await loadBuiltin();aMsg('已更新 '+d.updated+' 筆，找不到對應地點 '+d.missed+' 筆，還有 '+d.remaining+' 筆待更新（距上次更新超過 30 天者）。');adminData()}
+      else{await loadBuiltin();aMsg('已更新 '+d.updated+' 筆（以 place id 精準查詢 '+(d.viaId||0)+' 筆、名稱搜尋 '+(d.viaSearch||0)+' 筆），找不到對應地點 '+d.missed+' 筆，還有 '+d.remaining+' 筆待處理。');adminData()}
     }catch(err){aMsg('更新失敗：'+(err.message||err),true)}
     return;
   }
@@ -156,7 +156,7 @@ function readRow(t,rid,isNew){
     var v=el.value;
     if(c[2]==='int'){var n=parseInt(v,10);o[c[0]]=isNaN(n)?0:n}
     else if(c[2]==='num'){var f=parseFloat(v);if(isNaN(f))throw new Error('「'+c[1]+'」請填數字');o[c[0]]=f}
-    else if(c[2]==='numopt'){if(v.trim()==='')o[c[0]]=null;else{var g=parseFloat(v);if(isNaN(g)||g<0||g>5)throw new Error('「'+c[1]+'」請填 0–5 的數字');o[c[0]]=g}}
+    else if(c[2]==='numopt'){if(v.trim()==='')o[c[0]]=null;else{var g=parseFloat(v);if(isNaN(g)||(c[0]==='rating'&&(g<0||g>5)))throw new Error('「'+c[1]+'」請填'+(c[0]==='rating'?' 0–5 的':'')+'數字');o[c[0]]=g}}
     else if(c[2]==='lines')o[c[0]]=v.split('\n').map(function(x){return x.trim()}).filter(Boolean);
     else if(c[2]==='ints3'){var a=v.split(/[,，\s]+/).filter(Boolean).map(Number);if(a.length!==3||a.some(isNaN))throw new Error('「'+c[1]+'」請填三個數字，用逗號分隔');o[c[0]]=a}
     else if(c[2]==='sel')o[c[0]]=(c[0]==='district_id')?parseInt(v,10):v;

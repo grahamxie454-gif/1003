@@ -54,7 +54,7 @@ function distSpots(k,dn){
   var s=ensureSel(k),out=[];
   (C[k].d[dn]||[]).forEach(function(sp){
     var id=k+'|'+sp[4];
-    out.push({id:id,k:k,name:sp[0],s:sp[1],cost:sp[2],desc:sp[3],dist:dn,rating:sp[5],url:sp[6],stay:(st.stay&&st.stay[id])||sp[7]||0});
+    out.push({id:id,k:k,name:sp[0],s:sp[1],cost:sp[2],desc:sp[3],dist:dn,rating:sp[5],url:sp[6],stay:(st.stay&&st.stay[id])||sp[7]||0,lat:sp[8]==null?null:sp[8],lng:sp[9]==null?null:sp[9]});
   });
   out.sort(byOrd);
   s.cs.filter(function(c){return c.d===dn}).forEach(function(c){out.push(customObj(k,c))});

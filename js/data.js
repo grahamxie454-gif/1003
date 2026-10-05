@@ -11,7 +11,7 @@ function buildBuiltin(){
   DB.cities.forEach(function(c){if(CO[c.country_id])C[c.id]={n:c.name,co:c.country_id,code:c.code,lat:c.lat,lng:c.lng,hotel:c.hotel,food:c.food,d:{},pos:{}}});
   var dm={};
   DB.districts.forEach(function(d){if(C[d.city_id]){C[d.city_id].d[d.name]=[];C[d.city_id].pos[d.name]=[d.lat,d.lng];dm[d.id]=[d.city_id,d.name]}});
-  DB.spots.forEach(function(s){var p=dm[s.district_id];if(p)C[p[0]].d[p[1]].push([s.name,s.style,s.cost,s.descr,s.id,s.rating==null?null:+s.rating,s.maps_url||'',s.stay||0])});
+  DB.spots.forEach(function(s){var p=dm[s.district_id];if(p)C[p[0]].d[p[1]].push([s.name,s.style,s.cost,s.descr,s.id,s.rating==null?null:+s.rating,s.maps_url||'',s.stay||0,s.lat==null?null:+s.lat,s.lng==null?null:+s.lng])});
 }
 function packTrip(){
   var cc={},cx={};
