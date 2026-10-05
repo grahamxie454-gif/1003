@@ -111,29 +111,38 @@ document.addEventListener('keydown',function(e){
 });
 // 每日：自駕、出發與回程時間、住宿
 function dayRec(no){if(!DAYS[no])DAYS[no]={};return DAYS[no]}
+// 回傳 [緯度, 經度, 來源]：pin＝地點標記；view＝地圖畫面中心（可能與地點有距離）
 function mapCoords(u){
-  var m=u.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)||u.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/)||u.match(/[?&](?:q|ll|query|destination|center)=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/);
-  return m?[+m[1],+m[2]]:null;
+  var last=null,m,re=/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/g;
+  while((m=re.exec(u)))last=m;
+  if(last)return [+last[1],+last[2],'pin'];
+  m=u.match(/[?&](?:q|ll|query|destination|center)=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/);
+  if(m)return [+m[1],+m[2],'pin'];
+  m=u.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  return m?[+m[1],+m[2],'view']:null;
 }
 function mapName(u){
   var m=u.match(/\/maps\/place\/([^/@?]+)/);
   if(!m)return '';
   try{return decodeURIComponent(m[1].replace(/\+/g,' '))}catch(e){return ''}
 }
+var SRC_TXT={places:'已用 Google 地點資料取得住宿位置（最精準）。',pin:'已取得連結中的地點標記位置。',view:'座標只取得到地圖畫面的中心點，可能與飯店有一小段距離。建議在 Google 地圖點選飯店後再按「分享」，重新貼上連結，並按「重新取得位置」。'};
 async function resolveHotel(no,url){
-  HMSG[no]='正在從連結取得住宿位置…';
+  HMSG[no]='正在取得住宿位置…';
+  var h0=DAYS[no]&&DAYS[no].hotel;if(h0&&h0.url===url)render(true);
   try{
-    var r=await sb.functions.invoke('trip-tools',{body:{action:'resolve',url:url}});
+    var r=await sb.functions.invoke('trip-tools',{body:{action:'place',url:url}});
     var h=DAYS[no]&&DAYS[no].hotel;
     if(!h||h.url!==url)return;
-    if(r.error||!r.data||r.data.error||typeof r.data.lat!=='number'){
-      HMSG[no]='無法自動取得座標，仍可開啟地圖；移動時間以估計值計算。';
+    var d=r.data;
+    if(r.error||!d||typeof d.lat!=='number'){
+      HMSG[no]=(typeof h.lat==='number'?SRC_TXT.view:'無法自動取得座標，仍可開啟地圖；移動時間以估計值計算。');
     }else{
-      h.lat=r.data.lat;h.lng=r.data.lng;
-      if(!h.name&&r.data.name)h.name=r.data.name;
-      HMSG[no]='';
+      h.lat=d.lat;h.lng=d.lng;
+      if(!h.name&&d.name)h.name=d.name;
+      HMSG[no]=SRC_TXT[d.src]||'';
     }
-  }catch(err){HMSG[no]='無法自動取得座標，仍可開啟地圖；移動時間以估計值計算。'}
+  }catch(err){HMSG[no]='無法連線取得座標，已使用連結中的位置。'}
   OPEN[no]=true;render();
 }
 on('res','toggle',function(e){
@@ -172,7 +181,7 @@ on('res','change',function(e){
       d.hotel.url=v;
       var ll=mapCoords(v);
       if(ll){d.hotel.lat=ll[0];d.hotel.lng=ll[1];if(!d.hotel.name)d.hotel.name=mapName(v)}
-      else resolveUrl=v;
+      resolveUrl=v;
     }
   }
   render();
@@ -289,6 +298,9 @@ on('res','click',function(e){
     if(st.fix&&st.fix[arr[j]]){setSave('相鄰的項目已固定，無法交換。');return}
     var t=arr[i];arr[i]=arr[j];arr[j]=t;
     st.lay=L;render();
+  }else if(a==='hrefresh'){
+    var hd=dayRec(b.dataset.no);
+    if(hd.hotel&&hd.hotel.url){delete hd.hotel.lat;delete hd.hotel.lng;OPEN[b.dataset.no]=true;render(true);resolveHotel(b.dataset.no,hd.hotel.url)}
   }else if(a==='gapdel'){
     var gdv=dayRec(b.dataset.no);gdv.gaps=gdv.gaps||{};
     gdv.gaps[b.dataset.key]={del:1};

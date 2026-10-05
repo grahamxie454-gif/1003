@@ -20,7 +20,7 @@ function dayEditor(d){
     '<div class="ddrow"><input type="text" class="w2" data-no="'+no+'" data-f="hname" value="'+esc(h.name||'')+'" placeholder="'+(inh?'沿用：'+esc(d.hotel.name):'今晚住宿名稱')+'" aria-label="住宿名稱">'+
     '<input type="number" min="0" step="100" data-no="'+no+'" data-f="hcost" value="'+(h.cost||'')+'" placeholder="每晚雙人房 NT$" aria-label="住宿每晚費用"></div>'+
     '<div class="ddrow"><input type="url" class="w2" data-no="'+no+'" data-f="hurl" value="'+esc(h.url||'')+'" placeholder="Google 地圖分享連結（在地圖 App 按「分享」複製）" aria-label="住宿 Google 地圖分享連結">'+
-    (h.url?'<a class="maplink" href="'+esc(h.url)+'" target="_blank" rel="noopener">開啟住宿地圖</a>':'')+'</div>'+
+    (h.url?'<a class="maplink" href="'+esc(h.url)+'" target="_blank" rel="noopener">開啟住宿地圖</a> <button type="button" class="ghost sm" data-act="hrefresh" data-no="'+no+'">重新取得位置</button>':'')+'</div>'+
     '<p class="hint">'+esc(HMSG[no]||(typeof h.lat==='number'?'已取得住宿座標，會用來估算每天出發與返回的移動時間。':'貼上分享連結後，系統會嘗試取得座標；取不到時仍可開啟地圖，移動時間以估計值計算。'))+'</p>'+
     '</div></details>';
   return s;
