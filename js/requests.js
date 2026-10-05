@@ -1,5 +1,6 @@
 // ================= 自訂資料：刪除、申請收錄到內建資料庫（需管理員核准） =================
-var REQMINE=[],REQS={};
+var REQMINE=[],REQS={},REQOPEN=false;
+function reqCountTxt(){var n=REQMINE.filter(function(x){return x.status==='pending'}).length;return REQMINE.length?'（'+REQMINE.length+(n?'・審核中 '+n:'')+'）':''}
 var KIND_TXT={country:'國家',city:'城市',district:'地區',spot:'景點'};
 function refOf(id){return (TRIP?TRIP.id:'')+':'+id}
 async function loadRequests(){
@@ -67,6 +68,7 @@ function purgeSpot(id){
 // 樹狀清單裡的自訂項目動作（刪除、申請、取消申請）
 async function handleCustomAct(b,k,s){
   var act=b.dataset.act;
+  if(act==='reqtoggle'){REQOPEN=!REQOPEN;renderPick();return}
   if(act==='req'){
     b.disabled=true;
     await submitRequest(b.dataset.kind,k,b.dataset.id||b.dataset.dn);
@@ -99,7 +101,7 @@ async function handleCustomAct(b,k,s){
 }
 // 「我的收錄申請」清單（顯示在樹狀清單下方）
 function myRequestsHtml(){
-  if(!REQMINE.length)return '';
+  if(!REQOPEN||!REQMINE.length)return REQOPEN&&!REQMINE.length?'<section class="pick"><h3>我的收錄申請<small>目前沒有申請紀錄</small></h3></section>':'';
   return '<section class="pick"><h3>我的收錄申請<small>管理員核准後會加入內建資料庫</small></h3><ul class="reqlist">'+
     REQMINE.slice(0,30).map(function(x){
       var st_=x.status==='pending'?'<span class="reqtag wait">審核中</span>':(x.status==='approved'?'<span class="reqtag ok">已收錄</span>':'<span class="reqtag no">未通過</span>');

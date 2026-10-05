@@ -69,7 +69,7 @@ on('pick','click',async function(e){
   var b=e.target.closest('button[data-act]');
   if(!b)return;
   var k=b.dataset.k,s=ensureSel(k);
-  if(['delcs','delcd','req','reqcancel'].indexOf(b.dataset.act)>-1){await handleCustomAct(b,k,s);return}
+  if(['delcs','delcd','req','reqcancel','reqtoggle'].indexOf(b.dataset.act)>-1){await handleCustomAct(b,k,s);return}
   if(b.dataset.act==='addd'){
     var v=$('cd_'+k).value.trim();
     if(!v)return;
