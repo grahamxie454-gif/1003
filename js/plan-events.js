@@ -191,11 +191,15 @@ function renderFlights(){
       '<button type="button" class="ghost" data-fk="'+k+'" data-fact="lookup"'+(FLBUSY[k]?' disabled':'')+'>'+(FLBUSY[k]?'查詢中…':'自動查詢')+'</button></div>'+
       '<div class="row"><input type="text" data-fk="'+k+'" data-ff="from" value="'+esc(f.from||'')+'" placeholder="出發機場" maxlength="20" aria-label="出發機場"><input type="text" data-fk="'+k+'" data-ff="to" value="'+esc(f.to||'')+'" placeholder="抵達機場" maxlength="20" aria-label="抵達機場"></div>'+
       '<div class="row"><label>起飛時間<input type="time" data-fk="'+k+'" data-ff="dep" value="'+esc(f.dep||'')+'"></label><label>降落時間<input type="time" data-fk="'+k+'" data-ff="arr" value="'+esc(f.arr||'')+'"></label></div>'+
-      '<p class="fmsg'+(FMSG[k]&&FMSG[k][0]==='!'?' err':'')+'">'+esc((FMSG[k]||'').replace(/^!/,'')||L[2]+'。')+'</p></div>';
+      '<p class="fmsg'+(FMSG[k]&&FMSG[k][0]==='!'?' err':'')+'">'+esc((FMSG[k]||'').replace(/^!/,'')||L[2]+'。')+'</p>'+(k==='out'?checkinHtml():'')+'</div>';
   });
   $('flights').innerHTML=h;
 }
+function checkinHtml(){
+  return '<label class="checkin">抵達機場後<select id="checkin" aria-label="第一天的入住方式"><option value="hotel"'+(st.checkin!=='direct'?' selected':'')+'>先到住宿點入住，再從住宿點出發</option><option value="direct"'+(st.checkin==='direct'?' selected':'')+'>從機場直接去第一個行程，晚上再回住宿點</option></select></label>';
+}
 on('flights','change',function(e){
+  if(e.target.id==='checkin'){if(e.target.value==='direct')st.checkin='direct';else delete st.checkin;render();return}
   var el=e.target,k=el.dataset.fk,ff=el.dataset.ff;
   if(!k||!ff)return;
   var v=el.value.trim();

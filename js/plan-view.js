@@ -3,16 +3,18 @@ function mapSearch(x){return x.url||'https://www.google.com/maps/search/?api=1&q
 function rateTxt(x){return x.rating?'<span class="rate" title="Google 地圖評分（參考值）">★ '+x.rating.toFixed(1)+'</span>':''}
 function hotelQ(h,city){return typeof h.lat==='number'?h.lat+','+h.lng:h.name+' '+C[city].n}
 function mapRoute(spots,d){
-  var mode=d.drive?'driving':'transit',h=d.hotel;
-  if(!h&&spots.length===1)return mapSearch(spots[0]);
-  var pts=spots.map(mapQ),o=h?hotelQ(h,d.city):pts[0],dest=h?hotelQ(h,d.city):pts[pts.length-1];
-  var way=h?pts:pts.slice(1,-1);
+  // 起點＝前一晚的住宿（第一天為機場），終點＝今晚的住宿（最後一天為機場）
+  var mode=d.drive?'driving':'transit';
+  var pts=spots.map(mapQ),o=d.startQ||pts[0],dest=d.endQ||pts[pts.length-1];
+  if(!d.startQ&&!d.endQ&&spots.length===1)return mapSearch(spots[0]);
+  var way=pts.slice(d.startQ?0:1,pts.length-(d.endQ?0:1));
   var u='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(o)+'&destination='+encodeURIComponent(dest)+'&travelmode='+mode;
   if(way.length)u+='&waypoints='+way.map(encodeURIComponent).join('%7C');
   return u;
 }
 function flightTxt(f){return (f.kind==='arrive'?'抵達':'離開')+' '+(f.no||'')+' '+(f.from||'')+(f.to?' → '+f.to:'')+' '+(f.time||'')}
 function dayEditor(d){
+  if(d.no===st.days)return '<p class="hint">最後一天不設定住宿：從前一晚的住宿出發，結束後前往機場。</p>';
   var no=d.no,x=DAYS[no]||{},h=x.hotel||{},inh=!h.name&&!h.url&&d.hotel;
   var s='<details class="dd" data-no="'+no+'"'+(OPEN[no]?' open':'')+'><summary>住宿'+(d.hotel?'：'+esc(d.hotel.name):'（選填）')+'</summary><div class="ddbody">'+
     '<div class="ddrow"><input type="text" class="w2" data-no="'+no+'" data-f="hname" value="'+esc(h.name||'')+'" placeholder="'+(inh?'沿用：'+esc(d.hotel.name):'今晚住宿名稱')+'" aria-label="住宿名稱">'+
@@ -52,7 +54,7 @@ function renderRes(p){
     if(d.no===1&&!d.flights.some(function(f){return f.kind==='arrive'}))notes.push(d.foreign?'抵達日（'+esc(fc.fh)+'），下午才開始行程。':'出發日，先到飯店放行李再出發。');
     if(d.arrive)notes.push('搭乘'+MNAME[d.arrive.mode]+'前往'+esc(C[d.city].n)+'，約 '+fmtMin(d.arrive.min)+'（約 '+fmtKm(d.arrive.km)+'）。');
     if(d.no===total&&!d.flights.some(function(f){return f.kind==='depart'}))notes.push(d.foreign?'返程日，預留至少 3 小時前往機場，只安排上午行程。':'返程日，傍晚前結束行程。');
-    if(d.hotel)notes.push('住宿：'+(d.hotel.url?'<a class="maplink" href="'+esc(d.hotel.url)+'" target="_blank" rel="noopener">'+esc(d.hotel.name)+'</a>':esc(d.hotel.name))+'。');
+    if(d.hotel)notes.push('今晚住宿：'+(d.hotel.url?'<a class="maplink" href="'+esc(d.hotel.url)+'" target="_blank" rel="noopener">'+esc(d.hotel.name)+'</a>':esc(d.hotel.name))+'。');
     var area=d.rows.filter(function(r){return r.type==='sight'}).map(function(r){return r.s.dist}).filter(function(v,j,a){return a.indexOf(v)===j}).join('、');
     h+='<article class="day"><h3>第 '+d.no+' 天'+(dayDate(d.no)?'<em class="date">'+dayDate(d.no)+'</em>':'')+'<em class="city">'+esc(C[d.city].n)+'</em>'+(area?'<em class="area">'+esc(area)+'</em>':'')+
       (d.travel?'<em class="move'+(d.travel>180?' long':'')+'">移動約 '+fmtMin(d.travel)+'</em>':'')+'</h3>'+(notes.length?'<p class="note">'+notes.join('')+'</p>':'');
