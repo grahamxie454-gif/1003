@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>照片搬移到 Cloudflare R2</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>照片搬移到 Cloudflare R2</h1>
+    <p>使用目前登入帳號，逐張複製並驗證照片。確認 R2 檔案可讀取後，才會更新資料庫並刪除 Supabase Storage 原檔。</p>
+  </header>
+  <p class="msg" id="boot">載入中…</p>
+  <section id="auth" class="card" hidden></section>
+  <section id="app" class="card" hidden>
+    <div class="topbar">
+      <span id="whoEmail"></span>
+      <a class="tab" href="index.html">返回行程規劃</a>
+      <button type="button" class="tab" id="logout">登出</button>
+    </div>
+    <p id="summary"></p>
+    <p class="warn">搬移只會處理目前帳號上傳且仍存於 Supabase Storage 的照片。請保持此頁開啟直到完成。</p>
+    <div class="actions">
+      <button type="button" id="scan">重新掃描</button>
+      <button type="button" id="migrate" disabled>開始搬移</button>
+    </div>
+    <pre id="log" class="status" aria-live="polite" style="white-space:pre-wrap"></pre>
+  </section>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="js/core.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/photo-storage.js"></script>
+<script src="js/page.js"></script>
+<script src="js/migrate-r2.js"></script>
+</body>
+</html>
