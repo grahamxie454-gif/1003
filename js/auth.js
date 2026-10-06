@@ -7,6 +7,7 @@ function authErr(m){
   if(/not confirmed/i.test(m))return '信箱尚未驗證，請先點擊驗證信中的連結。';
   if(/rate limit/i.test(m))return '寄信過於頻繁，請稍後再試。';
   if(/already registered/i.test(m))return '這個信箱已註冊，請直接登入。';
+  if(/provider.*not enabled|unsupported provider/i.test(m))return '此帳號服務尚未啟用，請聯絡管理員。';
   if(/password/i.test(m))return '密碼不符合規定，至少需要 8 個字元。';
   return m||'發生錯誤，請稍後再試。';
 }
@@ -21,6 +22,21 @@ function setAuthMode(m){
 }
 on('tabLogin','click',function(){setAuthMode('login')});
 on('tabSignup','click',function(){setAuthMode('signup')});
+function oauthRedirectUrl(){return location.origin+location.pathname+location.search}
+async function oauthLogin(provider){
+  var buttons=[$('oauthGoogle'),$('oauthGithub')];
+  buttons.forEach(function(button){button.disabled=true});
+  setMsg($('authMsg'),'正在前往帳號服務授權…');
+  try{
+    var result=await sb.auth.signInWithOAuth({provider:provider,options:{redirectTo:oauthRedirectUrl()}});
+    if(result.error)throw result.error;
+  }catch(err){
+    buttons.forEach(function(button){button.disabled=false});
+    setMsg($('authMsg'),authErr(err.message),true);
+  }
+}
+on('oauthGoogle','click',function(){oauthLogin('google')});
+on('oauthGithub','click',function(){oauthLogin('github')});
 on('authForm','submit',async function(e){
   e.preventDefault();
   var em=$('aemail').value.trim(),pw=$('apass').value,btn=$('authBtn');
@@ -48,4 +64,3 @@ function showAuth(msg){
   $('boot').hidden=true;$('app').hidden=true;$('auth').hidden=false;
   if(msg)setMsg($('authMsg'),msg,true);
 }
-

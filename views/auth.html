@@ -9,5 +9,10 @@
       <div class="field" id="apass2Wrap" hidden><label for="apass2">再輸入一次密碼</label><input type="password" id="apass2" minlength="8" autocomplete="new-password"></div>
       <button type="submit" id="authBtn">登入</button>
     </form>
+    <div class="auth-divider"><span>或使用帳號服務</span></div>
+    <div class="oauth-buttons">
+      <button type="button" class="oauth" id="oauthGoogle">使用 Google 繼續</button>
+      <button type="button" class="oauth" id="oauthGithub">使用 GitHub 繼續</button>
+    </div>
     <p class="msg" id="authMsg" hidden></p>
-    <p class="muted">註冊後會寄驗證信到你的信箱，點擊連結完成驗證才能登入。</p>
+    <p class="muted">可以使用電子郵件註冊，或透過 Google、GitHub 授權登入。電子郵件註冊後需先點擊驗證信。</p>

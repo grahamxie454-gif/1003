@@ -184,6 +184,12 @@ button.x:disabled{opacity:.35;cursor:not-allowed}
 #auth{max-width:420px;width:100%;margin:8px auto 0;display:flex;flex-direction:column;gap:14px}
 #auth h2{margin:0;font-family:var(--f-display);font-size:1.3rem}
 #auth form{display:flex;flex-direction:column;gap:12px}
+.auth-divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px}
+.auth-divider::before,.auth-divider::after{content:"";height:1px;background:var(--line);flex:1}
+.oauth-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+button.oauth{background:transparent;color:var(--ink);border-color:var(--line);padding:8px 12px}
+button.oauth:hover{border-color:var(--accent);color:var(--accent)}
+@media(max-width:420px){.oauth-buttons{grid-template-columns:1fr}}
 .field{display:flex;flex-direction:column;gap:4px}
 .field label{font-size:12px;letter-spacing:.08em;color:var(--muted);font-weight:700}
 input[type=text],input[type=email],input[type=password],input[type=number],input[type=time],select,textarea{font:inherit;font-size:14px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0;max-width:100%}
