@@ -19,6 +19,8 @@ Supabase 繼續處理登入、照片註解及 `trip_photos` 資料。新照片�
 
 部署後以已登入帳號在分享頁上傳 JPEG（前端仍會轉檔並移除 EXIF），確認：
 
+- `/health` 回傳 HTTP 200，且 `supabase`、`signing`、`r2` 都是 `true`；此端點只回報設定是否存在，不會顯示值。
+
 - R2 bucket 出現 `行程 UUID/照片 UUID.jpg`。
 - `trip_photos.path` 是 `r2:行程 UUID/照片 UUID.jpg`；若現有資料庫對 path 有額外限制，需要由資料庫管理者確認相容性，本專案沒有提供 schema。
 - 分享頁及幻燈片能顯示新舊照片。

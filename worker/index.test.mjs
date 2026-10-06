@@ -76,3 +76,13 @@ test('expired links cannot read R2',async()=>{
   assert.equal((await worker.fetch(new Request('https://photos.example.com'+objectRoute+'&expires=1&signature=aaa'),f.env)).status,403);
  }finally{f.restore()}
 });
+test('health check reports required Worker bindings without exposing values',async()=>{
+ const f=fixture();try{
+  const healthy=await worker.fetch(new Request('https://photos.example.com/health'),f.env);
+  assert.equal(healthy.status,200);
+  assert.deepEqual(await healthy.json(),{supabase:true,signing:true,r2:true});
+  const unhealthy=await worker.fetch(new Request('https://photos.example.com/health'),{...f.env,PHOTO_SIGNING_KEY:''});
+  assert.equal(unhealthy.status,503);
+  assert.deepEqual(await unhealthy.json(),{supabase:true,signing:false,r2:true});
+ }finally{f.restore()}
+});

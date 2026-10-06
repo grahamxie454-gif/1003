@@ -38,7 +38,14 @@ export default {
    if(request.method==='OPTIONS')response=new Response(null,{status:204,headers:{'Access-Control-Allow-Methods':'GET, PUT, POST, DELETE, OPTIONS','Access-Control-Allow-Headers':'Authorization, Content-Type','Access-Control-Max-Age':'600'}});
    else {
     const url=new URL(request.url),path=url.searchParams.get('path');
-    if(url.pathname==='/object'&&request.method==='GET'){
+    if(url.pathname==='/health'&&request.method==='GET'){
+     const checks={
+      supabase:Boolean(env.SUPABASE_URL&&env.SUPABASE_ANON_KEY),
+      signing:Boolean(env.PHOTO_SIGNING_KEY&&env.PHOTO_SIGNING_KEY.length>=32),
+      r2:Boolean(env.PHOTOS&&typeof env.PHOTOS.head==='function')
+     };
+     response=json(checks,Object.values(checks).every(Boolean)?200:503);
+    }else if(url.pathname==='/object'&&request.method==='GET'){
      const {key}=parsePath(path),expires=url.searchParams.get('expires'),sig=url.searchParams.get('signature')||'';
      const now=Math.floor(Date.now()/1000);
      if(!/^\d+$/.test(expires||'')||Number(expires)<=now||Number(expires)>now+3600||!equal(await signature(env,path,expires),sig))throw new Failure(403,'Photo link expired or invalid');
