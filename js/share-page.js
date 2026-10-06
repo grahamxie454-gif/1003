@@ -58,7 +58,7 @@ function renderShare(){
   if(!days.length)h='<p class="muted">擁有者尚未發佈行程內容。</p>';
   days.forEach(function(d){
     var notes=NOTES.filter(function(n){return n.day_no===d.no});
-    h+='<article class="day"><h3>第 '+d.no+' 天'+(d.date?'<em class="date">'+esc(d.date)+'</em>':'')+'<em class="city">'+esc(d.city)+'</em></h3>';
+    h+='<article class="day"><h3>第 '+d.no+' 天'+(d.date?'<em class="date">'+esc(d.date)+'</em>':'')+'<em class="city">'+esc(d.city)+'</em>'+(d.stops&&d.stops.length?' '+iconLink(pinsUrl(d.stops,'第 '+d.no+' 天・'+d.city),ICON_PIN,'在 Google 地圖查看當日所有地點的位置（不規劃路線）'):'')+'</h3>';
     if(d.hotel)h+='<p class="note">住宿：'+(d.hotel.url?'<a class="maplink" href="'+esc(d.hotel.url)+'" target="_blank" rel="noopener">'+esc(d.hotel.name)+'</a>':esc(d.hotel.name))+'</p>';
     if(d.off)h+='<p class="note">今天休息，不安排行程。</p>';
     h+='<ol class="tl">'+d.rows.map(function(r){
@@ -68,7 +68,7 @@ function renderShare(){
       var tools=r.k?'<div class="mvbar"><button type="button" class="ghost sm" data-ph-open="'+esc(r.k)+'">📷 照片（'+ph.length+'）'+(ph.length?'・編輯':'・上傳')+'</button>'+
         ph.slice(0,4).map(function(p){return p.url?'<img class="thumb" data-ph-open="'+esc(r.k)+'" loading="lazy" src="'+esc(p.url)+'" alt="">':''}).join('')+'</div>':'';
       return '<li class="tr '+cls+(r.o?' over':'')+'"><div class="tt">'+minStr(r.s)+(r.e>r.s?'<small>–'+minStr(r.e)+'</small>':'')+'</div><div class="tb">'+
-        (link&&r.t!=='move'?'<a class="maplink" href="'+esc(link)+'" target="_blank" rel="noopener"><b>'+esc(r.n)+'</b></a>':(cls==='mv'||cls==='fr'?'<span class="soft">'+esc(r.n)+'</span>':'<b>'+esc(r.n)+'</b>'))+
+        ((r.t==='move'||r.t==='hop')?'<span class="soft">'+esc(r.n)+'</span>'+(link?' '+iconLink(link,ICON_ROUTE,'路徑（Google 地圖，帶入出發時間）'):''):(link&&r.t!=='move'?'<a class="maplink" href="'+esc(link)+'" target="_blank" rel="noopener"><b>'+esc(r.n)+'</b></a>':(cls==='mv'||cls==='fr'?'<span class="soft">'+esc(r.n)+'</span>':'<b>'+esc(r.n)+'</b>')))+
         (r.r?' <span class="rate">★ '+Number(r.r).toFixed(1)+'</span>':'')+(r.c?' <span class="muted">'+money(r.c)+'</span>':'')+tools+'</div></li>';
     }).join('')+'</ol>';
     h+='<div class="notes"><h4>留言</h4>'+(notes.length?notes.map(function(n){

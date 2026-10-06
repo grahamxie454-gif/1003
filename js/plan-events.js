@@ -311,6 +311,8 @@ on('res','click',function(e){
     if(st.fix&&st.fix[arr[j]]){setSave('相鄰的項目已固定，無法交換。');return}
     var t=arr[i];arr[i]=arr[j];arr[j]=t;
     st.lay=L;render();
+  }else if(a==='calcday'){
+    calcDay(+b.dataset.no);
   }else if(a==='hrefresh'){
     var hd=dayRec(b.dataset.no);
     if(hd.hotel&&hd.hotel.url){delete hd.hotel.lat;delete hd.hotel.lng;delete hd.hotel.hsrc;OPEN[b.dataset.no]=true;render(true);resolveHotel(b.dataset.no,hd.hotel.url)}

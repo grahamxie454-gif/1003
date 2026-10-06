@@ -3,12 +3,12 @@
 function shareUrl(page){return new URL(page+'?trip='+TRIP.id,location.href).href}
 function buildSnapshot(p){
   return {
-    v:3,
+    v:4,
     cities:p.cities.map(function(k){return C[k].n}),
     days:p.days.map(function(d){
       return {
         no:d.no,date:dayDate(d.no),city:C[d.city].n,off:!!d.off&&!d.tour,
-        hotel:d.hotel?{name:d.hotel.name,url:d.hotel.url||''}:null,
+        hotel:d.hotel?{name:d.hotel.name,url:d.hotel.url||''}:null,stops:dayStops(d),
         rows:d.rows.map(function(r){
           var inf=rowInfo(r,d);if(!inf)return null;
           var k=(r.type==='sight'||r.type==='meal')&&r.s?'s:'+r.s.id:(r.type==='tour'?'t:'+d.no:(r.type==='flight'?'x:'+d.no+':'+d.rows.filter(function(q){return q.type==='flight'}).indexOf(r):((r.type==='free'||r.type==='meal')&&r.key?(r.type==='free'?'f:':'m:')+d.no+':'+r.key:'')));

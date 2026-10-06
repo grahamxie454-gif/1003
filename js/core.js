@@ -43,3 +43,28 @@ async function loadView(host,url){
   host.innerHTML=await r.text();
 }
 var APP_VER='20261004';
+
+// ===== Google 地圖：圖示與連結 =====
+// Maps JavaScript API 的瀏覽器金鑰（只用來顯示「當日所有地點」的地圖頁 map.html）。
+// 請在 Google Cloud 建立金鑰，限制為「HTTP 參照網址」（你的網站網址），並只允許 Maps JavaScript API 與 Places API (New)。
+// 這種金鑰本來就會出現在網頁中，靠參照網址限制來保護。
+var GMAPS_KEY='';
+var ICON_PIN='<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="#ea4335" d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.6" fill="#fff"/></svg>';
+var ICON_ROUTE='<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="none" stroke="#1a73e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM18 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 17h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6"/></svg>';
+var ICON_REFRESH='<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>';
+function iconLink(href,svg,label){
+  return '<a class="iconlink" href="'+esc(href)+'" target="_blank" rel="noopener" title="'+esc(label)+'" aria-label="'+esc(label)+'">'+svg+'</a>';
+}
+// 兩點之間的路徑。epoch（秒）有值時帶入出發時間（大眾運輸／開車）；步行不需要時間。
+function dirLink(o,dst,mode,epoch){
+  var seg=function(s){return encodeURIComponent(s).replace(/%20/g,'+')};
+  var m=({walk:'!3e2',drive:'!3e0'})[mode]||'!3e3';
+  var data=(epoch&&mode!=='walk')?'/data=!4m6!4m5!2m3!6e0!7e2!8j'+epoch+m:'/data=!4m2!4m1'+m;
+  return 'https://www.google.com/maps/dir/'+seg(o)+'/'+seg(dst)+data;
+}
+// 當日所有地點（只標位置、不規劃路線）的地圖頁
+function pinsUrl(stops,title){
+  var s=JSON.stringify({t:title||'',s:stops.slice(0,30)});
+  var b=btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  return new URL('map.html#'+b,location.href).href;
+}

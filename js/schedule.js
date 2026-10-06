@@ -22,65 +22,84 @@ var MEALS=[{n:'午餐',k:'lunch',lo:660,hi:810,dur:75},{n:'晚餐',k:'dinner',lo
 function stayOf(x){return x.stay>0?x.stay:({c:90,n:75,s:60,x:60,f:75}[x.s]||60)}
 var isFood=function(x){return x.s==='f'};
 // ---- 移動時間 ----
-// 規劃與調整順序時一律先用估算值，不會自動呼叫 Google。
-// 行程確定後按「用 Google 計算路線時間」：依各路段的出發日期與時間查詢（時間以 15 分鐘為單位），
-// 1.5 公里內用步行，1.5 公里以上用大眾運輸（自駕日用開車）。步行與已查過的結果會存入快取，不會重複計算。
-var ROUTE={},ROUTE_NEED={},ROUTE_TRIED={},ROUTE_MSG='',ROUTE_BUSY=false,LEGDAY=1,LEGCO='';
+// 規劃與調整順序時一律先用估算值（顯示「估算」）。按每天的「更新」圖示，只更新那一天：
+// 依序查詢每個路段，下一段的出發時間 = 前一段查到的實際結束時間。
+// 1.5 公里內用步行（不需要出發時間，查過就用快取）；1.5 公里以上用大眾運輸（日本用 NAVITIME，其他用 Google），
+// 出發日期一律用「下週同一個星期」，並以 15 分鐘為單位。需要搭船的路段，由 Google／NAVITIME 依船班時刻計算（含等船時間）。
+var ROUTE={},ROUTE_TRIED={},ROUTE_MSG='',ROUTE_BUSY=false,ROUTE_DAY=0,LEGDAY=1,LEGCO='';
 var TZ={jp:9,kr:9,tw:8,sg:8,th:7,fr:1,it:1,uk:0,us:-5};
 function gMode(m){return m==='walk'?'WALK':(m==='drive'?'DRIVE':'TRANSIT')}
-// 第幾天的日期（YYYY-MM-DD）。有填去程日期就用它；沒填就用明天起算，過去的日期往後順延到未來的同一個星期幾
+// 第 no 天對應的出發日期（YYYY-MM-DD）：取行程當天是星期幾，換成「下週」的同一個星期
 function dayDateISO(no){
-  var base=st.fl.out.date&&!isNaN(Date.parse(st.fl.out.date))?Date.parse(st.fl.out.date):Date.now()+864e5;
-  var t=base+(no-1)*864e5,now=Date.now();
-  while(t<now)t+=7*864e5;
-  return new Date(t).toISOString().slice(0,10);
+  var o=st.fl.out.date,base=(o&&!isNaN(Date.parse(o)))?Date.parse(o)+(no-1)*864e5:Date.now()+(no-1)*864e5;
+  var w=new Date(base).getUTCDay();
+  var n=new Date(),today=Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate());
+  var toMon=((8-new Date(today).getUTCDay())%7)||7;            // 到下週一的天數
+  return new Date(today+(toMon+((w+6)%7))*864e5).toISOString().slice(0,10);
 }
-function legDep(at){
-  var m=Math.min(1425,Math.max(0,Math.round(at/15)*15)),tz=TZ[LEGCO]!==undefined?TZ[LEGCO]:8,a=Math.abs(tz);
-  var pad=function(n){return ('0'+n).slice(-2)};
-  return dayDateISO(LEGDAY)+'T'+pad(Math.floor(m/60))+':'+pad(m%60)+':00'+(tz<0?'-':'+')+pad(a)+':00';
+// 出發時間：回傳 ISO（含時區）與 epoch 秒；at 為當天第幾分鐘，取 15 分鐘為單位
+function depFor(no,co,at){
+  var m=Math.min(1425,Math.max(0,Math.round(at/15)*15)),tz=TZ[co]!==undefined?TZ[co]:8,pad=function(n){return ('0'+n).slice(-2)};
+  var date=dayDateISO(no),hm=pad(Math.floor(m/60))+':'+pad(m%60);
+  return {iso:date+'T'+hm+':00'+(tz<0?'-':'+')+pad(Math.abs(tz))+':00',epoch:Math.floor(Date.parse(date+'T'+hm+':00Z')/1000)-tz*3600};
 }
 function leg(fq,tq,a,b,ms,at){
-  var est=localLeg(a,b,ms),g=gMode(est.mode),dep=g==='TRANSIT'?legDep(at||0):'',nav=(g==='TRANSIT'&&LEGCO==='jp');
-  var key=(nav?'NAVI':g)+'|'+fq+'|'+tq+(dep?'|'+dep:''),h=ROUTE[key];
-  if(h)return {km:h.m/1000,min:Math.max(15,Math.round(h.s/60/15)*15),mode:est.mode,g:true,fare:h.f||0,src:nav?'NAVITIME':'Google'};
-  if(!ROUTE_TRIED[key])ROUTE_NEED[key]={key:key,mode:g,prov:nav?'NAVI':'',from:fq,to:tq,dep:dep};
-  return est;
+  var est=localLeg(a,b,ms),g=gMode(est.mode),dep=g==='TRANSIT'?depFor(LEGDAY,LEGCO,at||0).iso:'',nav=(g==='TRANSIT'&&LEGCO==='jp');
+  var key=(nav?'NAVI':g)+'|'+fq+'|'+tq+(dep?'|'+dep:''),h=ROUTE[key],out;
+  if(h)out={km:h.m/1000,min:Math.max(15,Math.round(h.s/60/15)*15),mode:est.mode,g:true,fare:h.f||0,src:nav?'NAVITIME':'Google'};
+  else out=est;
+  out.key=key;out.req={key:key,mode:g,prov:nav?'NAVI':'',from:fq,to:tq,dep:dep};
+  return out;
 }
-function setRouteMsg(t){ROUTE_MSG=t;var el=$('routeStat');if(el)el.textContent=t;var b=$('calcRoutes');if(b)b.disabled=ROUTE_BUSY}
-async function calcRoutes(){
+function setRouteMsg(t){
+  ROUTE_MSG=t;var el=$('routeStat');if(el)el.textContent=t;
+  [].forEach.call(document.querySelectorAll('button[data-act=calcday]'),function(b){b.disabled=ROUTE_BUSY;b.classList.toggle('spin',ROUTE_BUSY&&+b.dataset.no===ROUTE_DAY)});
+}
+async function askRoutes(reqs){
+  reqs.forEach(function(r){ROUTE_TRIED[r.key]=1});
+  var r=await sb.functions.invoke('route-times',{body:{legs:reqs}});
+  if(r.error){
+    var detail=r.error.message||'呼叫失敗';
+    try{if(r.error.context&&r.error.context.text){var tx=await r.error.context.text();if(tx)detail+='：'+tx.slice(0,200)}}catch(e2){}
+    return {stop:'路線查詢失敗：'+detail};
+  }
+  var d=r.data||{};
+  if(d.error==='not_configured')return {stop:'尚未設定 Google 金鑰，路線時間維持估算。'};
+  if(d.error==='not_configured_navitime')return {stop:'尚未設定 NAVITIME 金鑰（Supabase Secrets：NAVITIME_KEY 或 AERODATABOX_KEY），日本大眾運輸維持估算。'};
+  var got=0;
+  (d.results||[]).forEach(function(x){ROUTE[x.key]={s:x.s,m:x.m,f:x.f};got++});
+  if(d.error)return {stop:'路線查詢失敗：'+d.error,got:got};
+  if(d.capped)return {stop:'今日查詢額度已用完，其餘路線維持估算，明天可再按一次。',got:got};
+  return {got:got,fails:d.fails||0,lastErr:d.lastErr||''};
+}
+// 只更新某一天：先一次查完步行（與時間無關），再依序查每段大眾運輸，後一段用前一段的結果推算出發時間
+async function calcDay(no){
   if(ROUTE_BUSY||!sb)return;
-  ROUTE_BUSY=true;ROUTE_TRIED={};
+  ROUTE_BUSY=true;ROUTE_DAY=no;ROUTE_TRIED={};
   var got=0,fails=0,lastErr='',stop='';
+  function pending(){
+    var d=plan().days.filter(function(x){return x.no===no})[0];
+    return d?d.rows.filter(function(r){return r.type==='move'&&!r.lg.g&&!ROUTE_TRIED[r.lg.key]}):[];
+  }
   try{
-    for(var pass=0;pass<4&&!stop;pass++){
-      ROUTE_NEED={};plan();
-      var keys=Object.keys(ROUTE_NEED).filter(function(k){return !ROUTE[k]&&!ROUTE_TRIED[k]});
-      if(!keys.length)break;
-      for(var i=0;i<keys.length&&!stop;i+=20){
-        var batch=keys.slice(i,i+20);
-        batch.forEach(function(k){ROUTE_TRIED[k]=1});
-        setRouteMsg('向 Google 計算路線時間中…（第 '+(pass+1)+' 輪，'+Math.min(i+20,keys.length)+' / '+keys.length+' 段）');
-        var legs=batch.map(function(k){return ROUTE_NEED[k]});
-        var r=await sb.functions.invoke('route-times',{body:{legs:legs}});
-        if(r.error){
-          var detail=r.error.message||'呼叫失敗';
-          try{if(r.error.context&&r.error.context.text){var tx=await r.error.context.text();if(tx)detail+='：'+tx.slice(0,200)}}catch(e2){}
-          stop='路線查詢失敗：'+detail;break;
-        }
-        var d=r.data||{};
-        if(d.error==='not_configured'){stop='尚未設定 Google 金鑰，路線時間維持估算。';break}
-        if(d.error==='not_configured_navitime'){stop='尚未設定 NAVITIME 金鑰（Supabase Secrets：NAVITIME_KEY 或 AERODATABOX_KEY），日本大眾運輸維持估算。';break}
-        (d.results||[]).forEach(function(x){ROUTE[x.key]={s:x.s,m:x.m,f:x.f};got++});
-        if(d.error){stop='路線查詢失敗：'+d.error;break}
-        if(d.capped){stop='今日 Google 查詢額度已用完，其餘路線維持估算，明天可再按一次。';break}
-        fails+=d.fails||0;if(d.lastErr)lastErr=d.lastErr;
-      }
+    setRouteMsg('第 '+no+' 天：計算移動時間中…');
+    var walk=pending().filter(function(r){return r.lg.req.mode==='WALK'});
+    for(var i=0;i<walk.length&&!stop;i+=20){
+      var res=await askRoutes(walk.slice(i,i+20).map(function(r){return r.lg.req}));
+      got+=res.got||0;fails+=res.fails||0;if(res.lastErr)lastErr=res.lastErr;if(res.stop)stop=res.stop;
+    }
+    for(var n=0;n<40&&!stop;n++){
+      var rows=pending();
+      if(!rows.length)break;
+      setRouteMsg('第 '+no+' 天：計算移動時間中…（'+rows.length+' 段待查）');
+      var r1=await askRoutes([rows[0].lg.req]);
+      got+=r1.got||0;fails+=r1.fails||0;if(r1.lastErr)lastErr=r1.lastErr;if(r1.stop)stop=r1.stop;
+      render(true);
     }
   }catch(err){stop='路線查詢失敗：'+(err.message||err)}
   ROUTE_BUSY=false;
   render(true);
-  setRouteMsg(stop||('路線時間計算完成：本次新查詢 '+got+' 段'+(fails?'，'+fails+' 段 Google 無法規劃（維持估算）'+(lastErr?'，原因：'+lastErr:''):'')+'。'));
+  setRouteMsg(stop||('第 '+no+' 天移動時間已更新：本次新查詢 '+got+' 段'+(fails?'，'+fails+' 段無法規劃（維持估算）'+(lastErr?'，原因：'+lastErr:''):'')+'。'));
 }
 async function loadRoutes(){
   try{
@@ -229,6 +248,13 @@ function plan(){
     if(!rec)return null;
     return HLOC[rec.j]||(HLOC[rec.j]={name:rec.h.name,q:hotelQ(rec.h,k2),ll:typeof rec.h.lat==='number'?[rec.h.lat,rec.h.lng]:null,kind:'hotel'});
   }
+  function hotelStopsOf(a,b){
+    var out=[];
+    [a,b].forEach(function(l){
+      if(l&&l.kind==='hotel'&&!out.some(function(x){return x.q===l.q}))out.push({n:l.name,q:l.q,la:l.ll?l.ll[0]:null,lo:l.ll?l.ll[1]:null});
+    });
+    return out;
+  }
   function airportLoc(code,k2){
     var nm=String(code||'').trim(),key=k2+'|'+nm;
     return ALOC[key]||(ALOC[key]={name:'機場'+(nm?'（'+nm+'）':''),q:nm?nm+' airport':(C[k2].n+' 機場'),ll:null,kind:'airport'});
@@ -308,7 +334,7 @@ function plan(){
         var rows=pre.concat(sim.rows,tourRows,post),spots=[];
         sim.rows.forEach(function(r){if((r.type==='sight'||r.type==='meal')&&r.s){spots.push(r.s);placed[r.s.id]=1}});
         rem=rem.filter(function(x){return !placed[x.id]});
-        out.push({no:dn,city:k,rows:rows,spots:spots,arrive:arrive,travel:sim.travel,first:i===0,last:i===cd[ci]-1,foreign:foreign,drive:drv,ms:ms,hotel:hot,startQ:startLoc?startLoc.q:'',endQ:endLoc?endLoc.q:'',flights:fls,off:dayOff,tour:tourD,tStart:tmr.start,tEnd:Math.min(tmr.end,limit),ready:ready});
+        out.push({no:dn,city:k,rows:rows,spots:spots,arrive:arrive,travel:sim.travel,first:i===0,last:i===cd[ci]-1,foreign:foreign,drive:drv,ms:ms,hotel:hot,startQ:startLoc?startLoc.q:'',endQ:endLoc?endLoc.q:'',hotelStops:hotelStopsOf(startLoc,endLoc),flights:fls,off:dayOff,tour:tourD,tStart:tmr.start,tEnd:Math.min(tmr.end,limit),ready:ready});
       }
       return {days:out,cost:cost,placed:placed};
     }

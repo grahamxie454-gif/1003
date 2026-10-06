@@ -51,7 +51,7 @@ function openTrip(row){
   $('tripName').value=row.name;
   rebuildAll(true);
   if(typeof refreshLegacyHotels==='function')refreshLegacyHotels();
-  if(TRIP.share_enabled&&(!TRIP.share_data||TRIP.share_data.v!==3))save();
+  if(TRIP.share_enabled&&(!TRIP.share_data||TRIP.share_data.v!==4))save();
 }
 function buildTripSel(){
   $('tripSel').innerHTML=TRIPS.map(function(t){return '<option value="'+esc(t.id)+'"'+(TRIP&&t.id===TRIP.id?' selected':'')+'>'+esc(t.name)+'</option>'}).join('');

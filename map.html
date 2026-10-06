@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>當日地點位置</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="mapwrap">
+  <h1 id="mTitleH" style="font-size:1.3rem;margin:0">當日地點位置</h1>
+  <p class="hint" id="mHint">地圖只標示當天所有地點的位置，不規劃路線。紅色數字是景點與餐廳的順序，藍色 H 是住宿。</p>
+  <div id="gmap" hidden></div>
+  <ul class="stoplist" id="stops"></ul>
+</div>
+<script src="js/core.js"></script>
+<script src="js/map-page.js"></script>
+</body>
+</html>
