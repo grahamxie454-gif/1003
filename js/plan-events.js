@@ -4,7 +4,7 @@ on('f','change',function(e){
   var f=new FormData($('f')),nm=e.target.name,sig=JSON.stringify(st.ci);
   if(nm==='co'){var co=f.getAll('co');if(co.length)st.co=co}
   if(nm==='ci')st.ci=f.getAll('ci');
-  st.days=autoDays()>0?autoDays():+$('days').value;
+  st.days=autoDays()>0?autoDays():(st.days||5);
   st.styles=f.getAll('styles');
   st.modes=f.getAll('modes');
   st.tier=+f.get('tier');

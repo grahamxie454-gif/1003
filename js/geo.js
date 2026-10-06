@@ -81,14 +81,12 @@ function autoDays(){
   return n>=2&&n<=14?n:-1;
 }
 function syncDays(){
-  var a=autoDays(),old=st.days;
+  var a=autoDays();
   if(a>0)st.days=a;
-  var sl=$('days');
-  sl.disabled=a>0;sl.value=st.days;
-  $('daysOut').textContent=st.days+' 天'+(a>0?'（依航班日期）':'');
-  $('daysHint').textContent=a>0?'由 '+st.fl.out.date+' 到 '+st.fl.ret.date+' 自動計算，要手動調整請清除航班日期。':
-    (a<0?'航班日期相差需介於 2–14 天，目前改用手動天數。':'填入去程與回程日期後，天數會自動計算。');
-
+  $('days').value=st.days;
+  $('daysOut').textContent=a>0?(a+' 天 '+(a-1)+' 夜'):'尚未計算';
+  $('daysHint').textContent=a>0?'由 '+st.fl.out.date+' 到 '+st.fl.ret.date+' 自動計算。':
+    (a<0?'去程與回程日期相差需介於 2–14 天，請重新確認日期。':'請在上方填入去程與回程日期，天數會自動計算。');
 }
 function dayDate(no){
   var o=st.fl.out.date;if(!o||isNaN(Date.parse(o)))return '';

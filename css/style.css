@@ -217,6 +217,7 @@ details.dd summary:focus-visible{outline:2px solid var(--stamp);outline-offset:2
 .flt .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .flt .row input,.flt .row label{flex:1 1 90px;min-width:0}
 .flt .row label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.flt .row label input{flex:none;width:100%;height:auto;min-height:0;padding:3px 8px;font-size:14px;line-height:1.3}
 .flt .fmsg{font-size:12px;color:var(--muted);margin:0}
 .flt .fmsg.err{color:var(--stamp)}
 .rate{font-size:12px;font-weight:700;color:var(--stamp);white-space:nowrap}
@@ -319,3 +320,6 @@ button.iconbtn.spin svg{animation:rot 1s linear infinite}
 .stoplist li{display:flex;gap:8px;align-items:center}
 .stoplist .no{display:inline-flex;width:22px;height:22px;border-radius:50%;background:#ea4335;color:#fff;font-size:12px;align-items:center;justify-content:center;flex:none}
 .stoplist .no.h{background:#1a73e8}
+.daysout{display:block;font-weight:700;font-size:15px}
+.gate{background:var(--surface);border:1px dashed var(--stamp);border-radius:10px;padding:18px;color:var(--ink)}
+.gate b{color:var(--stamp)}

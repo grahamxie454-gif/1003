@@ -15,10 +15,10 @@
             <div class="chips" id="auto" style="margin-top:8px"></div>
             <details class="adder"><summary>＋ 自訂國家／城市</summary><div id="adder"></div></details>
           </fieldset>
-          <fieldset class="flt"><legend>3. 去程與回程航班（選填，日期會決定旅遊天數）</legend><div id="flights"></div></fieldset>
+          <fieldset class="flt"><legend>3. 去程與回程航班（日期必填，用來自動計算旅遊天數）</legend><div id="flights"></div></fieldset>
           <fieldset>
-            <legend>4. 旅遊天數</legend>
-            <div class="range"><input type="range" id="days" min="2" max="14" value="5" aria-label="旅遊天數"><output id="daysOut" for="days">5 天</output></div>
+            <legend>4. 旅遊天數（由日期自動計算）</legend>
+            <input type="hidden" id="days" value="5"><output id="daysOut" class="daysout">尚未計算</output>
             <p class="hint" id="daysHint">填入去程與回程日期後，天數會自動計算。</p>
           </fieldset>
           <fieldset>

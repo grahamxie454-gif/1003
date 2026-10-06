@@ -197,6 +197,16 @@ function copyText(t){
   };
   try{navigator.clipboard.writeText(t).then(ok,bad)}catch(e){bad()}
 }
-function render(skipSave){var p=plan();renderPick(p);renderRes(p);if(!skipSave)save()}
+// 沒有完整的去程與回程日期時，不顯示規劃畫面（旅遊天數完全由日期計算）
+function renderGate(a){
+  $('pick').innerHTML='';
+  $('res').innerHTML='<div class="gate"><b>請先填寫去程與回程日期</b><p>旅遊天數由「去程航班日期」與「回程航班日期」自動計算，兩個日期都填好之後，才會顯示景點選擇與每日行程規劃畫面。</p>'+
+    (a<0?'<p style="color:var(--stamp)">目前的兩個日期相差不在 2–14 天之間，請重新確認日期。</p>':'')+'<p class="hint">在左側「3. 去程與回程航班」的兩個日期欄位填入日期即可（航班號與時間之後再補也可以）。</p></div>';
+}
+function render(skipSave){
+  var a=autoDays();
+  if(a<=0){renderGate(a);if(!skipSave)save();return}
+  var p=plan();renderPick(p);renderRes(p);if(!skipSave)save();
+}
 function rebuildAll(skipSave){normalize();buildStatic();buildCities();buildAdder();renderFlights();render(skipSave)}
 
