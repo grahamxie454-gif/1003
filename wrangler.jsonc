@@ -6,6 +6,7 @@
   "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "1003-photo" }],
   "vars": {
     "SUPABASE_URL": "https://fgwbcbfuicvfhhfmrsmv.supabase.co",
+    "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnd2JjYmZ1aWN2ZmhoZm1yc212Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5ODU5NzAsImV4cCI6MjEwNjU2MTk3MH0.qg3I0n0zh1W6TaVS3QfVzQNwmOM-cg_mLrVF5i1_B58",
     "ALLOWED_ORIGINS": "https://grahamxie454-gif.github.io,http://localhost:8765,http://127.0.0.1:8765"
   }
 }
