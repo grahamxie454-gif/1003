@@ -332,3 +332,7 @@ button.iconbtn.spin svg{animation:rot 1s linear infinite}
 .ord .obtn{margin-left:auto;display:inline-flex;gap:4px}
 .pickbar{display:flex;gap:10px;align-items:center;margin-bottom:8px}
 .pickbar input{flex:1 1 auto;min-width:0}
+.ord .ordco{display:block;padding:6px 8px}
+.ord .ordrow{display:flex;align-items:center;gap:8px}
+.ord.sub{margin:6px 0 2px 26px}
+.ord.sub li{padding:3px 8px}

@@ -34,7 +34,10 @@ function normalize(){
     if(ks.length&&!st.ci.some(function(k){return C[k].co===c}))st.ci.push(ks[0]);
   });
   if(!st.ci.length){var k0=Object.keys(C)[0];st.co=[C[k0].co];st.ci=[k0]}
-
+  // 城市必須依國家順序分組：同一個國家的城市排在一起，城市的順序只能在國家內調整
+  st.ci=st.co.reduce(function(a,c){return a.concat(st.ci.filter(function(k){return C[k].co===c}))},[]);
+  // 國家之間的航班（第 i 段 = 第 i 國 → 第 i+1 國）
+  st.fl.mid=st.co.slice(1).map(function(_,i){return (st.fl.mid&&st.fl.mid[i])||{}});
 }
 
 // ================= 地區與地點 =================
@@ -147,19 +150,21 @@ function mergeOrder(old,now){
   now.forEach(function(k){if(out.indexOf(k)<0)out.push(k)});
   return out;
 }
+// 國家是城市的群組：國家可以調整順序（連同底下的城市），城市只能在自己的國家內調整順序
 function renderOrder(){
   var box=$('order');if(!box)return;
-  function list(kind,arr,label){
-    return '<div class="ordbox"><div class="lab">'+label+'</div><ol class="ord">'+arr.map(function(k,i){
-      var nm=kind==='co'?CO[k].n:C[k].n;
-      return '<li draggable="true" data-kind="'+kind+'" data-i="'+i+'"><span class="grip" aria-hidden="true">⋮⋮</span><span class="ono">'+(i+1)+'</span><b>'+esc(nm)+'</b>'+
-        '<span class="obtn"><button type="button" class="ghost sm" data-ord="mv" data-kind="'+kind+'" data-i="'+i+'" data-d="-1" aria-label="上移"'+(i===0?' disabled':'')+'>▲</button>'+
-        '<button type="button" class="ghost sm" data-ord="mv" data-kind="'+kind+'" data-i="'+i+'" data-d="1" aria-label="下移"'+(i===arr.length-1?' disabled':'')+'>▼</button></span></li>';
-    }).join('')+'</ol></div>';
-  }
-  var h='';
-  if(st.co.length>1)h+=list('co',st.co,'已選國家順序（拖曳或按 ▲▼ 調整）');
-  h+=list('ci',st.ci,'已選城市順序（行程依此順序走訪，拖曳或按 ▲▼ 調整）');
-  if(st.ci.length>1)h+='<button type="button" class="ghost sm" data-ord="auto">依距離自動排序城市</button>';
-  box.innerHTML=h;
+  var btn=function(kind,i,d,dis,txt){return '<button type="button" class="ghost sm" data-ord="mv" data-kind="'+kind+'" data-i="'+i+'" data-d="'+d+'" aria-label="'+(d<0?'上移':'下移')+'"'+(dis?' disabled':'')+'>'+txt+'</button>'};
+  var h='<div class="ordbox"><div class="lab">已選國家與城市的順序（國家可拖曳或按 ▲▼，城市只能在自己的國家內調整）</div><ol class="ord">';
+  st.co.forEach(function(c,ci){
+    var cities=st.ci.map(function(k,gi){return {k:k,gi:gi}}).filter(function(x){return C[x.k].co===c});
+    h+='<li class="ordco" draggable="true" data-kind="co" data-i="'+ci+'"><div class="ordrow"><span class="grip" aria-hidden="true">⋮⋮</span><span class="ono">'+(ci+1)+'</span><b>'+esc(CO[c].n)+'</b>'+
+      '<span class="obtn">'+btn('co',ci,-1,ci===0,'▲')+btn('co',ci,1,ci===st.co.length-1,'▼')+'</span></div><ol class="ord sub">'+
+      cities.map(function(x,j){
+        return '<li draggable="true" data-kind="ci" data-i="'+x.gi+'" data-co="'+esc(c)+'"><span class="grip" aria-hidden="true">⋮⋮</span><b>'+esc(C[x.k].n)+'</b>'+
+          '<span class="obtn">'+btn('ci',x.gi,-1,j===0,'▲')+btn('ci',x.gi,1,j===cities.length-1,'▼')+'</span></li>';
+      }).join('')+'</ol></li>';
+  });
+  h+='</ol>';
+  if(st.ci.length>1)h+='<button type="button" class="ghost sm" data-ord="auto">依距離自動排序各國的城市</button>';
+  box.innerHTML=h+'</div>';
 }

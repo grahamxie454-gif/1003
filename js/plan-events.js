@@ -202,38 +202,56 @@ on('res','change',function(e){
 });
 
 // 去程與回程航班
-var FMSG={out:'',ret:''},FLBUSY={};
+var FMSG={},FLBUSY={};
+// 航班代號：out＝去程、ret＝回程、m0、m1…＝國家之間的航班（第 1 段、第 2 段…）
+function flGet(k){
+  if(k==='out'||k==='ret')return st.fl[k];
+  var i=+String(k).slice(1);
+  st.fl.mid=st.fl.mid||[];
+  while(st.fl.mid.length<=i)st.fl.mid.push({});
+  return st.fl.mid[i];
+}
+function flLegs(){
+  var cn=function(i){return CO[st.co[i]]?CO[st.co[i]].n:''};
+  var legs=[{k:'out',t:'去程（台灣 → '+cn(0)+'）',h:'降落時間決定第 1 天何時開始'}];
+  for(var i=1;i<st.co.length;i++)legs.push({k:'m'+(i-1),t:'國家之間的航班（'+cn(i-1)+' → '+cn(i)+'）',h:'這天是「'+cn(i)+'」的第一天，降落時間決定當天何時開始；前一天是「'+cn(i-1)+'」的最後一天'});
+  legs.push({k:'ret',t:'回程（'+cn(st.co.length-1)+' → 台灣）',h:'起飛時間決定最後一天何時結束'});
+  return legs;
+}
 function renderFlights(){
   var h='';
-  [['out','去程（台灣 → 目的地）','抵達時間決定第 1 天何時開始'],['ret','回程（目的地 → 台灣）','起飛時間決定最後一天何時結束']].forEach(function(L){
-    var k=L[0],f=st.fl[k];
-    h+='<div class="fl"><b>'+L[1]+'</b>'+
-      '<div class="row"><input type="text" data-fk="'+k+'" data-ff="no" value="'+esc(f.no||'')+'" placeholder="航班 例：CI100" maxlength="8" aria-label="'+L[1]+'航班編號">'+
-      '<input type="date" data-fk="'+k+'" data-ff="date" value="'+esc(f.date||'')+'" aria-label="'+L[1]+'日期">'+
+  if(st.co.length>1)h+='<p class="hint">選了 '+st.co.length+' 個國家，所以需要 '+(st.co.length-1)+' 段國家之間的航班，加上去程與回程，共 '+(st.co.length+1)+' 段，每段都要填日期。同一個國家內的不同城市，預設搭大眾運輸（或自駕）。</p>';
+  flLegs().forEach(function(L){
+    var k=L.k,f=flGet(k);
+    h+='<div class="fl"><b>'+esc(L.t)+'</b>'+
+      '<div class="row"><input type="text" data-fk="'+k+'" data-ff="no" value="'+esc(f.no||'')+'" placeholder="航班 例：CI100" maxlength="8" aria-label="航班編號">'+
+      '<input type="date" data-fk="'+k+'" data-ff="date" value="'+esc(f.date||'')+'" aria-label="起飛日期">'+
       '<button type="button" class="ghost" data-fk="'+k+'" data-fact="lookup"'+(FLBUSY[k]?' disabled':'')+'>'+(FLBUSY[k]?'查詢中…':'自動查詢')+'</button></div>'+
       '<div class="row"><input type="text" data-fk="'+k+'" data-ff="from" value="'+esc(f.from||'')+'" placeholder="出發機場" maxlength="20" aria-label="出發機場"><input type="text" data-fk="'+k+'" data-ff="to" value="'+esc(f.to||'')+'" placeholder="抵達機場" maxlength="20" aria-label="抵達機場"></div>'+
       '<div class="row"><label>起飛時間<input type="time" data-fk="'+k+'" data-ff="dep" value="'+esc(f.dep||'')+'"></label><label>降落時間<input type="time" data-fk="'+k+'" data-ff="arr" value="'+esc(f.arr||'')+'"></label></div>'+
-      '<p class="fmsg'+(FMSG[k]&&FMSG[k][0]==='!'?' err':'')+'">'+esc((FMSG[k]||'').replace(/^!/,'')||L[2]+'。')+'</p>'+(k==='out'?checkinHtml():'')+'</div>';
+      '<p class="fmsg'+(FMSG[k]&&FMSG[k][0]==='!'?' err':'')+'">'+esc((FMSG[k]||'').replace(/^!/,'')||L.h+'。')+'</p>'+(k==='out'?checkinHtml():'')+'</div>';
   });
   $('flights').innerHTML=h;
 }
 function checkinHtml(){
-  return '<label class="checkin">抵達機場後<select id="checkin" aria-label="第一天的入住方式"><option value="hotel"'+(st.checkin!=='direct'?' selected':'')+'>先到住宿點入住，再從住宿點出發</option><option value="direct"'+(st.checkin==='direct'?' selected':'')+'>從機場直接去第一個行程，晚上再回住宿點</option></select></label>';
+  return '<label class="checkin">抵達機場後（每次入境的當天都適用）<select id="checkin" aria-label="抵達當天的入住方式"><option value="hotel"'+(st.checkin!=='direct'?' selected':'')+'>先到住宿點入住，再從住宿點出發</option><option value="direct"'+(st.checkin==='direct'?' selected':'')+'>從機場直接去第一個行程，晚上再回住宿點</option></select></label>';
 }
 on('flights','change',function(e){
   if(e.target.id==='checkin'){if(e.target.value==='direct')st.checkin='direct';else delete st.checkin;render();return}
   var el=e.target,k=el.dataset.fk,ff=el.dataset.ff;
   if(!k||!ff)return;
-  var v=el.value.trim();
+  var v=el.value.trim(),f=flGet(k),before=JSON.stringify(flightPlan().counts);
   if(ff==='no')v=v.replace(/\s+/g,'').toUpperCase();
-  if(v)st.fl[k][ff]=v;else delete st.fl[k][ff];
-  el.value=v;if(ff==='date')syncDays();render();
+  if(v)f[ff]=v;else delete f[ff];
+  el.value=v;
+  if(ff==='date'){syncDays();if(JSON.stringify(flightPlan().counts)!==before){delete st.lay;delete st.fix;delete st.fixSeq}}
+  render();
 });
 on('flights','click',async function(e){
   var b=e.target.closest('button[data-fact]');
   if(!b)return;
   e.stopPropagation();
-  var k=b.dataset.fk,f=st.fl[k];
+  var k=b.dataset.fk,f=flGet(k);
   if(!f.no||!f.date){FMSG[k]='!請先填航班編號與日期。';renderFlights();return}
   FLBUSY[k]=true;FMSG[k]='';renderFlights();
   try{
@@ -244,7 +262,7 @@ on('flights','click',async function(e){
     else if(d.error)FMSG[k]='!'+d.error+'，請手動填入。';
     else{
       ['from','to','dep','arr'].forEach(function(x){if(d[x])f[x]=d[x]});
-      FMSG[k]='已取得：'+(d.from||'')+' '+(d.dep||'')+' → '+(d.to||'')+' '+(d.arr||'')+(d.nextDay?'（跨日抵達，請自行確認第 1 天的安排）':'')+'。時間為預定時刻，請以航空公司為準。';
+      FMSG[k]='已取得：'+(d.from||'')+' '+(d.dep||'')+' → '+(d.to||'')+' '+(d.arr||'')+(d.nextDay?'（跨日抵達，請自行確認抵達當天的安排）':'')+'。時間為預定時刻，請以航空公司為準。';
     }
   }catch(err){FMSG[k]='!查詢失敗，請手動填入時間。'}
   FLBUSY[k]=false;renderFlights();render();
@@ -428,21 +446,31 @@ on('pick','change',function(e){
 });
 
 // ===== 國家／城市順序（點選後可自行調整，不依內建資料的排序） =====
-function orderChanged(kind){
-  if(kind==='ci'){delete st.lay;delete st.fix;delete st.fixSeq}
-  renderOrder();buildCities();render();
+function orderChanged(){
+  delete st.lay;delete st.fix;delete st.fixSeq;
+  normalize();
+  buildCities();renderOrder();renderFlights();syncDays();render();
 }
 function moveOrd(kind,from,to){
-  var arr=st[kind];
-  if(from===to||from<0||to<0||from>=arr.length||to>=arr.length)return;
-  var it=arr.splice(from,1)[0];arr.splice(to,0,it);
-  orderChanged(kind);
+  if(from===to||from<0||to<0)return;
+  if(kind==='co'){
+    if(from>=st.co.length||to>=st.co.length)return;
+    var it=st.co.splice(from,1)[0];st.co.splice(to,0,it);
+  }else{
+    var a=st.ci[from],b=st.ci[to];
+    if(!a||!b||C[a].co!==C[b].co)return;   // 城市不能超出自己的國家
+    var c2=st.ci.splice(from,1)[0];st.ci.splice(to,0,c2);
+  }
+  orderChanged();
 }
 on('order','click',function(e){
   var b=e.target.closest('button[data-ord]');
   if(!b)return;
   if(b.dataset.ord==='mv')moveOrd(b.dataset.kind,+b.dataset.i,+b.dataset.i+(+b.dataset.d));
-  else if(b.dataset.ord==='auto'){st.ci=distOrder(st.ci);orderChanged('ci')}
+  else if(b.dataset.ord==='auto'){
+    st.ci=st.co.reduce(function(a,c){return a.concat(distOrder(st.ci.filter(function(k){return C[k].co===c})))},[]);
+    orderChanged();
+  }
 });
 var ODRAG=null;
 on('order','dragstart',function(e){
@@ -452,12 +480,12 @@ on('order','dragstart',function(e){
   e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',li.dataset.i);
 });
 on('order','dragover',function(e){
-  var li=e.target.closest('li[data-kind]');
+  var li=ODRAG&&e.target.closest('li[data-kind="'+ODRAG.kind+'"]');
   if(!ODRAG||!li||li.dataset.kind!==ODRAG.kind)return;
   e.preventDefault();
 });
 on('order','drop',function(e){
-  var li=e.target.closest('li[data-kind]');
+  var li=ODRAG&&e.target.closest('li[data-kind="'+ODRAG.kind+'"]');
   if(!ODRAG||!li||li.dataset.kind!==ODRAG.kind)return;
   e.preventDefault();
   var from=ODRAG.i,to=+li.dataset.i,kind=ODRAG.kind;

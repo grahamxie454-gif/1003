@@ -19,7 +19,7 @@ var MODE_TXT={ferry:'城際移動用，目前內建航線為釜山與福岡之�
 var MNAME={metro:'地鐵',bus:'公車',train:'火車',drive:'自駕',walk:'步行',flight:'飛機',ferry:'渡輪'};
 
 var HMSG={},sb=null,ME=null,DB=null,CO={},C={},TRIPS=[],TRIP=null,saveTimer=null,dirty=false;
-var DEF=function(){return {co:['jp'],ci:['tyo'],days:5,styles:['f','c'],modes:['metro','train'],tier:1,pace:'full',auto:true,fl:{out:{},ret:{}},stay:{}}};
+var DEF=function(){return {co:['jp'],ci:['tyo'],days:5,styles:['f','c'],modes:['metro','train'],tier:1,pace:'full',auto:true,fl:{out:{},ret:{},mid:[]},stay:{}}};
 var st=DEF(),sel={},uid=0,cuid=0,DAYS={},OPEN={};
 
 

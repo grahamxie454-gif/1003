@@ -42,6 +42,7 @@ function openTrip(row){
   if(s.fixSeq&&typeof s.fixSeq==='object')st.fixSeq=s.fixSeq;
   sel=d.sel||{};uid=d.uid||0;cuid=d.cuid||0;DAYS=d.days||{};OPEN={};
   ['out','ret'].forEach(function(k){st.fl[k]=Object.assign({},s.fl&&s.fl[k])});
+  st.fl.mid=(s.fl&&Array.isArray(s.fl.mid)?s.fl.mid:[]).map(function(m){return Object.assign({},m)});
   // 舊版每日航班 → 去程／回程
   var d1=DAYS[1]&&DAYS[1].flights,dN=DAYS[st.days]&&DAYS[st.days].flights;
   var oa=(d1||[]).filter(function(f){return f.kind==='arrive'})[0],rd=(dN||[]).filter(function(f){return f.kind==='depart'})[0];

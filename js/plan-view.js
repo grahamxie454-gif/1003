@@ -40,7 +40,7 @@ function renderRes(p){
   p=p||plan();var cs=p.cities,n=cs.length,total=st.days,nights=total-1,t=st.tier,m=TIERS[t][1];
   var modes=st.modes.length?st.modes:['metro'];
   var firstC=C[cs[0]],lastC=C[cs[n-1]],fc=CO[firstC.co];
-  var fl=fc.flight*m+(lastC.co!==firstC.co?0.5*CO[lastC.co].flight*m:0);
+  var fl=fc.flight*m;st.co.slice(1).forEach(function(c){fl+=0.5*CO[c].flight*m});   // 去回程機票 + 每多一個國家的航班（估算）
   var hotel=0,food=0,tr=0;
   p.days.forEach(function(d,i){
     food+=C[d.city].food[t];
@@ -95,7 +95,9 @@ function renderRes(p){
   });
   h+='</section>';
   h+='<section class="tips">';
-  if(n>1)h+='<h3>城市間移動</h3><ul class="hops">'+p.hops.slice(1).map(function(x){return '<li>'+esc(C[x.from].n)+' → '+esc(C[x.to].n)+'：'+MNAME[x.mode]+'，約 '+fmtMin(x.min)+'（約 '+fmtKm(x.km)+'），約 '+fmt(x.cost)+'</li>'}).join('')+'</ul>';
+  var hp=p.hops.slice(1).filter(Boolean);
+  if(st.co.length>1)h+='<h3>國家之間的航班</h3><ul>'+flLegs().filter(function(L){return L.k!=='out'&&L.k!=='ret'}).map(function(L){var f=flGet(L.k);return '<li>'+esc(L.t)+'：'+esc(f.date||'尚未填日期')+(f.no?'　'+esc(f.no):'')+(f.dep?'　'+esc(f.dep)+' 起飛':'')+(f.arr?'・'+esc(f.arr)+' 抵達':'')+'</li>'}).join('')+'</ul>';
+  if(hp.length)h+='<h3>城市間移動</h3><ul class="hops">'+hp.map(function(x){return '<li>'+esc(C[x.from].n)+' → '+esc(C[x.to].n)+'：'+MNAME[x.mode]+'，約 '+fmtMin(x.min)+'（約 '+fmtKm(x.km)+'），約 '+fmt(x.cost)+'</li>'}).join('')+'</ul>';
   h+='<h3>交通建議</h3><ul>'+modes.map(function(x){return '<li><b>'+MODES[x]+'</b>：'+MODE_TXT[x]+'</li>'}).join('')+
     (modes.indexOf('drive')>-1?cos.map(function(c){return '<li>'+esc(CO[c].n)+'：'+esc(CO[c].drive)+'</li>'}).join(''):'')+'</ul>'+
     '<h3>出發前小提醒</h3><ul>'+cos.map(function(c){return (CO[c].tips||[]).map(function(x){return '<li>'+esc(CO[c].n)+'：'+esc(x)+'</li>'}).join('')}).join('')+'</ul></section>';
@@ -201,8 +203,8 @@ function copyText(t){
 function renderGate(a){
   $('pickbar').hidden=true;
   $('pick').innerHTML='';
-  $('res').innerHTML='<div class="gate"><b>請先填寫去程與回程日期</b><p>旅遊天數由「去程航班日期」與「回程航班日期」自動計算，兩個日期都填好之後，才會顯示景點選擇與每日行程規劃畫面。</p>'+
-    (a<0?'<p style="color:var(--stamp)">目前的兩個日期相差不在 2–14 天之間，請重新確認日期。</p>':'')+'<p class="hint">在左側「3. 去程與回程航班」的兩個日期欄位填入日期即可（航班號與時間之後再補也可以）。</p></div>';
+  $('res').innerHTML='<div class="gate"><b>請先填寫所有航班的日期</b><p>旅遊天數由航班日期自動計算：「去程」「回程」以及（選了多個國家時）每相鄰兩個國家之間的航班，日期都填好之後，才會顯示景點選擇與每日行程規劃畫面。</p>'+
+    (flightPlan().msg?'<p style="color:var(--stamp)">'+esc(flightPlan().msg)+'</p>':'')+'<p class="hint">在左側「3. 航班」的每一段航班填入日期即可（航班號與時間之後再補也可以）。</p></div>';
 }
 function render(skipSave){
   var a=autoDays();
