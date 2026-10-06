@@ -2,18 +2,17 @@
 on('f','change',function(e){
   if(e.target.closest('.adder,.flt'))return;
   var f=new FormData($('f')),nm=e.target.name,sig=JSON.stringify(st.ci);
-  if(nm==='co'){var co=f.getAll('co');if(co.length)st.co=co}
-  if(nm==='ci')st.ci=f.getAll('ci');
+  if(nm==='co'){var co=f.getAll('co');if(co.length)st.co=mergeOrder(st.co,co)}
+  if(nm==='ci')st.ci=mergeOrder(st.ci,f.getAll('ci'));
   st.days=autoDays()>0?autoDays():(st.days||5);
   st.styles=f.getAll('styles');
   st.modes=f.getAll('modes');
   st.tier=+f.get('tier');
   st.pace=f.get('pace');
-  st.auto=f.get('auto')!==null;
-  $('daysOut').textContent=st.days+' 天';
+
   normalize();
   if(JSON.stringify(st.ci)!==sig){delete st.lay;delete st.fix;delete st.fixSeq}
-  if(nm==='co'||nm==='ci'){buildStatic();buildCities()}
+  if(nm==='co'||nm==='ci'){buildStatic();buildCities();renderOrder()}
   render();
 });
 on('f','click',async function(e){
@@ -28,7 +27,7 @@ on('f','click',async function(e){
   }else if(a==='addci'){
     var cn=$('nci').value.trim();if(!cn)return;
     var km=parseInt($('nkm').value,10),co=$('ncc').value,ck='v'+(++cuid);
-    C[ck]={n:cn,co:co,code:'',custom:true,km:km>0?km:150,hotel:[2000,3500,6500],food:[1200,2000,3500],d:{},lat:0,lng:0,pos:{}};
+    C[ck]={n:cn,co:co,code:'',season:'請自行查詢',custom:true,km:km>0?km:150,hotel:[2000,3500,6500],food:[1200,2000,3500],d:{},lat:0,lng:0,pos:{}};
     if(st.co.indexOf(co)<0)st.co.push(co);
     st.ci.push(ck);
   }else if(a==='delco'){
@@ -94,6 +93,7 @@ on('pick','click',async function(e){
     var cost=parseInt($('cc_'+k).value,10),gv=$('cg_'+k).value.trim(),ll=gv?parseLL(gv):null;
     if(gv&&!ll){$('cg_'+k).setCustomValidity('座標格式錯誤');$('cg_'+k).reportValidity();$('cg_'+k).setCustomValidity('');return}
     var spot={id:'x'+(++uid),name:nm,d:$('cl_'+k).value,cost:cost>0?cost:0,s:$('ct_'+k).value||'x'};
+    var tg=$('ctag_'+k).value.trim();if(tg)spot.tag=tg.slice(0,12);
     if(url)spot.url=url;
     if(!ll&&info&&typeof info.lat==='number')ll=[info.lat,info.lng];
     if(ll){spot.lat=ll[0];spot.lng=ll[1]}
@@ -425,4 +425,51 @@ async function fillFromMapLink(inp){
 }
 on('pick','change',function(e){
   if(e.target.id&&e.target.id.indexOf('cu_')===0)fillFromMapLink(e.target);
+});
+
+// ===== 國家／城市順序（點選後可自行調整，不依內建資料的排序） =====
+function orderChanged(kind){
+  if(kind==='ci'){delete st.lay;delete st.fix;delete st.fixSeq}
+  renderOrder();buildCities();render();
+}
+function moveOrd(kind,from,to){
+  var arr=st[kind];
+  if(from===to||from<0||to<0||from>=arr.length||to>=arr.length)return;
+  var it=arr.splice(from,1)[0];arr.splice(to,0,it);
+  orderChanged(kind);
+}
+on('order','click',function(e){
+  var b=e.target.closest('button[data-ord]');
+  if(!b)return;
+  if(b.dataset.ord==='mv')moveOrd(b.dataset.kind,+b.dataset.i,+b.dataset.i+(+b.dataset.d));
+  else if(b.dataset.ord==='auto'){st.ci=distOrder(st.ci);orderChanged('ci')}
+});
+var ODRAG=null;
+on('order','dragstart',function(e){
+  var li=e.target.closest&&e.target.closest('li[data-kind]');
+  if(!li)return;
+  ODRAG={kind:li.dataset.kind,i:+li.dataset.i};
+  e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',li.dataset.i);
+});
+on('order','dragover',function(e){
+  var li=e.target.closest('li[data-kind]');
+  if(!ODRAG||!li||li.dataset.kind!==ODRAG.kind)return;
+  e.preventDefault();
+});
+on('order','drop',function(e){
+  var li=e.target.closest('li[data-kind]');
+  if(!ODRAG||!li||li.dataset.kind!==ODRAG.kind)return;
+  e.preventDefault();
+  var from=ODRAG.i,to=+li.dataset.i,kind=ODRAG.kind;
+  ODRAG=null;
+  moveOrd(kind,from,to);
+});
+on('order','dragend',function(){ODRAG=null});
+
+// ===== 景點搜尋 =====
+var pickQTimer=null;
+on('pickQ','input',function(e){
+  PICKQ=e.target.value;
+  clearTimeout(pickQTimer);
+  pickQTimer=setTimeout(function(){renderPick()},120);
 });

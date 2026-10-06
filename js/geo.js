@@ -55,8 +55,10 @@ function hop(a,b,ms){
   if(!best||(best.min>360&&fl.min<best.min))best=fl;
   return {from:a,to:b,km:r,min:round5(best.min),mode:best.mode,cost:best.cost};
 }
-function orderCities(list){
-  if(!st.auto||list.length<2)return list.slice();
+function orderCities(list){return list.slice()}
+// 一次性「依距離自動排序」：從離台北最近的城市出發，每次接最近的下一個城市
+function distOrder(list){
+  if(list.length<2)return list.slice();
   var TP=[25.04,121.55],pre=list.filter(function(k){return !C[k].custom}),cu=list.filter(function(k){return C[k].custom});
   var start=pre.length?pre.slice().sort(function(a,b){return hav(TP,[C[a].lat,C[a].lng])-hav(TP,[C[b].lat,C[b].lng])})[0]:cu[0];
   var out=[start],rest=list.filter(function(k){return k!==start});

@@ -54,7 +54,7 @@ function renderRes(p){
   var h='';
   if(p.over)h+='<p class="warn">天數不足以安排 '+st.ci.length+' 座城市，目前只排前 '+n+' 座。請增加天數或減少城市。</p>';
   h+='<section class="pass"><div class="main"><div class="route"><div>TPE<small>桃園</small></div><span class="arrow"></span><div>'+esc(firstC.code||firstC.n)+'<small>'+esc(firstC.n)+(n>1?' 等 '+n+' 城':'')+'</small></div></div>'+
-   '<dl class="facts"><div><dt>行程</dt><dd>'+total+' 天 '+nights+' 夜</dd></div><div><dt>城市順序'+(st.auto&&n>1?'（依距離）':'')+'</dt><dd>'+cs.map(function(k){return esc(C[k].n)}).join(' → ')+'</dd></div><div><dt>飛行時間</dt><dd>'+esc(fc.fh)+'</dd></div><div><dt>最佳季節</dt><dd>'+esc(fc.season)+'</dd></div></dl></div>'+
+   '<dl class="facts"><div><dt>行程</dt><dd>'+total+' 天 '+nights+' 夜</dd></div><div><dt>城市順序'+(st.auto&&n>1?'（依距離）':'')+'</dt><dd>'+cs.map(function(k){return esc(C[k].n)}).join(' → ')+'</dd></div><div><dt>飛行時間</dt><dd>'+esc(fc.fh)+'</dd></div><div><dt>最佳季節</dt><dd>'+cs.map(function(k){return esc(C[k].n)+'：'+esc(C[k].season||'請自行查詢')}).join('<br>')+'</dd></div></dl></div>'+
    '<div class="stub"><span class="lbl">每人預算概估</span><span class="total">'+fmt(tot)+'</span><span class="sub">'+TIERS[t][0]+'等級・不含額外購物</span>'+
    '<div class="bar">'+parts.map(function(x){return '<span class="'+x[2]+'" style="width:'+(x[1]/tot*100)+'%"></span>'}).join('')+'</div>'+
    '<div class="legend">'+parts.map(function(x){return '<span><i class="'+x[2]+'"></i>'+x[0]+' '+fmt(x[1]).replace('NT$ ','')+'</span>'}).join('')+'</div></div></section>';
@@ -131,7 +131,7 @@ function txtOf(d,key,dflt){var t=DAYS[d.no]&&DAYS[d.no].txt&&DAYS[d.no].txt[key]
 function poolHtml(d,p){
   var list=p.pool[d.city]||[],days=p.days.filter(function(x){return x.city===d.city&&!x.off});
   var items=list.map(function(s){
-    return '<li class="tr sg pool" draggable="true" data-id="'+esc(s.id)+'" data-day="pool" data-city="'+esc(d.city)+'"><div class="tt">—</div><div class="tb"><div class="n"><span class="grip" aria-hidden="true" title="拖曳到上方任一天">⋮⋮</span><b>'+esc(s.name)+'</b><span class="tag">'+STYLE[s.s]+'</span>'+rateTxt(s)+'<a class="maplink" href="'+esc(mapSearch(s))+'" target="_blank" rel="noopener">看地圖</a></div>'+
+    return '<li class="tr sg pool" draggable="true" data-id="'+esc(s.id)+'" data-day="pool" data-city="'+esc(d.city)+'"><div class="tt">—</div><div class="tb"><div class="n"><span class="grip" aria-hidden="true" title="拖曳到上方任一天">⋮⋮</span><b>'+esc(s.name)+'</b><span class="tag">'+STYLE[s.s]+(s.tag?'・'+esc(s.tag):'')+'</span>'+rateTxt(s)+'<a class="maplink" href="'+esc(mapSearch(s))+'" target="_blank" rel="noopener">看地圖</a></div>'+
       '<div class="meta">'+esc(s.dist)+'・'+costTxt(s)+(isFood(s)?'':'・<label class="stayin">停留 <input type="number" min="15" max="720" step="15" data-stay="'+esc(s.id)+'" value="'+stayOf(s)+'" aria-label="停留分鐘"> 分</label>')+'</div>'+
       '<div class="mvbar">'+(days.length?'<select data-mv="'+esc(s.id)+'" aria-label="加入某一天"><option value="">加入某一天…</option>'+days.map(function(x){return '<option value="'+x.no+'">第 '+x.no+' 天</option>'}).join('')+'</select>':'')+
       '<button type="button" class="ghost sm x" data-act="rm" data-id="'+esc(s.id)+'" aria-label="移除並取消勾選">✕</button></div></div></li>';
@@ -170,7 +170,7 @@ function rowHtml(r,d,p){
   }else if(r.type==='sight'){
     cls='sg'+(r.s.pin?' pinned':'');
     var s=r.s,pn=!!s.pin;
-    b='<div class="n"><span class="grip" aria-hidden="true" title="拖曳調整順序">⋮⋮</span><b>'+esc(s.name)+'</b><span class="tag">'+STYLE[s.s]+'</span>'+rateTxt(s)+'<a class="maplink" href="'+esc(mapSearch(s))+'" target="_blank" rel="noopener">看地圖</a></div><p>'+esc(s.desc)+'</p>'+
+    b='<div class="n"><span class="grip" aria-hidden="true" title="拖曳調整順序">⋮⋮</span><b>'+esc(s.name)+'</b><span class="tag">'+STYLE[s.s]+(s.tag?'・'+esc(s.tag):'')+'</span>'+rateTxt(s)+'<a class="maplink" href="'+esc(mapSearch(s))+'" target="_blank" rel="noopener">看地圖</a></div><p>'+esc(s.desc)+'</p>'+
       '<div class="meta">'+esc(s.dist)+'・'+costTxt(s)+'・<label class="stayin">停留 <input type="number" min="15" max="720" step="15" data-stay="'+esc(s.id)+'" value="'+(r.end-r.start)+'" aria-label="停留分鐘"> 分</label></div>'+itemCtl(s,d,p,pn);
     if(r.over)b+='<p class="overnote">⚠ 已超過當天回住宿或航班前的時間，請調整停留時間或移到其他天。</p>';
     li=(pn?'':' draggable="true"')+' data-id="'+esc(s.id)+'" data-day="'+d.no+'" data-city="'+esc(d.city)+'"';
@@ -199,6 +199,7 @@ function copyText(t){
 }
 // 沒有完整的去程與回程日期時，不顯示規劃畫面（旅遊天數完全由日期計算）
 function renderGate(a){
+  $('pickbar').hidden=true;
   $('pick').innerHTML='';
   $('res').innerHTML='<div class="gate"><b>請先填寫去程與回程日期</b><p>旅遊天數由「去程航班日期」與「回程航班日期」自動計算，兩個日期都填好之後，才會顯示景點選擇與每日行程規劃畫面。</p>'+
     (a<0?'<p style="color:var(--stamp)">目前的兩個日期相差不在 2–14 天之間，請重新確認日期。</p>':'')+'<p class="hint">在左側「3. 去程與回程航班」的兩個日期欄位填入日期即可（航班號與時間之後再補也可以）。</p></div>';
@@ -206,7 +207,8 @@ function renderGate(a){
 function render(skipSave){
   var a=autoDays();
   if(a<=0){renderGate(a);if(!skipSave)save();return}
+  $('pickbar').hidden=false;
   var p=plan();renderPick(p);renderRes(p);if(!skipSave)save();
 }
-function rebuildAll(skipSave){normalize();buildStatic();buildCities();buildAdder();renderFlights();render(skipSave)}
+function rebuildAll(skipSave){normalize();buildStatic();buildCities();renderOrder();buildAdder();renderFlights();render(skipSave)}
 

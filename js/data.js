@@ -8,10 +8,10 @@ async function loadBuiltin(){
 function buildBuiltin(){
   CO={};C={};
   DB.countries.forEach(function(c){CO[c.id]={n:c.name,flight:c.flight,fh:c.fh,season:c.season,drive:c.drive,tips:c.tips||[],rail:c.rail}});
-  DB.cities.forEach(function(c){if(CO[c.country_id])C[c.id]={n:c.name,co:c.country_id,code:c.code,lat:c.lat,lng:c.lng,hotel:c.hotel,food:c.food,d:{},pos:{}}});
+  DB.cities.forEach(function(c){if(CO[c.country_id])C[c.id]={n:c.name,co:c.country_id,code:c.code,lat:c.lat,lng:c.lng,hotel:c.hotel,food:c.food,season:c.season||'請自行查詢',d:{},pos:{}}});
   var dm={};
   DB.districts.forEach(function(d){if(C[d.city_id]){C[d.city_id].d[d.name]=[];C[d.city_id].pos[d.name]=[d.lat,d.lng];dm[d.id]=[d.city_id,d.name]}});
-  DB.spots.forEach(function(s){var p=dm[s.district_id];if(p)C[p[0]].d[p[1]].push([s.name,s.style,s.cost,s.descr,s.id,s.rating==null?null:+s.rating,s.maps_url||'',s.stay||0,s.lat==null?null:+s.lat,s.lng==null?null:+s.lng])});
+  DB.spots.forEach(function(s){var p=dm[s.district_id];if(p)C[p[0]].d[p[1]].push([s.name,s.style,s.cost,s.descr,s.id,s.rating==null?null:+s.rating,s.maps_url||'',s.stay||0,s.lat==null?null:+s.lat,s.lng==null?null:+s.lng,s.tag||''])});
 }
 function packTrip(){
   var cc={},cx={};
@@ -35,7 +35,7 @@ function openTrip(row){
   if(Array.isArray(s.modes))st.modes=s.modes.filter(function(k){return MODES[k]});
   if(s.tier>=0&&s.tier<=2)st.tier=s.tier;
   if(s.pace==='full'||s.pace==='relax')st.pace=s.pace;
-  st.auto=s.auto!==false;
+  st.auto=false;
   if(s.lay&&typeof s.lay==='object')st.lay=s.lay;
   if(s.fix&&typeof s.fix==='object')st.fix=s.fix;
   if(s.checkin==='direct')st.checkin='direct';

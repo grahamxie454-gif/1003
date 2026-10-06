@@ -12,7 +12,7 @@
           <fieldset>
             <legend>2. 城市（可多選）</legend>
             <div class="chips" id="ci"></div>
-            <div class="chips" id="auto" style="margin-top:8px"></div>
+            <div id="order"></div>
             <details class="adder"><summary>＋ 自訂國家／城市</summary><div id="adder"></div></details>
           </fieldset>
           <fieldset class="flt"><legend>3. 去程與回程航班（日期必填，用來自動計算旅遊天數）</legend><div id="flights"></div></fieldset>
@@ -31,6 +31,7 @@
           <button type="button" class="ghost" data-act="reset">清除這份行程的自訂內容並重設</button>
         </form>
         <main aria-live="polite">
+          <div class="pickbar" id="pickbar" hidden><input type="search" id="pickQ" placeholder="搜尋景點：名稱、地區、類型或子分類（例如：拉麵、寺廟、博多）" aria-label="搜尋景點" autocomplete="off"><span class="muted" id="pickQn"></span></div>
           <div id="pick"></div>
           <div id="res"></div>
         </main>
