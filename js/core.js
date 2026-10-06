@@ -48,7 +48,7 @@ var APP_VER='20261004';
 // Maps JavaScript API 的瀏覽器金鑰（只用來顯示「當日所有地點」的地圖頁 map.html）。
 // 請在 Google Cloud 建立金鑰，限制為「HTTP 參照網址」（你的網站網址），並只允許 Maps JavaScript API 與 Places API (New)。
 // 這種金鑰本來就會出現在網頁中，靠參照網址限制來保護。
-var GMAPS_KEY='';
+var GMAPS_KEY='AIzaSyAtXgb-DvkObH-kRRYeEnGE1-XN02BS_NU';
 var ICON_PIN='<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="#ea4335" d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.6" fill="#fff"/></svg>';
 var ICON_ROUTE='<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="none" stroke="#1a73e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM18 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 17h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6"/></svg>';
 var ICON_REFRESH='<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>';
