@@ -23,9 +23,7 @@ async function loadPhotos(tripId){
   if(r.error)throw r.error;
   var rows=r.data.sort(function(a,b){return photoTime(a)-photoTime(b)});
   if(rows.length){
-    var u=await sb.storage.from('trip-photos').createSignedUrls(rows.map(function(x){return x.path}),3600);
-    var map={};
-    (u.data||[]).forEach(function(x){if(x.signedUrl)map[x.path]=x.signedUrl});
+    var map=await photoUrls(rows.map(function(x){return x.path}));
     rows.forEach(function(x){x.url=map[x.path]||''});
   }
   return rows;

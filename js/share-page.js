@@ -196,11 +196,10 @@ on('mBody','click',async function(e){
       st_.textContent='上傳中 '+(i+1)+' / '+list.length+'…';
       try{
         var pp=await prepPhoto(list[i].file);
-        var path=TID+'/'+(crypto.randomUUID?crypto.randomUUID():String(Date.now())+i)+'.jpg';
-        var up=await sb.storage.from('trip-photos').upload(path,pp.blob,{contentType:'image/jpeg'});
-        if(up.error)throw up.error;
+        var path=(R2_PHOTO_URL?'r2:':'')+TID+'/'+crypto.randomUUID()+'.jpg';
+        await uploadPhotoFile(path,pp.blob);
         var ins=await sb.from('trip_photos').insert({trip_id:TID,user_email:ME.email,path:path,caption:list[i].caption||null,day_no:MOD.day,item_key:MOD.k,taken_at:pp.taken?pp.taken.toISOString():null});
-        if(ins.error){await sb.storage.from('trip-photos').remove([path]);throw ins.error}
+        if(ins.error){await removePhotoFile(path);throw ins.error}
         URL.revokeObjectURL(list[i].url);
         MOD.pending=MOD.pending.filter(function(x){return x!==list[i]});
         ok++;
@@ -220,9 +219,10 @@ async function deletePhoto(id,msgEl){
     var r=await sb.from('trip_photos').delete().eq('id',id).select('id');
     if(r.error)throw r.error;
     if(!r.data||!r.data.length)throw new Error('沒有權限刪除，或照片已被刪除');
-    var rm=await sb.storage.from('trip-photos').remove([p.path]);
+    var cleanupError=null;
+    try{await removePhotoFile(p.path)}catch(err){cleanupError=err}
     await refresh();
-    say(rm.error?'照片已從清單刪除（檔案清除失敗：'+rm.error.message+'）':'照片已刪除。');
+    say(cleanupError?'照片已從清單刪除（檔案清除失敗：'+cleanupError.message+'）':'照片已刪除。');
   }catch(err){say('刪除失敗：'+(err.message||err))}
 }
 bootPage();

@@ -1,0 +1,11 @@
+{
+  "name": "1003",
+  "main": "index.mjs",
+  "compatibility_date": "2026-10-06",
+  "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "1003-photo" }],
+  "vars": {
+    "SUPABASE_URL": "https://fgwbcbfuicvfhhfmrsmv.supabase.co",
+    "SUPABASE_ANON_KEY": "REPLACE_WITH_EXISTING_PUBLIC_ANON_KEY",
+    "ALLOWED_ORIGINS": "https://grahamxie454-gif.github.io,http://localhost:8765,http://127.0.0.1:8765"
+  }
+}
