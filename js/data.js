@@ -158,7 +158,7 @@ async function enter(user){
     await Promise.all([loadBuiltin(),loadTrips(),loadRoutes()]);
     await loadRequests();
     showWho();$('whoRole').textContent=ME.role==='admin'?'管理員':'一般使用者';
-    $('adminTab').hidden=ME.role!=='admin';
+    $('adminMenu').hidden=ME.role!=='admin';
     $('boot').hidden=true;$('app').hidden=false;
     step='顯示行程';
     showView('plan');

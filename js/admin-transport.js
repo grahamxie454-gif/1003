@@ -26,6 +26,10 @@ async function adminTransport(){
   renderTransport();
 }
 function renderTransport(){
+  var h=ASUB==='airports'?airportsHtml():ferriesHtml();
+  $('adminBody').innerHTML=h;
+}
+function airportsHtml(){
   var h='<h3>機場與接駁車站</h3><p class="muted">從機場出發（或前往機場）的路線，會改成「機場 ⇄ 接駁車站」加上「車站 ⇄ 目的地」。這裡填的是機場到車站的單程時間與費用（新台幣）；規劃頁按「更新」時會改查實際班次與票價。「預設城市」是沒填機場代碼時，該城市預設使用的機場。</p>'+
     '<div class="tblwrap"><table class="t"><thead><tr>'+AIR_COLS.map(function(c){return '<th>'+esc(c[1])+'</th>'}).join('')+'<th></th></tr></thead><tbody>';
   h+='<tr class="new" data-arow="new">'+AIR_COLS.map(function(c){return '<td>'+aCell(c,c[0]==='mode'?'train':'','new',true)+'</td>'}).join('')+'<td class="cell-actions"><button type="button" data-air-act="add">新增</button></td></tr>';
@@ -33,10 +37,12 @@ function renderTransport(){
     h+='<tr data-arow="'+esc(a.code)+'">'+AIR_COLS.map(function(c){return '<td>'+aCell(c,a[c[0]],a.code,false)+'</td>'}).join('')+
       '<td class="cell-actions"><button type="button" data-air-act="save" data-code="'+esc(a.code)+'">儲存</button><button type="button" class="ghost danger" data-air-act="del" data-code="'+esc(a.code)+'">刪除</button></td></tr>';
   });
-  h+='</tbody></table></div><h3 style="margin-top:24px">離島渡船與季節班次</h3><p class="muted">離島範圍以「中心點＋半徑」判斷：景點落在範圍內就視為在島上，往返會自動改成「前往碼頭 → 等下一班船 → 搭船 → 碼頭到景點」，並依行程當天所在月份選用對應季節的班次。每個月份都要有對應的季節（不要漏掉或重複）。</p>';
+  return h+'</tbody></table></div>';
+}
+function ferriesHtml(){
+  var h='<h3>離島渡船與季節班次</h3><p class="muted">離島範圍以「中心點＋半徑」判斷：景點落在範圍內就視為在島上，往返會自動改成「前往碼頭 → 等下一班船 → 搭船 → 碼頭到景點」，並依行程當天所在月份選用對應季節的班次。每個月份都要有對應的季節（不要漏掉或重複）。</p>';
   FERRY_EDIT.forEach(function(f,i){h+=ferryCard(f,i)});
-  h+='<div class="reqcard"><b>新增航線</b>'+ferryCard(FERRY_NEW||emptyFerry(),'new')+'</div>';
-  $('adminBody').innerHTML=h;
+  return h+'<div class="reqcard"><b>新增航線</b>'+ferryCard(FERRY_NEW||emptyFerry(),'new')+'</div>';
 }
 function fIn(name,label,val,type,extra){return '<label class="fcell"><span>'+esc(label)+'</span><input type="'+(type||'text')+'"'+(type==='number'?' step="any"':'')+' data-fc="'+name+'" value="'+esc(val==null?'':val)+'"'+(extra||'')+'></label>'}
 function ferryCard(f,idx){
@@ -119,7 +125,7 @@ async function afterTransportSave(msg){
 }
 on('adminBody','click',async function(e){
   var b=e.target.closest('button[data-air-act],button[data-fer-act]');
-  if(!b||ASUB!=='transport')return;
+  if(!b||(ASUB!=='airports'&&ASUB!=='ferries'))return;
   try{
     if(b.dataset.airAct){
       var a=b.dataset.airAct,code=b.dataset.code;

@@ -1,25 +1,37 @@
 // ================= 管理後台 =================
 var AV='plan',ASUB='users',AF={country:'',city:'',district:''};
+var VIEW_TITLE={plan:'行程規劃',shared:'共享行程'},SUB_TITLE={users:'使用者與權限',data:'內建資料',airports:'機場',ferries:'渡船',trips:'所有使用者的行程',requests:'收錄申請'};
+function markMenu(){
+  [].forEach.call(document.querySelectorAll('#menuPop .mi'),function(b){
+    var on_=b.dataset.view===AV&&(AV!=='admin'||b.dataset.sub===ASUB);
+    b.classList.toggle('on',on_);
+    if(on_)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
+  });
+  $('curView').textContent=AV==='admin'?'管理後台・'+SUB_TITLE[ASUB]:VIEW_TITLE[AV];
+}
 function showView(v){
   AV=v;
-  document.querySelectorAll('[data-view]').forEach(function(b){b.classList.toggle('on',b.dataset.view===v)});
   $('viewPlan').hidden=v!=='plan';$('viewAdmin').hidden=v!=='admin';$('viewShared').hidden=v!=='shared';
+  markMenu();
   if(v==='shared')renderSharedList();
   if(v==='admin')renderAdmin();
 }
+function menuOpen(open){
+  $('menuPop').hidden=!open;
+  $('menuBtn').setAttribute('aria-expanded',open?'true':'false');
+}
+on('menuBtn','click',function(e){e.stopPropagation();menuOpen($('menuPop').hidden)});
+document.addEventListener('click',function(e){if(!$('menuPop').hidden&&!e.target.closest('.menuwrap'))menuOpen(false)});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('menuPop').hidden){menuOpen(false);$('menuBtn').focus()}});
 onSel('.topbar','click',async function(e){
-  var b=e.target.closest('button[data-view]');if(!b)return;
+  var b=e.target.closest('#menuPop button[data-view]');if(!b)return;
+  menuOpen(false);
   if(b.dataset.view==='plan'&&AV==='admin'){
     // 管理員可能改過內建資料，回到規劃頁時重新載入
     try{await flush();await loadBuiltin();openTrip(TRIP)}catch(err){}
   }
+  if(b.dataset.sub)ASUB=b.dataset.sub;
   showView(b.dataset.view);
-});
-on('adminTabs','click',function(e){
-  var b=e.target.closest('button[data-sub]');if(!b)return;
-  ASUB=b.dataset.sub;
-  document.querySelectorAll('[data-sub]').forEach(function(x){x.classList.toggle('on',x===b)});
-  renderAdmin();
 });
 function aMsg(t,err){setMsg($('adminMsg'),t,err)}
 async function renderAdmin(){
@@ -29,7 +41,7 @@ async function renderAdmin(){
     if(ASUB==='users')await adminUsers();
     else if(ASUB==='trips')await adminTrips();
     else if(ASUB==='requests')await adminRequests();
-    else if(ASUB==='transport')await adminTransport();
+    else if(ASUB==='airports'||ASUB==='ferries')await adminTransport();
     else adminData();
   }catch(err){body.innerHTML='';aMsg('載入失敗：'+(err.message||err),true)}
 }
