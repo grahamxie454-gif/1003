@@ -309,7 +309,7 @@ function plan(){
         if(arrF){
           // 搭飛機抵達的當天：從機場出發，可選擇先到住宿點入住
           startLoc=airportLoc(arrF.to,k);
-          via=(st.checkin!=='direct')?hotelLoc(endRec||hotelFor(dn,k),k):null;
+          via=(arrF.checkin!=='direct')?hotelLoc(endRec||hotelFor(dn,k),k):null;
         }else if(arrive)startLoc=hotelLoc(endRec,k);
         else startLoc=hotelLoc(hotelFor(dn-1,k),k);
         var tourD=(DAYS[dn]&&DAYS[dn].tour&&DAYS[dn].tour.on)?DAYS[dn].tour:null;

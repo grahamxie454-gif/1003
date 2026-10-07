@@ -37,11 +37,11 @@ function openTrip(row){
   st.auto=false;
   if(s.lay&&typeof s.lay==='object')st.lay=s.lay;
   if(s.fix&&typeof s.fix==='object')st.fix=s.fix;
-  if(s.checkin==='direct')st.checkin='direct';
   if(s.fixSeq&&typeof s.fixSeq==='object')st.fixSeq=s.fixSeq;
   sel=d.sel||{};uid=d.uid||0;cuid=d.cuid||0;DAYS=d.days||{};OPEN={};
   if(Array.isArray(s.flights)){
     st.flights=s.flights.map(function(f){return Object.assign({},f)});
+    if(s.checkin==='direct')st.flights.forEach(function(f){if(!f.checkin)f.checkin='direct'});
     st.expanded=!!s.expanded;
   }else if(s.fl){
     // 舊版（去程／回程／國家之間的航班）→ 接續航班
@@ -58,6 +58,7 @@ function openTrip(row){
         legs.push({no:L.no||'',date:L.date||'',plus:(L.dep&&L.arr&&toMin(L.arr)<toMin(L.dep))?1:0,from:L.from||'',to:L.to||'',dep:L.dep||'',arr:L.arr||'',fromCo:fromCo,toCo:toCo,toCity:toCo===home?'':first(toCo),stay:60});
       });
     }
+    if(s.checkin==='direct')legs.forEach(function(f){f.checkin='direct'});
     st.flights=legs;
     st.expanded=legs.length>0;   // 舊行程已經在規劃中，直接展開
   }

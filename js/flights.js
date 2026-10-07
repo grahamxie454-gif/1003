@@ -171,17 +171,14 @@ function renderFlights(){
       '<div class="row">'+(i===0?'<label>出發國家<select data-fi="0" data-ff="fromCo">'+coOpts(f.fromCo||HOME_DEFAULT)+'</select></label>':'<span class="muted">出發國家：'+esc(coName(f.fromCo))+'</span>')+
         '<label>抵達國家<select data-fi="'+i+'" data-ff="toCo">'+coOpts(f.toCo)+'</select></label>'+
         (f.toCo&&f.toCo!==home?'<label>抵達城市<select data-fi="'+i+'" data-ff="toCity">'+Object.keys(C).filter(function(k){return C[k].co===f.toCo}).map(function(k){return '<option value="'+esc(k)+'"'+(k===f.toCity?' selected':'')+'>'+esc(C[k].n)+'</option>'}).join('')+'</select></label>':'')+'</div>'+
-      (f.toCo&&f.toCo!==home?'<div class="row"><label>抵達後在機場的停留時間（分鐘，不得少於 60）<input type="number" min="60" step="15" data-fi="'+i+'" data-ff="stay" value="'+airportStay(f)+'"></label></div>':'')+
+      (f.toCo&&f.toCo!==home?'<div class="row"><label>抵達後在機場的停留時間（分鐘，不得少於 60）<input type="number" min="60" step="15" data-fi="'+i+'" data-ff="stay" value="'+airportStay(f)+'"></label></div>'+
+        '<label class="checkin">抵達機場後<select data-fi="'+i+'" data-ff="checkin" aria-label="第 '+(i+1)+' 段航班抵達後的安排"><option value="hotel"'+(f.checkin!=='direct'?' selected':'')+'>先到住宿點入住，再從住宿點出發</option><option value="direct"'+(f.checkin==='direct'?' selected':'')+'>從機場直接去第一個行程，晚上再回住宿點</option></select></label>':'')+
       '<p class="fmsg'+((cs.errs[i]||(FMSG[i]&&FMSG[i][0]==='!'))?' err':'')+'">'+esc(cs.errs[i]||(FMSG[i]||'').replace(/^!/,'')||'')+'</p></div>';
   });
   var why=!cs.canAdd?(F.length&&cs.anyErr?'上方有航班錯誤，請先修正':(F.length&&F[F.length-1].toCo===home?'行程已完整（已回到出發國家）':'請先完成上一段航班（日期、抵達國家與城市）')):'';
   h+='<div class="row"><button type="button" class="ghost" data-fadd="1"'+(cs.canAdd?'':' disabled')+'>＋ '+(F.length?'新增接續航班':'新增第一段航班')+'</button>'+(why?'<span class="muted">'+esc(why)+'</span>':'')+'</div>';
-  h+=F.length?checkinHtml():'';
   $('flights').innerHTML=h;
   renderExpand();
-}
-function checkinHtml(){
-  return '<label class="checkin">抵達機場後（每次入境的當天都適用）<select id="checkin" aria-label="抵達當天的入住方式"><option value="hotel"'+(st.checkin!=='direct'?' selected':'')+'>先到住宿點入住，再從住宿點出發</option><option value="direct"'+(st.checkin==='direct'?' selected':'')+'>從機場直接去第一個行程，晚上再回住宿點</option></select></label>';
 }
 // 「展開行程」按鈕：航班與條件都設好之後，才顯示景點選擇與每日行程規劃
 function renderExpand(){
@@ -198,9 +195,9 @@ function afterFlightChange(sigBefore){
 }
 on('flights','change',function(e){
   var el=e.target;
-  if(el.id==='checkin'){if(el.value==='direct')st.checkin='direct';else delete st.checkin;render();return}
   var i=+el.dataset.fi,ff=el.dataset.ff,F=flList();
   if(isNaN(i)||!ff||!F[i])return;
+  if(ff==='checkin'){if(el.value==='direct')F[i].checkin='direct';else delete F[i].checkin;render();return}
   var f=F[i],before=planSig(),v=el.value.trim();
   if(ff==='no')v=v.replace(/\s+/g,'').toUpperCase();
   if(ff==='plus')f.plus=parseInt(v,10)||0;
