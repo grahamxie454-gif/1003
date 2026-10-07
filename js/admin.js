@@ -29,6 +29,7 @@ async function renderAdmin(){
     if(ASUB==='users')await adminUsers();
     else if(ASUB==='trips')await adminTrips();
     else if(ASUB==='requests')await adminRequests();
+    else if(ASUB==='transport')await adminTransport();
     else adminData();
   }catch(err){body.innerHTML='';aMsg('載入失敗：'+(err.message||err),true)}
 }

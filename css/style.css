@@ -348,3 +348,10 @@ button.iconbtn.spin svg{animation:rot 1s linear infinite}
 .homeday{opacity:.85}
 .flt .locked{flex:1 1 140px;font-size:13px;color:var(--muted);padding:4px 0}
 .flt .locked b{color:var(--ink,inherit)}
+/* 管理後台：機場與渡船 */
+.ferrygrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin:8px 0}
+.fcell{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted)}
+.fcell input{width:100%}
+.fcell.wide{grid-column:1/-1}
+.seas{display:grid;grid-template-columns:1fr 1fr 1.4fr 1.4fr auto;gap:8px;align-items:end;margin:8px 0;padding:8px;border:1px dashed var(--line,#999);border-radius:8px}
+@media(max-width:760px){.seas{grid-template-columns:1fr}}
