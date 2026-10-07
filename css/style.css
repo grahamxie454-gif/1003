@@ -346,3 +346,5 @@ button.iconbtn.spin svg{animation:rot 1s linear infinite}
 .expandbox{display:flex;flex-direction:column;gap:6px;margin:10px 0}
 .expandbox button{font-weight:700}
 .homeday{opacity:.85}
+.flt .locked{flex:1 1 140px;font-size:13px;color:var(--muted);padding:4px 0}
+.flt .locked b{color:var(--ink,inherit)}

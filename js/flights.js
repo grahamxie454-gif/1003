@@ -31,6 +31,8 @@ function cityOpts(sel,skipCo){
   }).join('');
 }
 function cityName(k){return C[k]?C[k].n:''}
+// 有航班號且已查詢完成：城市由查詢結果決定，不能變更；沒有航班號時才可自行選擇
+function flLocked(f){return !!f.no&&!!f.looked}
 // 航班抵達的外國城市（一定會排進行程）
 function arrivalCities(){
   var home=homeCo();
@@ -85,7 +87,6 @@ function computePlan(){
   var miss=[];
   F.forEach(function(f,i){
     var n='第 '+(i+1)+' 段航班';
-    if(!f.no)miss.push(n+'的航班號');
     if(!validDate(f.date))miss.push(n+'的日期');
     if(i===0&&!(f.fromCity&&C[f.fromCity]))miss.push(n+'的出發城市');
     if(!f.toCity||!C[f.toCity])miss.push(n+'的抵達城市');
@@ -153,6 +154,7 @@ function dayFlights(no){
 function homeCoFor(i,f){return i===0?(f.fromCo||HOME_DEFAULT):homeCo()}
 function coOk(c){return !!c&&(!!CO[c]||c===HOME_DEFAULT)}
 function applyLookup(i,d){
+  flList()[i].looked=false;
   var f=flList()[i],msgs=[];
   f.from=d.from||f.from||'';f.to=d.to||f.to||'';
   if(d.dep)f.dep=d.dep;if(d.arr)f.arr=d.arr;
@@ -163,6 +165,7 @@ function applyLookup(i,d){
   var tcity=coOk(tc)?pickCity(tc,d.toLat,d.toLon):'';
   if(tcity)f.toCity=tcity;
   else msgs.push('抵達地（'+(d.toCc||'未知')+'）不在內建城市中，請手動選擇抵達城市。');
+  f.looked=!msgs.length;
   return msgs;
 }
 
@@ -181,7 +184,7 @@ function ensureFlights(){
 function renderFlights(){
   ensureFlights();
   var F=flList(),cs=chainState(),home=homeCo(),h='';
-  h+='<p class="hint">每一段航班都要填航班號與起飛日期，按「查詢」會自動帶入機場、出發與抵達城市（國家由城市決定）和起降時間（跨日抵達會顯示 +1）。下一段航班的出發城市就是上一段的抵達城市，國家必須相同；最後一段要回到出發國家，才能展開行程。</p>';
+  h+='<p class="hint">每一段航班都要填起飛日期；有航班號時按「查詢」會自動帶入機場、出發與抵達城市（國家由城市決定）和起降時間（跨日抵達會顯示 +1），查詢完成後城市不能變更；沒有航班號時，出發與抵達城市、時間都可自行設定。下一段航班的出發城市就是上一段的抵達城市，國家必須相同；最後一段要回到出發國家，才能展開行程。</p>';
   F.forEach(function(f,i){
     var last=i===F.length-1;
     h+='<div class="fl'+(cs.errs[i]?' bad':'')+'"><div class="flhead"><b>第 '+(i+1)+' 段航班'+(i===0?'（去程）':(i===1?'（回程，或接續下一個國家）':''))+'</b>'+(last&&i>=2?'<button type="button" class="ghost sm x" data-fdel="'+i+'" aria-label="刪除這段航班">✕</button>':'')+'</div>'+
@@ -191,8 +194,9 @@ function renderFlights(){
       '<div class="row"><input type="text" data-fi="'+i+'" data-ff="from" value="'+esc(f.from||'')+'" placeholder="出發機場" maxlength="20" aria-label="出發機場"><input type="text" data-fi="'+i+'" data-ff="to" value="'+esc(f.to||'')+'" placeholder="抵達機場" maxlength="20" aria-label="抵達機場"></div>'+
       '<div class="row"><label>起飛時間<input type="time" data-fi="'+i+'" data-ff="dep" value="'+esc(f.dep||'')+'"></label><label>降落時間'+((f.plus||0)>0?' <span class="plus">'+plusTxt(f)+'</span>':'')+'<input type="time" data-fi="'+i+'" data-ff="arr" value="'+esc(f.arr||'')+'"></label>'+
         '<label>跨日<select data-fi="'+i+'" data-ff="plus"><option value="0">當天抵達</option><option value="1"'+((f.plus||0)===1?' selected':'')+'>+1 天</option><option value="2"'+((f.plus||0)===2?' selected':'')+'>+2 天</option></select></label></div>'+
-      '<div class="row">'+(i===0?'<label>出發城市<select data-fi="0" data-ff="fromCity">'+cityOpts(f.fromCity,'')+'</select></label>':'<span class="muted">出發城市：'+esc(cityName(f.fromCity)||'（請先設定上一段）')+'（'+esc(coName(f.fromCo))+'）</span>')+
-        '<label>抵達城市<select data-fi="'+i+'" data-ff="toCity">'+cityOpts(f.toCity,f.fromCo)+'</select></label></div>'+
+      '<div class="row">'+((i===0&&!flLocked(f))?'<label>出發城市<select data-fi="0" data-ff="fromCity">'+cityOpts(f.fromCity,'')+'</select></label>':'<span class="locked">出發城市：<b>'+esc(cityName(f.fromCity)||'（請先設定上一段）')+'</b>（'+esc(coName(f.fromCo))+'）</span>')+
+        (flLocked(f)?'<span class="locked">抵達城市：<b>'+esc(cityName(f.toCity))+'</b>（'+esc(coName(f.toCo))+'）</span>':'<label>抵達城市<select data-fi="'+i+'" data-ff="toCity">'+cityOpts(f.toCity,f.fromCo)+'</select></label>')+'</div>'+
+      (flLocked(f)?'<p class="hint">城市由航班查詢結果決定，不能變更；如要自行選擇，請清空航班號，或改航班號／日期後重新查詢。</p>':'')+
       (f.toCo&&f.toCo!==home?'<div class="row"><label>抵達後在機場的停留時間（分鐘，不得少於 60）<input type="number" min="60" step="15" data-fi="'+i+'" data-ff="stay" value="'+airportStay(f)+'"></label></div>'+
         '<label class="checkin">抵達機場後<select data-fi="'+i+'" data-ff="checkin" aria-label="第 '+(i+1)+' 段航班抵達後的安排"><option value="hotel"'+(f.checkin!=='direct'?' selected':'')+'>先到住宿點入住，再從住宿點出發</option><option value="direct"'+(f.checkin==='direct'?' selected':'')+'>從機場直接去第一個行程，晚上再回住宿點</option></select></label>':'')+
       '<p class="fmsg'+((cs.errs[i]||(FMSG[i]&&FMSG[i][0]==='!'))?' err':'')+'">'+esc(cs.errs[i]||(FMSG[i]||'').replace(/^!/,'')||'')+'</p></div>';
@@ -221,6 +225,8 @@ on('flights','change',function(e){
   if(isNaN(i)||!ff||!F[i])return;
   if(ff==='checkin'){if(el.value==='direct')F[i].checkin='direct';else delete F[i].checkin;render();return}
   var f=F[i],before=planSig(),v=el.value.trim();
+  if((ff==='fromCity'||ff==='toCity')&&flLocked(f))return;
+  if(ff==='no'||ff==='date'){f.looked=false;if(ff==='no'&&!v)f.dFromCo=''}
   if(ff==='no')v=v.replace(/\s+/g,'').toUpperCase();
   if(ff==='plus')f.plus=parseInt(v,10)||0;
   else if(ff==='stay'){var n=parseInt(v,10);f.stay=(n>=60)?n:60;FMSG[i]=(n>=60)?'':'!機場停留時間不得少於 60 分鐘，已改為 60。'}
