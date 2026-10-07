@@ -146,14 +146,22 @@ function applyLookup(i,d){
 // ----- 畫面 -----
 var FMSG={},FLBUSY={};
 function planSig(){var p=flightPlan();return JSON.stringify([p.ok,p.total,p.countries,p.counts])}
+function newFlight(fromCo,toCo){return {no:'',date:'',plus:0,from:'',to:'',dep:'',arr:'',fromCo:fromCo||'',toCo:toCo||'',toCity:'',stay:60}}
+// 航班預設至少兩段（去程、回程）；超過兩段的才能刪除
+function ensureFlights(){
+  var F=flList();
+  if(!F.length)F.push(newFlight(HOME_DEFAULT,''));
+  if(F.length<2)F.push(newFlight(F[0].toCo||'',homeCo()));
+}
 function renderFlights(){
+  ensureFlights();
   var F=flList(),cs=chainState(),home=homeCo(),h='';
   var coAll=Object.keys(CO);if(coAll.indexOf(HOME_DEFAULT)<0)coAll.push(HOME_DEFAULT);
   var coOpts=function(sel){return '<option value="">選擇國家</option>'+coAll.map(function(c){return '<option value="'+esc(c)+'"'+(c===sel?' selected':'')+'>'+esc(coName(c))+'</option>'}).join('')};
   h+='<p class="hint">每一段航班都要填航班號與起飛日期，按「查詢」會自動帶入機場、國家城市與起降時間（跨日抵達會顯示 +1）。下一段航班的出發國家必須和上一段抵達的國家相同；最後一段要回到出發國家，才能展開行程。</p>';
   F.forEach(function(f,i){
     var last=i===F.length-1;
-    h+='<div class="fl'+(cs.errs[i]?' bad':'')+'"><div class="flhead"><b>第 '+(i+1)+' 段航班</b>'+(last?'<button type="button" class="ghost sm x" data-fdel="'+i+'" aria-label="刪除這段航班">✕</button>':'')+'</div>'+
+    h+='<div class="fl'+(cs.errs[i]?' bad':'')+'"><div class="flhead"><b>第 '+(i+1)+' 段航班'+(i===0?'（去程）':(i===1?'（回程，或接續下一個國家）':''))+'</b>'+(last&&i>=2?'<button type="button" class="ghost sm x" data-fdel="'+i+'" aria-label="刪除這段航班">✕</button>':'')+'</div>'+
       '<div class="row"><input type="text" data-fi="'+i+'" data-ff="no" value="'+esc(f.no||'')+'" placeholder="航班號 例：CI100" maxlength="8" aria-label="航班號">'+
       '<input type="date" data-fi="'+i+'" data-ff="date" value="'+esc(f.date||'')+'" aria-label="起飛日期">'+
       '<button type="button" class="ghost" data-fi="'+i+'" data-fact="lookup"'+(FLBUSY[i]?' disabled':'')+'>'+(FLBUSY[i]?'查詢中…':'查詢')+'</button></div>'+
@@ -198,7 +206,7 @@ on('flights','change',function(e){
   if(ff==='plus')f.plus=parseInt(v,10)||0;
   else if(ff==='stay'){var n=parseInt(v,10);f.stay=(n>=60)?n:60;FMSG[i]=(n>=60)?'':'!機場停留時間不得少於 60 分鐘，已改為 60。'}
   else if(ff==='toCo'){f.toCo=v;f.toCity=(v&&v!==homeCoFor(i,f))?pickCity(v):''}
-  else if(ff==='fromCo'){f.fromCo=v||HOME_DEFAULT;f.dFromCo=''}
+  else if(ff==='fromCo'){var oh=homeCo();f.fromCo=v||HOME_DEFAULT;f.dFromCo='';if(F[1]&&F[1].toCo===oh)F[1].toCo=f.fromCo}
   else if(v)f[ff]=v;else delete f[ff];
   // 降落時間比起飛時間早，一定是跨日抵達
   if((ff==='dep'||ff==='arr')&&f.dep&&f.arr&&toMin(f.arr)<toMin(f.dep)&&!f.plus){f.plus=1;FMSG[i]='降落時間早於起飛時間，已自動標示為 +1（隔日抵達）。'}
@@ -209,13 +217,13 @@ on('flights','click',async function(e){
   if(add){
     if(chainState().canAdd){
       var before=planSig(),F=flList();
-      F.push({no:'',date:'',plus:0,from:'',to:'',dep:'',arr:'',fromCo:F.length?F[F.length-1].toCo:HOME_DEFAULT,toCo:'',toCity:'',stay:60});
+      F.push(newFlight(F.length?F[F.length-1].toCo:HOME_DEFAULT,''));
       afterFlightChange(before);
     }
     return;
   }
   if(del){
-    var bf=planSig();flList().splice(+del.dataset.fdel,1);
+    var bf=planSig(),di=+del.dataset.fdel;if(di<2||di!==flList().length-1)return;flList().splice(di,1);
     if(!flList().length)st.expanded=false;
     afterFlightChange(bf);return;
   }
