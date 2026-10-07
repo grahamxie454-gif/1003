@@ -3,7 +3,6 @@ function chip(type,name,val,text,on,extra){
   return '<label class="chip"><input type="'+type+'" name="'+name+'" value="'+esc(val)+'"'+(on?' checked':'')+(extra||'')+'><span>'+esc(text)+'</span></label>';
 }
 function buildStatic(){
-  $('co').innerHTML=Object.keys(CO).map(function(k){return chip('checkbox','co',k,CO[k].n,st.co.indexOf(k)>-1)}).join('');
   $('modes').innerHTML=Object.keys(MODES).map(function(k){return chip('checkbox','modes',k,MODES[k],st.modes.indexOf(k)>-1)}).join('');
   $('tier').innerHTML=TIERS.map(function(t,i){return chip('radio','tier',i,t[0],i===st.tier)}).join('');
   $('pace').innerHTML=[['full','緊湊（含上午）'],['relax','悠閒（睡到飽）']].map(function(p){return chip('radio','pace',p[0],p[1],p[0]===st.pace)}).join('');
@@ -26,18 +25,26 @@ function buildAdder(){
     ((cus.length||cuc.length)?'<ul>'+cus.map(function(k){return '<li><span>國家：'+esc(CO[k].n)+'</span>'+reqUi(k,'country','data-k="'+esc(k)+'"')+'<button type="button" class="ghost" data-act="delco" data-k="'+esc(k)+'">移除</button></li>'}).join('')+
       cuc.map(function(k){return '<li><span>城市：'+esc(C[k].n)+'（'+esc(CO[C[k].co].n)+'）</span>'+reqUi(k,'city','data-k="'+esc(k)+'"')+'<button type="button" class="ghost" data-act="delci" data-k="'+esc(k)+'">移除</button></li>'}).join('')+'</ul>':'');
 }
+// 國家由航班抵達的順序決定（不能手動調整）；城市只保留屬於這些國家的，順序依國家分組
 function normalize(){
-  st.co=st.co.filter(function(k){return CO[k]});
-  st.ci=st.ci.filter(function(k){return C[k]&&st.co.indexOf(C[k].co)>-1});
-  st.co.forEach(function(c){
-    var ks=Object.keys(C).filter(function(k){return C[k].co===c});
-    if(ks.length&&!st.ci.some(function(k){return C[k].co===c}))st.ci.push(ks[0]);
+  var p=flightPlan(),F=flList();
+  // 航班指到已被刪除的自訂國家／城市時，清掉
+  F.forEach(function(f){
+    if(f.toCo&&!CO[f.toCo]&&f.toCo!==HOME_DEFAULT){f.toCo='';f.toCity=''}
+    if(f.toCity&&!C[f.toCity])f.toCity='';
   });
-  if(!st.ci.length){var k0=Object.keys(C)[0];st.co=[C[k0].co];st.ci=[k0]}
-  // 城市必須依國家順序分組：同一個國家的城市排在一起，城市的順序只能在國家內調整
+  p=flightPlan();
+  st.ci=(st.ci||[]).filter(function(k){return C[k]});
+  if(!p.ok){st.co=[];return}      // 航班還沒設好時保留已選城市，不要清掉
+  st.co=p.countries.slice();
+  st.ci=st.ci.filter(function(k){return st.co.indexOf(C[k].co)>-1});
+  st.co.forEach(function(c){
+    if(st.ci.some(function(k){return C[k].co===c}))return;
+    var f=F.filter(function(x){return x.toCo===c})[0],ks=Object.keys(C).filter(function(k){return C[k].co===c});
+    var k0=f&&f.toCity&&C[f.toCity]?f.toCity:ks[0];
+    if(k0)st.ci.push(k0);
+  });
   st.ci=st.co.reduce(function(a,c){return a.concat(st.ci.filter(function(k){return C[k].co===c}))},[]);
-  // 國家之間的航班（第 i 段 = 第 i 國 → 第 i+1 國）
-  st.fl.mid=st.co.slice(1).map(function(_,i){return (st.fl.mid&&st.fl.mid[i])||{}});
 }
 
 // ================= 地區與地點 =================
@@ -150,15 +157,14 @@ function mergeOrder(old,now){
   now.forEach(function(k){if(out.indexOf(k)<0)out.push(k)});
   return out;
 }
-// 國家是城市的群組：國家可以調整順序（連同底下的城市），城市只能在自己的國家內調整順序
+// 國家依航班抵達的順序排列，不能調整；城市只能在自己的國家內調整順序
 function renderOrder(){
   var box=$('order');if(!box)return;
   var btn=function(kind,i,d,dis,txt){return '<button type="button" class="ghost sm" data-ord="mv" data-kind="'+kind+'" data-i="'+i+'" data-d="'+d+'" aria-label="'+(d<0?'上移':'下移')+'"'+(dis?' disabled':'')+'>'+txt+'</button>'};
-  var h='<div class="ordbox"><div class="lab">已選國家與城市的順序（國家可拖曳或按 ▲▼，城市只能在自己的國家內調整）</div><ol class="ord">';
+  var h='<div class="ordbox"><div class="lab">國家順序依航班抵達地排列（不能調整）；城市可拖曳或按 ▲▼，只能在自己的國家內調整</div><ol class="ord">';
   st.co.forEach(function(c,ci){
     var cities=st.ci.map(function(k,gi){return {k:k,gi:gi}}).filter(function(x){return C[x.k].co===c});
-    h+='<li class="ordco" draggable="true" data-kind="co" data-i="'+ci+'"><div class="ordrow"><span class="grip" aria-hidden="true">⋮⋮</span><span class="ono">'+(ci+1)+'</span><b>'+esc(CO[c].n)+'</b>'+
-      '<span class="obtn">'+btn('co',ci,-1,ci===0,'▲')+btn('co',ci,1,ci===st.co.length-1,'▼')+'</span></div><ol class="ord sub">'+
+    h+='<li class="ordco"><div class="ordrow"><span class="ono">'+(ci+1)+'</span><b>'+esc(CO[c].n)+'</b><span class="muted">依航班抵達順序</span></div><ol class="ord sub">'+
       cities.map(function(x,j){
         return '<li draggable="true" data-kind="ci" data-i="'+x.gi+'" data-co="'+esc(c)+'"><span class="grip" aria-hidden="true">⋮⋮</span><b>'+esc(C[x.k].n)+'</b>'+
           '<span class="obtn">'+btn('ci',x.gi,-1,j===0,'▲')+btn('ci',x.gi,1,j===cities.length-1,'▼')+'</span></li>';

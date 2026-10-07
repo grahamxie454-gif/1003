@@ -75,44 +75,6 @@ function orderDistricts(k,ds){
 function hasDrive(){return st.modes.indexOf('drive')>-1}
 function onlyDrive(){return st.modes.length===1&&st.modes[0]==='drive'}
 function dayDrive(no){return hasDrive()&&(onlyDrive()||!!(DAYS[no]&&DAYS[no].drive))}
-// 天數：有填去程與回程日期時，自動由日期計算
-// ===== 航班與天數 =====
-// 多個國家時：去程（到第一國）＋ 每相鄰兩國各一班 ＋ 回程。第 i+1 國的第一天 = 該段航班的日期（抵達日）。
-var dayDiff=function(a,b){return Math.round((Date.parse(a)-Date.parse(b))/864e5)};
-var validDate=function(s){return !!s&&!isNaN(Date.parse(s))};
-function midLeg(i){return (st.fl.mid&&st.fl.mid[i])||{}}
-// 回傳 {ok, code(0=缺日期,-1=日期不合理), msg, total, starts[每國第一天], counts[每國天數]}
-function flightPlan(){
-  var o=st.fl.out.date,r=st.fl.ret.date,n=st.co.length,miss=[];
-  if(!validDate(o))miss.push('去程航班日期');
-  if(!validDate(r))miss.push('回程航班日期');
-  for(var i=1;i<n;i++)if(!validDate(midLeg(i-1).date))miss.push('「'+CO[st.co[i-1]].n+' → '+CO[st.co[i]].n+'」航班日期');
-  if(miss.length)return {ok:false,code:0,msg:'尚未填寫：'+miss.join('、'),total:0,starts:[],counts:[]};
-  var total=dayDiff(r,o)+1;
-  if(total<2||total>30)return {ok:false,code:-1,msg:'去程與回程日期相差需介於 2–30 天，請重新確認。',total:0,starts:[],counts:[]};
-  var starts=[1];
-  for(var j=1;j<n;j++)starts.push(dayDiff(midLeg(j-1).date,o)+1);
-  for(var k=1;k<n;k++){
-    if(starts[k]<=starts[k-1])return {ok:false,code:-1,msg:'國家之間的航班日期需依順序、且每個國家至少待一天（'+CO[st.co[k-1]].n+' → '+CO[st.co[k]].n+' 的日期太早或重複）。',total:0,starts:[],counts:[]};
-  }
-  if(starts[n-1]>total)return {ok:false,code:-1,msg:'最後一段國家之間的航班日期晚於回程日期，請重新確認。',total:0,starts:[],counts:[]};
-  var counts=starts.map(function(s,i){return (i+1<n?starts[i+1]:total+1)-s});
-  return {ok:true,code:1,msg:'',total:total,starts:starts,counts:counts};
-}
-function autoDays(){var p=flightPlan();return p.ok?p.total:p.code}
-function syncDays(){
-  var p=flightPlan();
-  if(p.ok)st.days=p.total;
-  $('days').value=st.days;
-  $('daysOut').textContent=p.ok?(p.total+' 天 '+(p.total-1)+' 夜'):'尚未計算';
-  $('daysHint').textContent=p.ok?('由 '+st.fl.out.date+' 到 '+st.fl.ret.date+' 自動計算'+(st.co.length>1?'；'+st.co.map(function(c,i){return CO[c].n+' '+p.counts[i]+' 天'}).join('、'):'')+'。'):
-    (p.code<0?p.msg:'請在上方「航班」填入所有航班的日期，天數會自動計算。'+(p.msg?'（'+p.msg+'）':''));
-}
-function dayDate(no){
-  var o=st.fl.out.date;if(!o||isNaN(Date.parse(o)))return '';
-  var d=new Date(Date.parse(o)+(no-1)*864e5);
-  return (d.getUTCMonth()+1)+'/'+d.getUTCDate()+'（'+'日一二三四五六'[d.getUTCDay()]+'）';
-}
 var FERRY={'fuk|pus':1};
 function modesFor(drv){
   if(drv)return ['drive'];

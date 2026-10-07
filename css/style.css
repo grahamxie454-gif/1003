@@ -336,3 +336,13 @@ button.iconbtn.spin svg{animation:rot 1s linear infinite}
 .ord .ordrow{display:flex;align-items:center;gap:8px}
 .ord.sub{margin:6px 0 2px 26px}
 .ord.sub li{padding:3px 8px}
+/* 航班鏈與展開行程 */
+.flt .fl{border:1px solid var(--line,#ddd);border-radius:8px;padding:8px}
+.flt .fl.bad{border-color:var(--stamp)}
+.flt .flhead{display:flex;justify-content:space-between;align-items:center}
+.flt .row select{width:100%;font-size:13px}
+.flt .row .muted{font-size:12px}
+.plus{color:var(--stamp);font-weight:700}
+.expandbox{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.expandbox button{font-weight:700}
+.homeday{opacity:.85}

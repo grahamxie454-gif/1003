@@ -24,7 +24,7 @@ function dayStops(d){
 }
 function flightTxt(f){return (f.kind==='arrive'?'抵達':'離開')+' '+(f.no||'')+' '+(f.from||'')+(f.to?' → '+f.to:'')+' '+(f.time||'')}
 function dayEditor(d){
-  if(d.no===st.days)return '<p class="hint">最後一天不設定住宿：從前一晚的住宿出發，結束後前往機場。</p>';
+  if(d.noHotel)return '<p class="hint">搭機離開的這一天不設定住宿：從前一晚的住宿出發，結束後前往機場。</p>';
   var no=d.no,x=DAYS[no]||{},h=x.hotel||{},inh=!h.name&&!h.url&&d.hotel;
   var s='<details class="dd" data-no="'+no+'"'+(OPEN[no]?' open':'')+'><summary>住宿'+(d.hotel?'：'+esc(d.hotel.name):'（選填）')+'</summary><div class="ddbody">'+
     '<div class="ddrow"><input type="text" class="w2" data-no="'+no+'" data-f="hname" value="'+esc(h.name||'')+'" placeholder="'+(inh?'沿用：'+esc(d.hotel.name):'今晚住宿名稱')+'" aria-label="住宿名稱">'+
@@ -42,9 +42,10 @@ function renderRes(p){
   var firstC=C[cs[0]],lastC=C[cs[n-1]],fc=CO[firstC.co];
   var fl=fc.flight*m;st.co.slice(1).forEach(function(c){fl+=0.5*CO[c].flight*m});   // 去回程機票 + 每多一個國家的航班（估算）
   var hotel=0,food=0,tr=0;
-  p.days.forEach(function(d,i){
+  p.days.forEach(function(d){
+    if(d.home)return;
     food+=C[d.city].food[t];
-    if(i<total-1)hotel+=(d.hotel&&d.hotel.cost>0?d.hotel.cost:C[d.city].hotel[t])/2;
+    if(!d.noHotel)hotel+=(d.hotel&&d.hotel.cost>0?d.hotel.cost:C[d.city].hotel[t])/2;
     var loc=0;d.ms.forEach(function(x){loc+=LOCAL[x]});tr+=loc/d.ms.length;
   });
   p.hops.forEach(function(x){if(x)tr+=x.cost});
@@ -53,17 +54,22 @@ function renderRes(p){
   var cos=[];cs.forEach(function(k){if(cos.indexOf(C[k].co)<0)cos.push(C[k].co)});
   var h='';
   if(p.over)h+='<p class="warn">天數不足以安排 '+st.ci.length+' 座城市，目前只排前 '+n+' 座。請增加天數或減少城市。</p>';
-  h+='<section class="pass"><div class="main"><div class="route"><div>TPE<small>桃園</small></div><span class="arrow"></span><div>'+esc(firstC.code||firstC.n)+'<small>'+esc(firstC.n)+(n>1?' 等 '+n+' 城':'')+'</small></div></div>'+
+  var F0=flList()[0]||{};
+  h+='<section class="pass"><div class="main"><div class="route"><div>'+esc(F0.from||'TPE')+'<small>'+esc(coName(homeCo()))+'</small></div><span class="arrow"></span><div>'+esc(firstC.code||firstC.n)+'<small>'+esc(firstC.n)+(n>1?' 等 '+n+' 城':'')+'</small></div></div>'+
    '<dl class="facts"><div><dt>行程</dt><dd>'+total+' 天 '+nights+' 夜</dd></div><div><dt>城市順序'+(st.auto&&n>1?'（依距離）':'')+'</dt><dd>'+cs.map(function(k){return esc(C[k].n)}).join(' → ')+'</dd></div><div><dt>飛行時間</dt><dd>'+esc(fc.fh)+'</dd></div><div><dt>最佳季節</dt><dd>'+cs.map(function(k){return esc(C[k].n)+'：'+esc(C[k].season||'請自行查詢')}).join('<br>')+'</dd></div></dl></div>'+
    '<div class="stub"><span class="lbl">每人預算概估</span><span class="total">'+fmt(tot)+'</span><span class="sub">'+TIERS[t][0]+'等級・不含額外購物</span>'+
    '<div class="bar">'+parts.map(function(x){return '<span class="'+x[2]+'" style="width:'+(x[1]/tot*100)+'%"></span>'}).join('')+'</div>'+
    '<div class="legend">'+parts.map(function(x){return '<span><i class="'+x[2]+'"></i>'+x[0]+' '+fmt(x[1]).replace('NT$ ','')+'</span>'}).join('')+'</div></div></section>';
   h+='<section class="days">';
   p.days.forEach(function(d){
+    if(d.home){h+=homeDayHtml(d);return}
     var notes=[];
-    if(d.no===1&&!d.flights.some(function(f){return f.kind==='arrive'}))notes.push(d.foreign?'抵達日（'+esc(fc.fh)+'），下午才開始行程。':'出發日，先到飯店放行李再出發。');
+    if(d.arrF){
+      var af=d.arrF;
+      notes.push(d.arrNoTime?'抵達日（未填抵達時間），下午才開始行程。':'搭乘 '+esc(af.no||'航班')+' 於 '+esc(af.arr)+(af.plus>0?'（+'+af.plus+' 隔日）':'')+' 抵達 '+esc(af.to||C[d.city].n)+'，機場停留 '+airportStay(af)+' 分鐘後開始行程（可在航班設定調整，至少 60 分鐘）。');
+    }
     if(d.arrive)notes.push('搭乘'+MNAME[d.arrive.mode]+'前往'+esc(C[d.city].n)+'，約 '+fmtMin(d.arrive.min)+'（約 '+fmtKm(d.arrive.km)+'）。');
-    if(d.no===total&&!d.flights.some(function(f){return f.kind==='depart'}))notes.push(d.foreign?'返程日，預留至少 3 小時前往機場，只安排上午行程。':'返程日，傍晚前結束行程。');
+    if(d.depF&&d.depNoTime)notes.push(d.goHome?'返程日（未填起飛時間），預留至少 3 小時前往機場，只安排上午行程。':'搭機離開日（未填起飛時間），傍晚前結束行程。');
     if(d.hotel)notes.push('今晚住宿：'+(d.hotel.url?'<a class="maplink" href="'+esc(d.hotel.url)+'" target="_blank" rel="noopener">'+esc(d.hotel.name)+'</a>':esc(d.hotel.name))+'。');
     var area=d.rows.filter(function(r){return r.type==='sight'}).map(function(r){return r.s.dist}).filter(function(v,j,a){return a.indexOf(v)===j}).join('、');
     h+='<article class="day"><h3>第 '+d.no+' 天'+(dayDate(d.no)?'<em class="date">'+dayDate(d.no)+'</em>':'')+'<em class="city">'+esc(C[d.city].n)+'</em>'+(area?'<em class="area">'+esc(area)+'</em>':'')+
@@ -96,7 +102,7 @@ function renderRes(p){
   h+='</section>';
   h+='<section class="tips">';
   var hp=p.hops.slice(1).filter(Boolean);
-  if(st.co.length>1)h+='<h3>國家之間的航班</h3><ul>'+flLegs().filter(function(L){return L.k!=='out'&&L.k!=='ret'}).map(function(L){var f=flGet(L.k);return '<li>'+esc(L.t)+'：'+esc(f.date||'尚未填日期')+(f.no?'　'+esc(f.no):'')+(f.dep?'　'+esc(f.dep)+' 起飛':'')+(f.arr?'・'+esc(f.arr)+' 抵達':'')+'</li>'}).join('')+'</ul>';
+  h+='<h3>航班</h3><ul>'+flList().map(function(f,i){return '<li>第 '+(i+1)+' 段：'+esc(coName(f.fromCo))+' → '+esc(coName(f.toCo))+'　'+esc(f.date||'')+(f.no?'　'+esc(f.no):'')+(f.from||f.to?'（'+esc(f.from||'')+' → '+esc(f.to||'')+'）':'')+(f.dep?'　'+esc(f.dep)+' 起飛':'')+(f.arr?'・'+esc(f.arr)+(f.plus>0?' '+plusTxt(f):'')+' 抵達':'')+'</li>'}).join('')+'</ul>';
   if(hp.length)h+='<h3>城市間移動</h3><ul class="hops">'+hp.map(function(x){return '<li>'+esc(C[x.from].n)+' → '+esc(C[x.to].n)+'：'+MNAME[x.mode]+'，約 '+fmtMin(x.min)+'（約 '+fmtKm(x.km)+'），約 '+fmt(x.cost)+'</li>'}).join('')+'</ul>';
   h+='<h3>交通建議</h3><ul>'+modes.map(function(x){return '<li><b>'+MODES[x]+'</b>：'+MODE_TXT[x]+'</li>'}).join('')+
     (modes.indexOf('drive')>-1?cos.map(function(c){return '<li>'+esc(CO[c].n)+'：'+esc(CO[c].drive)+'</li>'}).join(''):'')+'</ul>'+
@@ -182,7 +188,7 @@ function rowHtml(r,d,p){
 function toText(p,tot){
   var L=[p.cities.map(function(k){return C[k].n}).join('、')+' '+st.days+' 天自由行（每人約 '+fmt(tot)+'）'];
   p.days.forEach(function(d){
-    L.push('','第 '+d.no+' 天 '+C[d.city].n+(d.drive?'【自駕】':''));
+    L.push('','第 '+d.no+' 天 '+(d.city?C[d.city].n:'航班日')+(d.drive?'【自駕】':''));
     if(d.hotel)L.push('　住宿：'+d.hotel.name+(d.hotel.url?' '+d.hotel.url:''));
     d.rows.forEach(function(r){
       var inf=rowInfo(r,d);if(!inf)return;
@@ -199,18 +205,26 @@ function copyText(t){
   };
   try{navigator.clipboard.writeText(t).then(ok,bad)}catch(e){bad()}
 }
-// 沒有完整的去程與回程日期時，不顯示規劃畫面（旅遊天數完全由日期計算）
-function renderGate(a){
+// 還在出發國家的純飛行日
+function homeDayHtml(d){
+  return '<article class="day homeday"><h3>第 '+d.no+' 天'+(dayDate(d.no)?'<em class="date">'+dayDate(d.no)+'</em>':'')+'<em class="city">'+esc(coName(homeCo()))+'（航班日）</em></h3>'+
+    '<ol class="tl" data-day="'+d.no+'" data-city="" data-off="1">'+d.rows.map(function(r){return rowHtml(r,d,null)}).join('')+'</ol></article>';
+}
+// 航班沒設好、或還沒按「展開行程」時，不顯示規劃畫面（旅遊天數完全由航班日期計算）
+function renderGate(){
   $('pickbar').hidden=true;
   $('pick').innerHTML='';
-  $('res').innerHTML='<div class="gate"><b>請先填寫所有航班的日期</b><p>旅遊天數由航班日期自動計算：「去程」「回程」以及（選了多個國家時）每相鄰兩個國家之間的航班，日期都填好之後，才會顯示景點選擇與每日行程規劃畫面。</p>'+
-    (flightPlan().msg?'<p style="color:var(--stamp)">'+esc(flightPlan().msg)+'</p>':'')+'<p class="hint">在左側「3. 航班」的每一段航班填入日期即可（航班號與時間之後再補也可以）。</p></div>';
+  var p=flightPlan(),ready=p.ok;
+  $('res').innerHTML='<div class="gate"><b>'+(ready?'航班已設定完成':'請先設定航班')+'</b><p>'+(ready?'請在左側確認交通工具、預算等級與步調後，按「展開行程」，就會顯示城市與景點選擇，並開始規劃每日行程。':'每一段航班都要填航班號與日期（可用「查詢」自動帶入國家、城市與起降時間）。最後一段航班要回到出發國家，旅遊天數會自動計算，之後按「展開行程」才會顯示景點選擇與每日行程規劃。')+'</p>'+
+    (!ready&&p.msg?'<p style="color:var(--stamp)">'+esc(p.msg)+'</p>':'')+'</div>';
 }
 function render(skipSave){
-  var a=autoDays();
-  if(a<=0){renderGate(a);if(!skipSave)save();return}
+  var ok=flightPlan().ok&&!!st.expanded;
+  if($('cityBox'))$('cityBox').hidden=!ok;
+  if(!ok){renderGate();if(!skipSave)save();return}
   $('pickbar').hidden=false;
   var p=plan();renderPick(p);renderRes(p);if(!skipSave)save();
 }
 function rebuildAll(skipSave){normalize();buildStatic();buildCities();renderOrder();buildAdder();renderFlights();render(skipSave)}
+
 

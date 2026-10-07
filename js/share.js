@@ -7,7 +7,7 @@ function buildSnapshot(p){
     cities:p.cities.map(function(k){return C[k].n}),
     days:p.days.map(function(d){
       return {
-        no:d.no,date:dayDate(d.no),city:C[d.city].n,off:!!d.off&&!d.tour,
+        no:d.no,date:dayDate(d.no),city:d.city?C[d.city].n:'航班日',off:!!d.off&&!d.tour,
         hotel:d.hotel?{name:d.hotel.name,url:d.hotel.url||''}:null,stops:dayStops(d),
         rows:d.rows.map(function(r){
           var inf=rowInfo(r,d);if(!inf)return null;

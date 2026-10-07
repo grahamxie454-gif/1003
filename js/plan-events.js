@@ -2,8 +2,11 @@
 on('f','change',function(e){
   if(e.target.closest('.adder,.flt'))return;
   var f=new FormData($('f')),nm=e.target.name,sig=JSON.stringify(st.ci);
-  if(nm==='co'){var co=f.getAll('co');if(co.length)st.co=mergeOrder(st.co,co)}
-  if(nm==='ci')st.ci=mergeOrder(st.ci,f.getAll('ci'));
+  if(nm==='ci'){
+    // 只更新「目前列出的國家」的城市，其餘（航班尚未設好時暫存的）保持不動
+    var now=f.getAll('ci'),listed=Object.keys(C).filter(function(k){return st.co.indexOf(C[k].co)>-1});
+    st.ci=mergeOrder(st.ci.filter(function(k){return listed.indexOf(k)<0||now.indexOf(k)>-1}),now);
+  }
   st.days=autoDays()>0?autoDays():(st.days||5);
   st.styles=f.getAll('styles');
   st.modes=f.getAll('modes');
@@ -12,7 +15,7 @@ on('f','change',function(e){
 
   normalize();
   if(JSON.stringify(st.ci)!==sig){delete st.lay;delete st.fix;delete st.fixSeq}
-  if(nm==='co'||nm==='ci'){buildStatic();buildCities();renderOrder()}
+  if(nm==='ci'){buildStatic();buildCities();renderOrder()}
   render();
 });
 on('f','click',async function(e){
@@ -28,8 +31,9 @@ on('f','click',async function(e){
     var cn=$('nci').value.trim();if(!cn)return;
     var km=parseInt($('nkm').value,10),co=$('ncc').value,ck='v'+(++cuid);
     C[ck]={n:cn,co:co,code:'',season:'請自行查詢',custom:true,km:km>0?km:150,hotel:[2000,3500,6500],food:[1200,2000,3500],d:{},lat:0,lng:0,pos:{}};
-    if(st.co.indexOf(co)<0)st.co.push(co);
-    st.ci.push(ck);
+    if(st.co.indexOf(co)>-1)st.ci.push(ck);
+    // 航班抵達這個國家、但還沒選抵達城市時，自動帶入新城市
+    flList().forEach(function(f){if(f.toCo===co&&!f.toCity&&co!==homeCo())f.toCity=ck});
   }else if(a==='delco'){
     Object.keys(C).forEach(function(x){if(C[x].co===k)delete C[x]});
     delete CO[k];
@@ -199,73 +203,6 @@ on('res','change',function(e){
   }
   render();
   if(resolveUrl)resolveHotel(no,resolveUrl);
-});
-
-// 去程與回程航班
-var FMSG={},FLBUSY={};
-// 航班代號：out＝去程、ret＝回程、m0、m1…＝國家之間的航班（第 1 段、第 2 段…）
-function flGet(k){
-  if(k==='out'||k==='ret')return st.fl[k];
-  var i=+String(k).slice(1);
-  st.fl.mid=st.fl.mid||[];
-  while(st.fl.mid.length<=i)st.fl.mid.push({});
-  return st.fl.mid[i];
-}
-function flLegs(){
-  var cn=function(i){return CO[st.co[i]]?CO[st.co[i]].n:''};
-  var legs=[{k:'out',t:'去程（台灣 → '+cn(0)+'）',h:'降落時間決定第 1 天何時開始'}];
-  for(var i=1;i<st.co.length;i++)legs.push({k:'m'+(i-1),t:'國家之間的航班（'+cn(i-1)+' → '+cn(i)+'）',h:'這天是「'+cn(i)+'」的第一天，降落時間決定當天何時開始；前一天是「'+cn(i-1)+'」的最後一天'});
-  legs.push({k:'ret',t:'回程（'+cn(st.co.length-1)+' → 台灣）',h:'起飛時間決定最後一天何時結束'});
-  return legs;
-}
-function renderFlights(){
-  var h='';
-  if(st.co.length>1)h+='<p class="hint">選了 '+st.co.length+' 個國家，所以需要 '+(st.co.length-1)+' 段國家之間的航班，加上去程與回程，共 '+(st.co.length+1)+' 段，每段都要填日期。同一個國家內的不同城市，預設搭大眾運輸（或自駕）。</p>';
-  flLegs().forEach(function(L){
-    var k=L.k,f=flGet(k);
-    h+='<div class="fl"><b>'+esc(L.t)+'</b>'+
-      '<div class="row"><input type="text" data-fk="'+k+'" data-ff="no" value="'+esc(f.no||'')+'" placeholder="航班 例：CI100" maxlength="8" aria-label="航班編號">'+
-      '<input type="date" data-fk="'+k+'" data-ff="date" value="'+esc(f.date||'')+'" aria-label="起飛日期">'+
-      '<button type="button" class="ghost" data-fk="'+k+'" data-fact="lookup"'+(FLBUSY[k]?' disabled':'')+'>'+(FLBUSY[k]?'查詢中…':'自動查詢')+'</button></div>'+
-      '<div class="row"><input type="text" data-fk="'+k+'" data-ff="from" value="'+esc(f.from||'')+'" placeholder="出發機場" maxlength="20" aria-label="出發機場"><input type="text" data-fk="'+k+'" data-ff="to" value="'+esc(f.to||'')+'" placeholder="抵達機場" maxlength="20" aria-label="抵達機場"></div>'+
-      '<div class="row"><label>起飛時間<input type="time" data-fk="'+k+'" data-ff="dep" value="'+esc(f.dep||'')+'"></label><label>降落時間<input type="time" data-fk="'+k+'" data-ff="arr" value="'+esc(f.arr||'')+'"></label></div>'+
-      '<p class="fmsg'+(FMSG[k]&&FMSG[k][0]==='!'?' err':'')+'">'+esc((FMSG[k]||'').replace(/^!/,'')||L.h+'。')+'</p>'+(k==='out'?checkinHtml():'')+'</div>';
-  });
-  $('flights').innerHTML=h;
-}
-function checkinHtml(){
-  return '<label class="checkin">抵達機場後（每次入境的當天都適用）<select id="checkin" aria-label="抵達當天的入住方式"><option value="hotel"'+(st.checkin!=='direct'?' selected':'')+'>先到住宿點入住，再從住宿點出發</option><option value="direct"'+(st.checkin==='direct'?' selected':'')+'>從機場直接去第一個行程，晚上再回住宿點</option></select></label>';
-}
-on('flights','change',function(e){
-  if(e.target.id==='checkin'){if(e.target.value==='direct')st.checkin='direct';else delete st.checkin;render();return}
-  var el=e.target,k=el.dataset.fk,ff=el.dataset.ff;
-  if(!k||!ff)return;
-  var v=el.value.trim(),f=flGet(k),before=JSON.stringify(flightPlan().counts);
-  if(ff==='no')v=v.replace(/\s+/g,'').toUpperCase();
-  if(v)f[ff]=v;else delete f[ff];
-  el.value=v;
-  if(ff==='date'){syncDays();if(JSON.stringify(flightPlan().counts)!==before){delete st.lay;delete st.fix;delete st.fixSeq}}
-  render();
-});
-on('flights','click',async function(e){
-  var b=e.target.closest('button[data-fact]');
-  if(!b)return;
-  e.stopPropagation();
-  var k=b.dataset.fk,f=flGet(k);
-  if(!f.no||!f.date){FMSG[k]='!請先填航班編號與日期。';renderFlights();return}
-  FLBUSY[k]=true;FMSG[k]='';renderFlights();
-  try{
-    var r=await sb.functions.invoke('trip-tools',{body:{action:'flight',no:f.no,date:f.date}});
-    var d=r.data;
-    if(r.error||!d)FMSG[k]='!查詢失敗，請手動填入時間。';
-    else if(d.error==='not_configured')FMSG[k]='!尚未啟用自動查詢（需先設定航班資料服務金鑰），請手動填入起降時間。';
-    else if(d.error)FMSG[k]='!'+d.error+'，請手動填入。';
-    else{
-      ['from','to','dep','arr'].forEach(function(x){if(d[x])f[x]=d[x]});
-      FMSG[k]='已取得：'+(d.from||'')+' '+(d.dep||'')+' → '+(d.to||'')+' '+(d.arr||'')+(d.nextDay?'（跨日抵達，請自行確認抵達當天的安排）':'')+'。時間為預定時刻，請以航空公司為準。';
-    }
-  }catch(err){FMSG[k]='!查詢失敗，請手動填入時間。'}
-  FLBUSY[k]=false;renderFlights();render();
 });
 
 // 時間軸：拖曳、上下移、移到其他天 → 記錄手動順序，其餘由系統重排時間
@@ -453,14 +390,10 @@ function orderChanged(){
 }
 function moveOrd(kind,from,to){
   if(from===to||from<0||to<0)return;
-  if(kind==='co'){
-    if(from>=st.co.length||to>=st.co.length)return;
-    var it=st.co.splice(from,1)[0];st.co.splice(to,0,it);
-  }else{
-    var a=st.ci[from],b=st.ci[to];
-    if(!a||!b||C[a].co!==C[b].co)return;   // 城市不能超出自己的國家
-    var c2=st.ci.splice(from,1)[0];st.ci.splice(to,0,c2);
-  }
+  // 國家順序由航班決定，只有城市可以調整（且不能超出自己的國家）
+  var a=st.ci[from],b=st.ci[to];
+  if(!a||!b||C[a].co!==C[b].co)return;
+  var c2=st.ci.splice(from,1)[0];st.ci.splice(to,0,c2);
   orderChanged();
 }
 on('order','click',function(e){

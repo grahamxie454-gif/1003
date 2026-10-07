@@ -8,26 +8,26 @@
       </div>
       <div class="grid">
         <form class="panel" id="f" onsubmit="return false">
-          <fieldset><legend>1. 國家（可多選）</legend><div class="chips" id="co"></div></fieldset>
+          <fieldset class="flt"><legend>1. 航班（可多段，依序接續）</legend><div id="flights"></div></fieldset>
           <fieldset>
-            <legend>2. 城市（可多選）</legend>
+            <legend>2. 旅遊天數（由航班日期自動計算）</legend>
+            <input type="hidden" id="days" value="5"><output id="daysOut" class="daysout">尚未計算</output>
+            <p class="hint" id="daysHint">填入航班後，天數會自動計算。</p>
+          </fieldset>
+          <fieldset>
+            <legend>3. 交通工具（可複選）</legend>
+            <div class="chips" id="modes"></div>
+            <p class="hint">選了自駕又選其他工具時，可在每天自行勾選當天是否自駕；只選自駕時，每天都會自動勾選。</p>
+          </fieldset>
+          <fieldset><legend>4. 預算等級</legend><div class="chips" id="tier"></div></fieldset>
+          <fieldset><legend>5. 行程步調</legend><div class="chips" id="pace"></div></fieldset>
+          <div class="expandbox"><button type="button" id="expandBtn" disabled>展開行程</button><p class="hint" id="expandMsg">請先設定航班。</p></div>
+          <fieldset id="cityBox" hidden>
+            <legend>6. 城市（國家依航班抵達順序排列，不能調整）</legend>
             <div class="chips" id="ci"></div>
             <div id="order"></div>
             <details class="adder"><summary>＋ 自訂國家／城市</summary><div id="adder"></div></details>
           </fieldset>
-          <fieldset class="flt"><legend>3. 航班（每段都要填日期，用來自動計算旅遊天數）</legend><div id="flights"></div></fieldset>
-          <fieldset>
-            <legend>4. 旅遊天數（由日期自動計算）</legend>
-            <input type="hidden" id="days" value="5"><output id="daysOut" class="daysout">尚未計算</output>
-            <p class="hint" id="daysHint">填入去程與回程日期後，天數會自動計算。</p>
-          </fieldset>
-          <fieldset>
-            <legend>5. 交通工具（可複選）</legend>
-            <div class="chips" id="modes"></div>
-            <p class="hint">選了自駕又選其他工具時，可在每天自行勾選當天是否自駕；只選自駕時，每天都會自動勾選。</p>
-          </fieldset>
-          <fieldset><legend>6. 預算等級</legend><div class="chips" id="tier"></div></fieldset>
-          <fieldset><legend>7. 行程步調</legend><div class="chips" id="pace"></div></fieldset>
           <button type="button" class="ghost" data-act="reset">清除這份行程的自訂內容並重設</button>
         </form>
         <main aria-live="polite">

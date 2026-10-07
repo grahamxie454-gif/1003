@@ -19,7 +19,7 @@ var MODE_TXT={ferry:'城際移動用，目前內建航線為釜山與福岡之�
 var MNAME={metro:'地鐵',bus:'公車',train:'火車',drive:'自駕',walk:'步行',flight:'飛機',ferry:'渡輪'};
 
 var HMSG={},sb=null,ME=null,DB=null,CO={},C={},TRIPS=[],TRIP=null,saveTimer=null,dirty=false;
-var DEF=function(){return {co:['jp'],ci:['tyo'],days:5,styles:['f','c'],modes:['metro','train'],tier:1,pace:'full',auto:true,fl:{out:{},ret:{},mid:[]},stay:{}}};
+var DEF=function(){return {co:[],ci:[],days:5,styles:['f','c'],modes:['metro','train'],tier:1,pace:'full',auto:true,flights:[],expanded:false,stay:{}}};
 var st=DEF(),sel={},uid=0,cuid=0,DAYS={},OPEN={};
 
 
@@ -42,7 +42,7 @@ async function loadView(host,url){
   if(!r.ok)throw new Error('無法載入 '+url);
   host.innerHTML=await r.text();
 }
-var APP_VER='20261004';
+var APP_VER='20261007';
 
 // ===== Google 地圖：圖示與連結 =====
 // Maps JavaScript API 的瀏覽器金鑰（只用來顯示「當日所有地點」的地圖頁 map.html）。

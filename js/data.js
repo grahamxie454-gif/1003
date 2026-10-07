@@ -27,9 +27,8 @@ function openTrip(row){
   Object.keys(d.cc||{}).forEach(function(k){CO[k]=d.cc[k]});
   Object.keys(d.cx||{}).forEach(function(k){C[k]=d.cx[k]});
   st=DEF();
-  st.co=(s.co||st.co).filter(function(k){return CO[k]});
-  st.ci=(s.ci||st.ci).filter(function(k){return C[k]});
-  if(s.days>=2&&s.days<=14)st.days=s.days;
+  st.ci=(s.ci||[]).filter(function(k){return C[k]});
+  if(s.days>=2&&s.days<=40)st.days=s.days;
   if(s.stay&&typeof s.stay==='object')st.stay=s.stay;
   if(Array.isArray(s.styles))st.styles=s.styles.filter(function(k){return 'fcns'.indexOf(k)>-1});
   if(Array.isArray(s.modes))st.modes=s.modes.filter(function(k){return MODES[k]});
@@ -41,13 +40,27 @@ function openTrip(row){
   if(s.checkin==='direct')st.checkin='direct';
   if(s.fixSeq&&typeof s.fixSeq==='object')st.fixSeq=s.fixSeq;
   sel=d.sel||{};uid=d.uid||0;cuid=d.cuid||0;DAYS=d.days||{};OPEN={};
-  ['out','ret'].forEach(function(k){st.fl[k]=Object.assign({},s.fl&&s.fl[k])});
-  st.fl.mid=(s.fl&&Array.isArray(s.fl.mid)?s.fl.mid:[]).map(function(m){return Object.assign({},m)});
-  // 舊版每日航班 → 去程／回程
-  var d1=DAYS[1]&&DAYS[1].flights,dN=DAYS[st.days]&&DAYS[st.days].flights;
-  var oa=(d1||[]).filter(function(f){return f.kind==='arrive'})[0],rd=(dN||[]).filter(function(f){return f.kind==='depart'})[0];
-  if(oa&&!st.fl.out.arr)st.fl.out={no:oa.no,from:oa.from,to:oa.to,arr:oa.time};
-  if(rd&&!st.fl.ret.dep)st.fl.ret={no:rd.no,from:rd.from,to:rd.to,dep:rd.time};
+  if(Array.isArray(s.flights)){
+    st.flights=s.flights.map(function(f){return Object.assign({},f)});
+    st.expanded=!!s.expanded;
+  }else if(s.fl){
+    // 舊版（去程／回程／國家之間的航班）→ 接續航班
+    var oc=(s.co||[]).filter(function(k){return CO[k]}),home='tw',legs=[],first=function(c){var k=(st.ci.filter(function(x){return C[x].co===c})[0])||Object.keys(C).filter(function(x){return C[x].co===c})[0];return k||''};
+    var o=Object.assign({},s.fl.out),r=Object.assign({},s.fl.ret),mid=Array.isArray(s.fl.mid)?s.fl.mid:[];
+    var d1=DAYS[1]&&DAYS[1].flights,dN=DAYS[s.days]&&DAYS[s.days].flights;   // 更舊的每日航班
+    var oa=(d1||[]).filter(function(f){return f.kind==='arrive'})[0],rd=(dN||[]).filter(function(f){return f.kind==='depart'})[0];
+    if(oa&&!o.arr)o={no:oa.no,from:oa.from,to:oa.to,arr:oa.time};
+    if(rd&&!r.dep)r={no:rd.no,from:rd.from,to:rd.to,dep:rd.time};
+    if(oc.length){
+      var seq=[o].concat(oc.slice(1).map(function(_,i){return mid[i]||{}})).concat([r]);
+      seq.forEach(function(L,i){
+        var toCo=i<oc.length?oc[i]:home,fromCo=i===0?home:oc[i-1];
+        legs.push({no:L.no||'',date:L.date||'',plus:(L.dep&&L.arr&&toMin(L.arr)<toMin(L.dep))?1:0,from:L.from||'',to:L.to||'',dep:L.dep||'',arr:L.arr||'',fromCo:fromCo,toCo:toCo,toCity:toCo===home?'':first(toCo),stay:60});
+      });
+    }
+    st.flights=legs;
+    st.expanded=legs.length>0;   // 舊行程已經在規劃中，直接展開
+  }
   Object.keys(DAYS).forEach(function(n){if(DAYS[n])delete DAYS[n].flights});
   $('tripName').value=row.name;
   rebuildAll(true);

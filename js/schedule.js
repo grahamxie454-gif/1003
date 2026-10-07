@@ -7,20 +7,6 @@ function alloc(list,total){
   return fl.map(function(v){return v+1});
 }
 function toMin(t){var m=/^(\d{1,2}):(\d{2})$/.exec(t||'');return m?(+m[1])*60+(+m[2]):null}
-// 某一天的「抵達航班」對應的航班資料（第 1 天＝去程；各國第一天＝國家之間的航班）。沒有則回傳 null
-function arrLeg(no){
-  if(no===1)return st.fl.out;
-  var p=flightPlan();
-  if(!p.ok)return null;
-  for(var i=1;i<p.starts.length;i++)if(p.starts[i]===no)return midLeg(i-1);
-  return null;
-}
-function dayFlights(no){
-  var out=[],a=arrLeg(no),r=st.fl.ret;
-  if(a&&toMin(a.arr)!==null)out.push({kind:'arrive',no:a.no,from:a.from,to:a.to,time:a.arr,dep:a.dep});
-  if(no===st.days&&toMin(r.dep)!==null)out.push({kind:'depart',no:r.no,from:r.from,to:r.to,time:r.dep,arr:r.arr});
-  return out;
-}
 function dayTimes(no){
   var r=DAYS[no]||{},s=toMin(r.start),e=toMin(r.end);
   return {start:s!==null?s:(st.pace==='relax'?630:540),end:e!==null?e:1200};
@@ -39,7 +25,7 @@ var TZ={jp:9,kr:9,tw:8,sg:8,th:7,fr:1,it:1,uk:0,us:-5};
 function gMode(m){return m==='walk'?'WALK':(m==='drive'?'DRIVE':'TRANSIT')}
 // 第 no 天對應的出發日期（YYYY-MM-DD）：取行程當天是星期幾，換成「下週」的同一個星期
 function dayDateISO(no){
-  var o=st.fl.out.date,base=(o&&!isNaN(Date.parse(o)))?Date.parse(o)+(no-1)*864e5:Date.now()+(no-1)*864e5;
+  var fp=flightPlan(),o=fp.ok?fp.start:'',base=(o&&!isNaN(Date.parse(o)))?Date.parse(o)+(no-1)*864e5:Date.now()+(no-1)*864e5;
   var w=new Date(base).getUTCDay();
   var n=new Date(),today=Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate());
   var toMon=((8-new Date(today).getUTCDay())%7)||7;            // 到下週一的天數
@@ -242,17 +228,18 @@ function pickExtras(rem,pinned,cap){
 // 3. 手動拖拉後（st.lay）位置固定；「固定」開啟的項目（st.fix）在重新排程時不會被移動。
 // 4. 放不下或被移出的項目放在各城市最後一天的「未排入」區。
 function plan(){
-  var fpl=flightPlan(),segDays=fpl.ok?fpl.counts:null;
-  var total=st.days,over=false,cities=[],cd=[];
-  (segDays?st.co:[null]).forEach(function(c,si){
-    var want=segDays?segDays[si]:total,list=orderCities(st.ci.filter(function(k){return C[k]&&(c===null||C[k].co===c)})),cs=list.slice(0,want);
+  var fpl=flightPlan(),F=flList(),home=homeCo();
+  var over=false,cities=[],cd=[],cfirst=[];
+  // 國家依航班抵達順序；每個國家從「抵達當天」開始，連續的天數依城市景點數分配
+  fpl.countries.forEach(function(c,si){
+    var want=fpl.counts[si],list=orderCities(st.ci.filter(function(k){return C[k]&&C[k].co===c})),cs=list.slice(0,want);
     if(list.length>want)over=true;
     if(!cs.length)return;
-    var a=alloc(cs,want);
-    cs.forEach(function(k,i){cities.push(k);cd.push(a[i])});
+    var a=alloc(cs,want),d0=fpl.firsts[si];
+    cs.forEach(function(k,i){cities.push(k);cd.push(a[i]);cfirst.push(d0);d0+=a[i]});
   });
-  var foreign=CO[C[cities[0]].co].flight>0;
-  var hops=[null],days=[],spotCost=0,dayNo=0,dayCity=[],lay=st.lay,fix=st.fix||{},pool={};
+  var foreign=true;
+  var hops=[null],days=[],spotCost=0,dayCity=[],lay=st.lay,fix=st.fix||{},pool={};
   // 住宿與機場的地點物件（同一份住宿共用同一個物件，才能判斷「起點＝終點」）
   var HLOC={},ALOC={};
   function hotelFor(n,k2){
@@ -279,7 +266,7 @@ function plan(){
     all.forEach(function(x){x.pin=fix[x.id]?fix[x.id]:0});
     var byId={};all.forEach(function(x){byId[x.id]=x});
     var sights=all.filter(function(x){return !isFood(x)}),foodAll=all.filter(isFood);
-    var firstDay=dayNo+1,lastDay=dayNo+cd[ci],hopRes=null;
+    var firstDay=cfirst[ci],lastDay=cfirst[ci]+cd[ci]-1,hopRes=null;
     for(var z=firstDay;z<=lastDay;z++)dayCity[z]=k;
     function pinnedFor(dn){
       var ids=Object.keys(fix).filter(function(id){return fix[id]===dn&&byId[id]});
@@ -291,37 +278,39 @@ function plan(){
       var food=foodAll.filter(function(x){return !x.pin}),rem=sights.filter(function(x){return !x.pin}),out=[],cost=0,placed={};
       for(var i=0;i<cd[ci];i++){
         var dn=firstDay+i;
-        var drv=dayDrive(dn),ms=modesFor(drv),fls=dayFlights(dn);
+        var drv=dayDrive(dn),ms=modesFor(drv),fls=dayFlights(dn),fd=dayInfo(dn)||{arrive:[],depart:[]};
         var hasArr=fls.some(function(f){return f.kind==='arrive'}),hasDep=fls.some(function(f){return f.kind==='depart'});
+        var arrF=fd.arrive.length?F[fd.arrive[0]]:null,depF=fd.depart.length?F[fd.depart[fd.depart.length-1]]:null;
         var arrive=null;
         if(i===0&&ci>0&&C[cities[ci-1]].co===C[k].co){arrive=hop(cities[ci-1],k,ms);hopRes=arrive}   // 同國家換城市：大眾運輸／自駕；跨國由航班處理
         var tmr=dayTimes(dn),ready=0,limit=1440,pre=[],post=[];
         fls.forEach(function(f){
           var t=toMin(f.time);
           if(f.kind==='arrive'){
-            ready=Math.max(ready,t+90);
-            var dp=toMin(f.dep);
-            pre.push({type:'flight',text:'搭乘 '+(f.no||'航班')+(f.from||f.to?'（'+(f.from||'')+' → '+(f.to||'')+'）':''),start:dp!==null?dp:t,end:t});
-            pre.push({type:'buffer',text:'入境、領行李，前往住宿或市區',start:t,end:t+90});
+            // 航班抵達的日期與時間就是行程的起點：機場停留（至少 60 分鐘）之後才開始
+            ready=Math.max(ready,t+f.stay);
+            var dp=toMin(f.dep),px=f.plus>0;
+            pre.push({type:'flight',text:'搭乘 '+(f.no||'航班')+(f.from||f.to?'（'+(f.from||'')+' → '+(f.to||'')+'）':'')+(px?'・'+(f.dep||'')+' 起飛，隔日抵達（+'+f.plus+'）':''),start:(!px&&dp!==null)?dp:t,end:t});
+            pre.push({type:'buffer',text:'抵達機場，入境、領行李',start:t,end:t+f.stay});
           }else{
             limit=Math.min(limit,t-180);
             var ar=toMin(f.arr);
             post.push({type:'buffer',text:'辦理登機與安檢',start:t-180,end:t});
-            post.push({type:'flight',text:'搭乘 '+(f.no||'航班')+(f.from||f.to?'（'+(f.from||'')+' → '+(f.to||'')+'）':''),start:t,end:ar!==null&&ar>t?ar:t});
+            post.push({type:'flight',text:'搭乘 '+(f.no||'航班')+(f.from||f.to?'（'+(f.from||'')+' → '+(f.to||'')+'）':'')+(f.plus>0?'・+'+f.plus+' 抵達':''),start:t,end:(f.plus===0&&ar!==null&&ar>t)?ar:t});
           }
         });
-        var aLeg=arrLeg(dn);
-        if(aLeg&&!hasArr&&(dn>1||foreign))ready=Math.max(ready,810);
-        if(dn===total&&!hasDep)limit=Math.min(limit,foreign?780:1080);
-        // 住宿：每天的「今晚住宿」是當天結束時回去的地方；隔天早上從這裡出發。最後一天不設定住宿，結束後前往機場。
-        var endRec=dn<total?hotelFor(dn,k):null,hot=endRec?endRec.h:null;
-        var endLoc=dn<total?hotelLoc(endRec,k):((hasDep||st.fl.ret.from)?airportLoc(st.fl.ret.from,k):null);
+        if(arrF&&!hasArr)ready=Math.max(ready,810);                  // 沒填抵達時間：假設下午才開始
+        var goHome=!!depF&&depF.toCo===home;
+        if(depF&&!hasDep)limit=Math.min(limit,goHome?780:1080);      // 沒填起飛時間：預留前往機場的時間
+        // 住宿：每天的「今晚住宿」是當天結束時回去的地方；隔天早上從這裡出發。搭機離開的那天不設定住宿，結束後前往機場。
+        var endRec=depF?null:hotelFor(dn,k),hot=endRec?endRec.h:null;
+        var endLoc=depF?airportLoc(depF.from,k):hotelLoc(endRec,k);
         var startLoc=null,via=null;
-        if(aLeg&&(hasArr||aLeg.to)){
-          // 搭飛機抵達的當天（第 1 天或換國家的第一天）：從機場出發，可選擇先到住宿點入住
-          startLoc=airportLoc(aLeg.to,k);
-          via=(st.checkin!=='direct')?hotelLoc(endRec,k):null;
-        }else if(dn===1||arrive)startLoc=hotelLoc(endRec,k);
+        if(arrF){
+          // 搭飛機抵達的當天：從機場出發，可選擇先到住宿點入住
+          startLoc=airportLoc(arrF.to,k);
+          via=(st.checkin!=='direct')?hotelLoc(endRec||hotelFor(dn,k),k):null;
+        }else if(arrive)startLoc=hotelLoc(endRec,k);
         else startLoc=hotelLoc(hotelFor(dn-1,k),k);
         var tourD=(DAYS[dn]&&DAYS[dn].tour&&DAYS[dn].tour.on)?DAYS[dn].tour:null;
         var dayOff=!!(DAYS[dn]&&DAYS[dn].off)||!!tourD,queue=[],cap=99,force=false,noPick=false;
@@ -349,7 +338,7 @@ function plan(){
         var rows=pre.concat(sim.rows,tourRows,post),spots=[];
         sim.rows.forEach(function(r){if((r.type==='sight'||r.type==='meal')&&r.s){spots.push(r.s);placed[r.s.id]=1}});
         rem=rem.filter(function(x){return !placed[x.id]});
-        out.push({no:dn,city:k,rows:rows,spots:spots,arrive:arrive,travel:sim.travel,first:i===0,last:i===cd[ci]-1,foreign:foreign,drive:drv,ms:ms,hotel:hot,startQ:startLoc?startLoc.q:'',endQ:endLoc?endLoc.q:'',hotelStops:hotelStopsOf(startLoc,endLoc),flights:fls,off:dayOff,tour:tourD,tStart:tmr.start,tEnd:Math.min(tmr.end,limit),ready:ready});
+        out.push({no:dn,city:k,rows:rows,spots:spots,arrive:arrive,travel:sim.travel,first:i===0,last:i===cd[ci]-1,foreign:foreign,drive:drv,ms:ms,hotel:hot,startQ:startLoc?startLoc.q:'',endQ:endLoc?endLoc.q:'',hotelStops:hotelStopsOf(startLoc,endLoc),flights:fls,off:dayOff,tour:tourD,tStart:tmr.start,tEnd:Math.min(tmr.end,limit),ready:ready,noHotel:!!depF,goHome:goHome,arrF:arrF,depF:depF,arrNoTime:!!arrF&&!hasArr,depNoTime:!!depF&&!hasDep});
       }
       return {days:out,cost:cost,placed:placed};
     }
@@ -365,8 +354,23 @@ function plan(){
     res.days.forEach(function(d){days.push(d)});
     spotCost+=res.cost;
     pool[k]=sights.concat(foodAll).filter(function(x){return !res.placed[x.id]});
-    dayNo=lastDay;
   });
+  // 還在出發國家的純飛行日（例如跨日抵達、當天起飛的前一天或回國的隔天）：只列出航班
+  fpl.days.forEach(function(fd,idx){
+    if(fd.owner!==home)return;
+    var no=idx+1,rows=[],ft=function(f){return (f.no||'航班')+(f.from||f.to?'（'+(f.from||'')+' → '+(f.to||'')+'）':'')};
+    fd.depart.forEach(function(j){
+      var f=F[j],t=toMin(f.dep),ar=toMin(f.arr);
+      if(t!==null)rows.push({type:'buffer',text:'辦理登機與安檢',start:t-180,end:t});
+      rows.push({type:'flight',text:'搭乘 '+ft(f)+((f.plus||0)>0?'・'+(f.arr||'')+' 抵達（+'+f.plus+'）':''),start:t!==null?t:0,end:t!==null?(((f.plus||0)===0&&ar!==null&&ar>t)?ar:t):0});
+    });
+    fd.homeArr.forEach(function(j){
+      var f=F[j],ar=toMin(f.arr);
+      rows.push({type:'flight',text:'抵達 '+(f.to||coName(home))+'（'+(f.no||'航班')+'）・旅程結束',start:ar!==null?ar:0,end:ar!==null?ar:0});
+    });
+    days.push({no:no,city:'',home:true,rows:rows,spots:[],arrive:null,travel:0,first:false,last:false,foreign:false,drive:false,ms:[],hotel:null,startQ:'',endQ:'',hotelStops:[],flights:[],off:false,tour:null,tStart:0,tEnd:0,ready:0,noHotel:true});
+  });
+  days.sort(function(a,b){return a.no-b.no});
   return {days:days,spots:spotCost,left:[],pool:pool,over:over,cities:cities,hops:hops,foreign:foreign};
 }
 
