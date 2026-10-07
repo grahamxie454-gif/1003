@@ -37,9 +37,9 @@ function depFor(no,co,at){
   var date=dayDateISO(no),hm=pad(Math.floor(m/60))+':'+pad(m%60);
   return {iso:date+'T'+hm+':00'+(tz<0?'-':'+')+pad(Math.abs(tz))+':00',epoch:Math.floor(Date.parse(date+'T'+hm+':00Z')/1000)-tz*3600};
 }
-function leg(fq,tq,a,b,ms,at){
-  var fx=ferryLeg(fq,tq,a,b,ms,at);if(fx)return fx;
-  var est=(inAnyIsle(a)&&inAnyIsle(b))?islandWalk(a,b):localLeg(a,b,ms),g=gMode(est.mode),dep=g==='TRANSIT'?depFor(LEGDAY,LEGCO,at||0).iso:'',nav=(g==='TRANSIT'&&LEGCO==='jp');
+function leg(fq,tq,a,b,ms,at,estO){
+  var fx=estO?null:(airportLeg(fq,tq,a,b,ms,at)||ferryLeg(fq,tq,a,b,ms,at));if(fx)return fx;
+  var est=estO||((inAnyIsle(a)&&inAnyIsle(b))?islandWalk(a,b):localLeg(a,b,ms)),g=gMode(est.mode),dep=g==='TRANSIT'?depFor(LEGDAY,LEGCO,at||0).iso:'',nav=(g==='TRANSIT'&&LEGCO==='jp');
   var key=(nav?'NAVI':g)+'|'+fq+'|'+tq+(dep?'|'+dep:''),h=ROUTE[key],out;
   if(h)out={km:h.m/1000,min:Math.max(15,Math.round(h.s/60/15)*15),mode:est.mode,g:true,fare:h.f||0,src:nav?'NAVITIME':'Google'};
   else out=est;
@@ -126,6 +126,17 @@ function simDay(o){
   if(o.arrive){rows.push({type:'hop',hop:o.arrive,start:t,end:t+o.arrive.min,cost:o.arrive.cost});t+=o.arrive.min;travel+=o.arrive.min}
   function mv(lg,toName,toQ,at){
     var f=lg.ferry;
+    if(lg.parts){
+      // 機場 ⇄ 車站 ⇄ 目的地：每一段各自一列
+      var tt=at,fn=curName,fqq=curQ;
+      lg.parts.forEach(function(p){
+        var nm=p.toName||toName,qq=p.toQ||toQ;
+        rows.push({type:'move',lg:p.lg,from:fn,to:nm,fromQ:fqq,toQ:qq,start:tt,end:tt+p.lg.min});
+        tt+=p.lg.min;fn=nm;fqq=qq;
+      });
+      travel+=lg.min;
+      return;
+    }
     if(f){
       // 離島渡船：前往碼頭 → 候船與航行 → 碼頭到目的地
       var t1=at+f.p1.min;
@@ -241,7 +252,7 @@ function simDay(o){
   if(!o.off&&o.endLoc&&curLoc!==o.endLoc&&cur){var rl=leg(curQ,o.endLoc.q,cur,llOf(o.endLoc,cur),ms,t);mv(rl,o.endLoc.name,o.endLoc.q,t);t+=rl.min;setCur(o.endLoc,cur)}
   var loc=0;ms.forEach(function(x){loc+=LOCAL[x]});loc/=ms.length;
   var paid=rows.filter(function(r){return r.type==='move'&&r.lg.mode!=='walk'});
-  paid.forEach(function(r){r.cost=(r.lg.fare>0)?Math.round(r.lg.fare*0.21/10)*10:Math.round(loc/paid.length/10)*10});
+  paid.forEach(function(r){r.cost=(r.lg.twd>=0)?r.lg.twd:(r.lg.fare>0)?Math.round(r.lg.fare*0.21/10)*10:Math.round(loc/paid.length/10)*10});
   return {rows:rows,rest:skipped.concat(q),cost:cost,travel:travel,end:t};
 }
 // 自動排程時挑出當天的景點：只取同一個地區的景點（依樹狀清單的地區順序）
@@ -290,7 +301,8 @@ function plan(){
     return out;
   }
   function airportLoc(code,k2){
-    var nm=String(code||'').trim(),key=k2+'|'+nm;
+    var nm=String(code||'').trim(),key=k2+'|'+nm,A=airportInfo(nm,k2);
+    if(A)return ALOC[key]||(ALOC[key]={name:A.nm+'（'+A.code+'）',q:llq(A.ll),ll:A.ll,kind:'airport'});
     return ALOC[key]||(ALOC[key]={name:'機場'+(nm?'（'+nm+'）':''),q:nm?nm+' airport':(C[k2].n+' 機場'),ll:null,kind:'airport'});
   }
   cities.forEach(function(k,ci){
