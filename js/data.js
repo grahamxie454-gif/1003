@@ -4,6 +4,12 @@ async function loadBuiltin(){
   var r=await Promise.all(['countries','cities','districts','spots'].map(function(t){return sb.from(t).select('*').order('sort',{ascending:true}).order('id',{ascending:true})}));
   for(var i=0;i<r.length;i++)if(r[i].error)throw r[i].error;
   DB={countries:r[0].data,cities:r[1].data,districts:r[2].data,spots:r[3].data};
+  // 機場與離島渡船資料也放在資料庫（可由管理員修改）；讀不到時沿用程式內建的備用值
+  try{
+    var ex=await Promise.all([sb.from('airports').select('*'),sb.from('ferry_routes').select('*')]);
+    if(!ex[0].error&&ex[0].data&&ex[0].data.length)applyAirportRows(ex[0].data);
+    if(!ex[1].error&&ex[1].data&&ex[1].data.length)applyFerryRows(ex[1].data);
+  }catch(e){}
 }
 function buildBuiltin(){
   CO={};C={};

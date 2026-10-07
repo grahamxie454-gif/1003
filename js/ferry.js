@@ -73,3 +73,12 @@ function ferryNotesHtml(p){
     return '<li><b>'+esc(r.name)+'</b>：單程約 '+r.dur+' 分鐘、大人約 ¥'+r.fare+'。'+r.seasons.map(function(s){return esc(s.label)+'—往離島 '+esc(s.toIsle.join('、'))+'；回本島 '+esc(s.toMain.join('、'))}).join('；')+'。'+esc(r.note)+'（資料來源：'+esc(r.src)+'；實際班次以船公司公告為準）</li>';
   }).join('')+'</ul>';
 }
+
+// ----- 由資料庫載入（ferry_routes 資料表）；上面的內建值只在資料庫讀不到時當備用 -----
+function applyFerryRows(rows){
+  FERRY_ROUTES=rows.map(function(r){
+    return {id:r.id,name:r.name,src:r.source,note:r.note,dur:r.duration_min,board:r.board_min,fare:r.fare_jpy,seasons:r.seasons||[],
+      main:{name:r.main_name,ll:[r.main_lat,r.main_lng]},
+      isle:{name:r.isle_name,ll:[r.isle_lat,r.isle_lng],center:[r.isle_center_lat,r.isle_center_lng],r:+r.isle_radius_km}};
+  });
+}

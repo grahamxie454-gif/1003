@@ -64,3 +64,13 @@ function airportLeg(fq,tq,a,b,ms,at){
   return {km:(q1?q1.km:0)+q2.km,min:(q1?q1.min:0)+q2.min,mode:q2.mode,key:'',req:null,
     parts:(q1?[{lg:q1,toName:hn,toQ:hubQ}]:[]).concat([{lg:q2,toName:null,toQ:null}])};
 }
+
+// ----- 由資料庫載入（airports 資料表）；上面的內建值只在資料庫讀不到時當備用 -----
+function applyAirportRows(rows){
+  var A={},B={};
+  rows.forEach(function(r){
+    A[r.code]={nm:r.name,ll:[r.lat,r.lng],hub:{n:r.hub_name,ll:[r.hub_lat,r.hub_lng]},via:r.via||'',mode:r.mode,min:r.minutes,twd:r.fare_twd,km:+r.km};
+    (r.default_cities||[]).forEach(function(c){B[c]=r.code});
+  });
+  AIRPORTS=A;AIRPORT_BY_CITY=B;
+}
