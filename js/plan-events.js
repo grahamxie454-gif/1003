@@ -4,7 +4,7 @@ on('f','change',function(e){
   var f=new FormData($('f')),nm=e.target.name,sig=JSON.stringify(st.ci);
   if(nm==='ci'){
     // 只更新「目前列出的國家」的城市，其餘（航班尚未設好時暫存的）保持不動
-    var now=f.getAll('ci').concat(arrivalCities()),listed=Object.keys(C).filter(function(k){return st.co.indexOf(C[k].co)>-1});
+    var now=f.getAll('ci').concat(arrivalCities(),departureCities()),listed=Object.keys(C).filter(function(k){return st.co.indexOf(C[k].co)>-1});
     st.ci=mergeOrder(st.ci.filter(function(k){return listed.indexOf(k)<0||now.indexOf(k)>-1}),now);
   }
   st.days=autoDays()>0?autoDays():(st.days||5);

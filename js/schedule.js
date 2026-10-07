@@ -38,7 +38,8 @@ function depFor(no,co,at){
   return {iso:date+'T'+hm+':00'+(tz<0?'-':'+')+pad(Math.abs(tz))+':00',epoch:Math.floor(Date.parse(date+'T'+hm+':00Z')/1000)-tz*3600};
 }
 function leg(fq,tq,a,b,ms,at){
-  var est=localLeg(a,b,ms),g=gMode(est.mode),dep=g==='TRANSIT'?depFor(LEGDAY,LEGCO,at||0).iso:'',nav=(g==='TRANSIT'&&LEGCO==='jp');
+  var fx=ferryLeg(fq,tq,a,b,ms,at);if(fx)return fx;
+  var est=(inAnyIsle(a)&&inAnyIsle(b))?islandWalk(a,b):localLeg(a,b,ms),g=gMode(est.mode),dep=g==='TRANSIT'?depFor(LEGDAY,LEGCO,at||0).iso:'',nav=(g==='TRANSIT'&&LEGCO==='jp');
   var key=(nav?'NAVI':g)+'|'+fq+'|'+tq+(dep?'|'+dep:''),h=ROUTE[key],out;
   if(h)out={km:h.m/1000,min:Math.max(15,Math.round(h.s/60/15)*15),mode:est.mode,g:true,fare:h.f||0,src:nav?'NAVITIME':'Google'};
   else out=est;
@@ -117,15 +118,40 @@ function simDay(o){
     if(loc.ll)return loc.ll;
     if(loc._ll)return loc._ll;
     if(loc.kind==='airport'){loc._ll=[CITYLL[0]+0.2,CITYLL[1]+0.2];return loc._ll}
-    if(near){loc._ll=[near[0]+0.012,near[1]+0.012];return loc._ll}
+    if(near){var nb=inAnyIsle(near)?CITYLL:near;loc._ll=[nb[0]+0.012,nb[1]+0.012];return loc._ll}
     return null;
   }
   function setCur(loc,near){curLoc=loc;cur=llOf(loc,near);curName=loc.name;curQ=loc.q}
   if(o.startLoc&&(o.startLoc.ll||o.startLoc.kind==='airport'))setCur(o.startLoc);
   if(o.arrive){rows.push({type:'hop',hop:o.arrive,start:t,end:t+o.arrive.min,cost:o.arrive.cost});t+=o.arrive.min;travel+=o.arrive.min}
   function mv(lg,toName,toQ,at){
+    var f=lg.ferry;
+    if(f){
+      // 離島渡船：前往碼頭 → 候船與航行 → 碼頭到目的地
+      var t1=at+f.p1.min;
+      rows.push({type:'move',lg:f.p1,from:curName,to:f.from.name,fromQ:curQ,toQ:f.from.q,start:at,end:t1});
+      if(f.none)rows.push({type:'ferry',route:f.route,text:f.text,times:f.times,season:f.season,none:true,start:t1,end:t1+60});
+      else{
+        rows.push({type:'ferry',route:f.route,text:f.text,times:f.times,season:f.season,cost:f.cost,fromQ:f.from.q,toQ:f.to.q,start:f.dep,end:f.dep+f.dur});
+        rows.push({type:'move',lg:f.p3,from:f.to.name,to:toName,fromQ:f.to.q,toQ:toQ,start:f.dep+f.dur,end:f.dep+f.dur+f.p3.min});
+        cost+=f.cost;
+      }
+      travel+=f.none?60:lg.min;
+      return;
+    }
     rows.push({type:'move',lg:lg,from:curName,to:toName,fromQ:curQ,toQ:toQ,start:at,end:at+lg.min});
     travel+=lg.min;
+  }
+  // 離島：目前在島上時，離開要搭船；離開島嶼 = 前往本島碼頭（含候船、航行）
+  function onIsle(){return !!cur&&inAnyIsle(cur)}
+  function leaveIsle(){
+    var r=FERRY_ROUTES.filter(function(x){return inIsle(cur,x)})[0];
+    if(!r)return;
+    var pier={name:r.main.name,q:r.main.ll[0]+','+r.main.ll[1],ll:r.main.ll,kind:'pier'};
+    var lg=leg(curQ,pier.q,cur,pier.ll,ms,t);
+    mv(lg,pier.name,pier.q,t);
+    t+=(lg.ferry&&lg.ferry.none)?60:lg.min;
+    setCur(pier);
   }
   // 第一天：抵達機場後先到住宿點入住（寄放行李），再從住宿點出發
   if(o.via&&cur&&curLoc!==o.via){
@@ -155,12 +181,15 @@ function simDay(o){
     return {len:len,row:{type:'free',key:k,start:a,end:a+len,nat:nat}};
   }
   function meal(m,maxGap){
-    var rest=pickFood(),tgt=rest?spotLL(rest):cur;
+    var rest=pickFood();
+    if(!rest&&onIsle())leaveIsle();   // 離島上沒有指定餐廳時，先回本島再用餐
+    var tgt=rest?spotLL(rest):cur;
     var lg=(cur&&rest)?leg(curQ,mapQ(rest),cur,tgt,ms,t):null,arr=t+(lg?lg.min:0);
     if(rest&&m.lo-arr>maxGap){o.food.unshift(rest);rest=null;tgt=cur;lg=null;arr=t}
     var g=gapLen(arr,Math.max(arr,m.lo)),s0=arr+g.len;
     var dur=rest?((st.stay&&st.stay[rest.id])||m.dur):(MMIN[m.k]||m.dur),en=s0+dur;
     if(s0>m.hi||en>o.end){if(rest)o.food.unshift(rest);return false}
+    if(rest&&o.endLoc){var rr=leg(mapQ(rest),o.endLoc.q,tgt,llOf(o.endLoc,tgt),ms,en);if(rr.min>=600){o.food.unshift(rest);return false}}   // 離島餐廳：吃完要趕得上回程船
     if(lg)mv(lg,rest.name,mapQ(rest),t);
     if(g.row)rows.push(g.row);
     rows.push({type:'meal',n:m.n,key:m.k,s:rest,start:s0,end:en,cost:rest?rest.cost:0,over:s0<m.lo||s0>m.hi});
@@ -185,6 +214,7 @@ function simDay(o){
       if(lg)mv(lg,x.name,xq,t);
       rows.push({type:'meal',n:mm?mm.n:'用餐',key:'f_'+x.id,s:x,start:arr,end:en2,cost:x.cost,over:over2});
       cost+=x.cost;curLoc=null;cur=tgt;curName=x.name;curQ=xq;t=en2;q.shift();
+      if(onIsle()&&!(q[0]&&inAnyIsle(spotLL(q[0]))))leaveIsle();
       continue;
     }
     var d=stayOf(x),en=arr+d;
@@ -198,7 +228,9 @@ function simDay(o){
     if(lg)mv(lg,x.name,xq,t);
     rows.push({type:'sight',s:x,start:arr,end:en,cost:x.cost,over:over});
     cost+=x.cost;sights++;dayD[x.dist]=1;curLoc=null;cur=tgt;curName=x.name;curQ=xq;t=en;q.shift();
+    if(onIsle()&&!(q[0]&&inAnyIsle(spotLL(q[0]))))leaveIsle();
   }
+  if(onIsle())leaveIsle();
   if(!o.off){
     var needEnd=o.endLoc&&curLoc!==o.endLoc&&cur;
     var retm=needEnd?leg(curQ,o.endLoc.q,cur,llOf(o.endLoc,cur),ms,t).min:0;

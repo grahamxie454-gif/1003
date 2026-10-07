@@ -104,6 +104,7 @@ function renderRes(p){
   var hp=p.hops.slice(1).filter(Boolean);
   h+='<h3>航班</h3><ul>'+flList().map(function(f,i){return '<li>第 '+(i+1)+' 段：'+esc(cityName(f.fromCity)||coName(f.fromCo))+' → '+esc(cityName(f.toCity)||coName(f.toCo))+'　'+esc(f.date||'')+(f.no?'　'+esc(f.no):'')+(f.from||f.to?'（'+esc(f.from||'')+' → '+esc(f.to||'')+'）':'')+(f.dep?'　'+esc(f.dep)+' 起飛':'')+(f.arr?'・'+esc(f.arr)+(f.plus>0?' '+plusTxt(f):'')+' 抵達':'')+'</li>'}).join('')+'</ul>';
   if(hp.length)h+='<h3>城市間移動</h3><ul class="hops">'+hp.map(function(x){return '<li>'+esc(C[x.from].n)+' → '+esc(C[x.to].n)+'：'+MNAME[x.mode]+'，約 '+fmtMin(x.min)+'（約 '+fmtKm(x.km)+'），約 '+fmt(x.cost)+'</li>'}).join('')+'</ul>';
+  h+=ferryNotesHtml(p);
   h+='<h3>交通建議</h3><ul>'+modes.map(function(x){return '<li><b>'+MODES[x]+'</b>：'+MODE_TXT[x]+'</li>'}).join('')+
     (modes.indexOf('drive')>-1?cos.map(function(c){return '<li>'+esc(CO[c].n)+'：'+esc(CO[c].drive)+'</li>'}).join(''):'')+'</ul>'+
     '<h3>出發前小提醒</h3><ul>'+cos.map(function(c){return (CO[c].tips||[]).map(function(x){return '<li>'+esc(CO[c].n)+'：'+esc(x)+'</li>'}).join('')}).join('')+'</ul></section>';
@@ -121,6 +122,7 @@ function renderRes(p){
 function rowInfo(r,d){
   switch(r.type){
     case 'flight':case 'buffer':return {name:r.text,cost:'',link:''};
+    case 'ferry':return {name:r.text,cost:r.cost||0,link:r.fromQ?dirLink(r.fromQ,r.toQ,'metro'):''};
     case 'free':return {name:txtOf(d,r.key,'自行安排行程'),cost:'',link:''};
     case 'tour':return {name:'當地自由行：'+r.name,cost:r.cost||0,link:r.url||''};
     case 'hop':var h=r.hop;return {name:'城際移動（'+MNAME[h.mode]+'）：'+C[h.from].n+' → '+C[h.to].n,cost:Math.round(h.cost/10)*10,link:dirLink(C[h.from].n+' '+CO[C[h.from].co].n,C[h.to].n+' '+CO[C[h.to].co].n,h.mode,depFor(d.no,C[d.city].co,r.start).epoch)};
@@ -158,6 +160,7 @@ function rowHtml(r,d,p){
   if(r.type==='flight')b='<b>✈ '+esc(r.text)+'</b>';
   else if(r.type==='tour'){cls='tour';b='<div class="n"><span class="tag meal">當地自由行</span><b>'+esc(r.name)+'</b>'+(r.url?'<a class="maplink" href="'+esc(r.url)+'" target="_blank" rel="noopener">行程連結</a>':'')+'</div><div class="meta">'+(r.cost?'約 '+fmt(r.cost):'費用未填')+'・全天由當地行程安排</div>'}
   else if(r.type==='buffer')b='<span class="soft">'+esc(r.text)+'（'+fmtMin(r.end-r.start)+'）</span>';
+  else if(r.type==='ferry'){cls='mv ferry';b='<span class="soft">⛴ '+esc(r.text)+(r.cost?'・約 NT$ '+r.cost:'')+(r.none?'':' '+iconLink(inf.link,ICON_ROUTE,'路徑（Google 地圖）'))+'</span><div class="meta">'+esc(r.season)+'：當天班次 '+esc(r.times)+'。停航或客滿請以船公司公告為準。</div>'+(r.none?'<p class="overnote">⚠ 這個景點在當天搭不到船，請移到其他天或調整時間。</p>':'')}
   else if(r.type==='free'){
     cls='fr';
     b='<input type="text" class="freetxt" data-no="'+d.no+'" data-tk="'+r.key+'" maxlength="40" value="'+esc(txtOf(d,r.key,''))+'" placeholder="自行安排行程（可改文字）" aria-label="空檔安排"> <label class="stayin"><input type="number" min="5" max="720" step="5" data-no="'+d.no+'" data-gapkey="'+r.key+'" value="'+(r.end-r.start)+'" aria-label="空檔分鐘"> 分</label> <button type="button" class="ghost sm x" data-act="gapdel" data-no="'+d.no+'" data-key="'+r.key+'" aria-label="刪除這段空檔">✕</button>';

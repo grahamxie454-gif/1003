@@ -12,7 +12,7 @@ function buildCities(){
   // 可選的城市：依「已選國家」的順序列出（只是選擇用的清單；行程順序請看下方的已選城市順序）
   var ks=[];
   st.co.forEach(function(c){Object.keys(C).forEach(function(k){if(C[k].co===c)ks.push(k)})});
-  $('ci').innerHTML=ks.map(function(k){var ar=arrivalCities().indexOf(k)>-1;return chip('checkbox','ci',k,C[k].n+(ar?'（航班抵達）':''),st.ci.indexOf(k)>-1,ar?' disabled':'')}).join('');
+  $('ci').innerHTML=ks.map(function(k){var ar=arrivalCities().indexOf(k)>-1,dp=departureCities().indexOf(k)>-1;return chip('checkbox','ci',k,C[k].n+(ar?'（航班抵達）':(dp?'（航班出發）':'')),st.ci.indexOf(k)>-1,(ar||dp)?' disabled':'')}).join('');
 }
 function buildAdder(){
   var cus=Object.keys(CO).filter(function(k){return CO[k].custom}),cuc=Object.keys(C).filter(function(k){return C[k].custom});
@@ -39,10 +39,11 @@ function normalize(){
   st.co=p.countries.slice();
   st.ci=st.ci.filter(function(k){return st.co.indexOf(C[k].co)>-1});
   // 航班抵達的城市一定會排進行程；不再是抵達城市的自動加入項目會被移除
-  var auto=st.ciAuto=st.ciAuto&&typeof st.ciAuto==='object'?st.ciAuto:{},arrs=arrivalCities();
-  st.ci=st.ci.filter(function(k){return !(auto[k]&&arrs.indexOf(k)<0)});
-  Object.keys(auto).forEach(function(k){if(st.ci.indexOf(k)<0&&arrs.indexOf(k)<0)delete auto[k]});
+  var auto=st.ciAuto=st.ciAuto&&typeof st.ciAuto==='object'?st.ciAuto:{},arrs=arrivalCities(),deps=departureCities(),req=arrs.concat(deps);
+  st.ci=st.ci.filter(function(k){return !(auto[k]&&req.indexOf(k)<0)});
+  Object.keys(auto).forEach(function(k){if(st.ci.indexOf(k)<0&&req.indexOf(k)<0)delete auto[k]});
   arrs.forEach(function(k){if(st.ci.indexOf(k)<0){st.ci.unshift(k);auto[k]=1}});
+  deps.forEach(function(k){if(st.ci.indexOf(k)<0){st.ci.push(k);auto[k]=1}});
   st.co.forEach(function(c){
     if(st.ci.some(function(k){return C[k].co===c}))return;
     var f=F.filter(function(x){return x.toCo===c})[0],ks=Object.keys(C).filter(function(k){return C[k].co===c});
