@@ -28,6 +28,7 @@ function openTrip(row){
   Object.keys(d.cx||{}).forEach(function(k){C[k]=d.cx[k]});
   st=DEF();
   st.ci=(s.ci||[]).filter(function(k){return C[k]});
+  if(s.ciAuto&&typeof s.ciAuto==='object')st.ciAuto=s.ciAuto;
   if(s.days>=2&&s.days<=40)st.days=s.days;
   if(s.stay&&typeof s.stay==='object')st.stay=s.stay;
   if(Array.isArray(s.styles))st.styles=s.styles.filter(function(k){return 'fcns'.indexOf(k)>-1});
@@ -55,7 +56,7 @@ function openTrip(row){
       var seq=[o].concat(oc.slice(1).map(function(_,i){return mid[i]||{}})).concat([r]);
       seq.forEach(function(L,i){
         var toCo=i<oc.length?oc[i]:home,fromCo=i===0?home:oc[i-1];
-        legs.push({no:L.no||'',date:L.date||'',plus:(L.dep&&L.arr&&toMin(L.arr)<toMin(L.dep))?1:0,from:L.from||'',to:L.to||'',dep:L.dep||'',arr:L.arr||'',fromCo:fromCo,toCo:toCo,toCity:toCo===home?'':first(toCo),stay:60});
+        legs.push({no:L.no||'',date:L.date||'',plus:(L.dep&&L.arr&&toMin(L.arr)<toMin(L.dep))?1:0,from:L.from||'',to:L.to||'',dep:L.dep||'',arr:L.arr||'',fromCo:fromCo,toCo:toCo,fromCity:i===0?first(home):'',toCity:first(toCo),stay:60});
       });
     }
     if(s.checkin==='direct')legs.forEach(function(f){f.checkin='direct'});

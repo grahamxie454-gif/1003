@@ -4,7 +4,7 @@ on('f','change',function(e){
   var f=new FormData($('f')),nm=e.target.name,sig=JSON.stringify(st.ci);
   if(nm==='ci'){
     // 只更新「目前列出的國家」的城市，其餘（航班尚未設好時暫存的）保持不動
-    var now=f.getAll('ci'),listed=Object.keys(C).filter(function(k){return st.co.indexOf(C[k].co)>-1});
+    var now=f.getAll('ci').concat(arrivalCities()),listed=Object.keys(C).filter(function(k){return st.co.indexOf(C[k].co)>-1});
     st.ci=mergeOrder(st.ci.filter(function(k){return listed.indexOf(k)<0||now.indexOf(k)>-1}),now);
   }
   st.days=autoDays()>0?autoDays():(st.days||5);
@@ -32,8 +32,6 @@ on('f','click',async function(e){
     var km=parseInt($('nkm').value,10),co=$('ncc').value,ck='v'+(++cuid);
     C[ck]={n:cn,co:co,code:'',season:'請自行查詢',custom:true,km:km>0?km:150,hotel:[2000,3500,6500],food:[1200,2000,3500],d:{},lat:0,lng:0,pos:{}};
     if(st.co.indexOf(co)>-1)st.ci.push(ck);
-    // 航班抵達這個國家、但還沒選抵達城市時，自動帶入新城市
-    flList().forEach(function(f){if(f.toCo===co&&!f.toCity&&co!==homeCo())f.toCity=ck});
   }else if(a==='delco'){
     Object.keys(C).forEach(function(x){if(C[x].co===k)delete C[x]});
     delete CO[k];

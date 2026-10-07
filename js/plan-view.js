@@ -55,7 +55,7 @@ function renderRes(p){
   var h='';
   if(p.over)h+='<p class="warn">天數不足以安排 '+st.ci.length+' 座城市，目前只排前 '+n+' 座。請增加天數或減少城市。</p>';
   var F0=flList()[0]||{};
-  h+='<section class="pass"><div class="main"><div class="route"><div>'+esc(F0.from||'TPE')+'<small>'+esc(coName(homeCo()))+'</small></div><span class="arrow"></span><div>'+esc(firstC.code||firstC.n)+'<small>'+esc(firstC.n)+(n>1?' 等 '+n+' 城':'')+'</small></div></div>'+
+  h+='<section class="pass"><div class="main"><div class="route"><div>'+esc(F0.from||'TPE')+'<small>'+esc(cityName(F0.fromCity)||coName(homeCo()))+'</small></div><span class="arrow"></span><div>'+esc(firstC.code||firstC.n)+'<small>'+esc(firstC.n)+(n>1?' 等 '+n+' 城':'')+'</small></div></div>'+
    '<dl class="facts"><div><dt>行程</dt><dd>'+total+' 天 '+nights+' 夜</dd></div><div><dt>城市順序'+(st.auto&&n>1?'（依距離）':'')+'</dt><dd>'+cs.map(function(k){return esc(C[k].n)}).join(' → ')+'</dd></div><div><dt>飛行時間</dt><dd>'+esc(fc.fh)+'</dd></div><div><dt>最佳季節</dt><dd>'+cs.map(function(k){return esc(C[k].n)+'：'+esc(C[k].season||'請自行查詢')}).join('<br>')+'</dd></div></dl></div>'+
    '<div class="stub"><span class="lbl">每人預算概估</span><span class="total">'+fmt(tot)+'</span><span class="sub">'+TIERS[t][0]+'等級・不含額外購物</span>'+
    '<div class="bar">'+parts.map(function(x){return '<span class="'+x[2]+'" style="width:'+(x[1]/tot*100)+'%"></span>'}).join('')+'</div>'+
@@ -102,7 +102,7 @@ function renderRes(p){
   h+='</section>';
   h+='<section class="tips">';
   var hp=p.hops.slice(1).filter(Boolean);
-  h+='<h3>航班</h3><ul>'+flList().map(function(f,i){return '<li>第 '+(i+1)+' 段：'+esc(coName(f.fromCo))+' → '+esc(coName(f.toCo))+'　'+esc(f.date||'')+(f.no?'　'+esc(f.no):'')+(f.from||f.to?'（'+esc(f.from||'')+' → '+esc(f.to||'')+'）':'')+(f.dep?'　'+esc(f.dep)+' 起飛':'')+(f.arr?'・'+esc(f.arr)+(f.plus>0?' '+plusTxt(f):'')+' 抵達':'')+'</li>'}).join('')+'</ul>';
+  h+='<h3>航班</h3><ul>'+flList().map(function(f,i){return '<li>第 '+(i+1)+' 段：'+esc(cityName(f.fromCity)||coName(f.fromCo))+' → '+esc(cityName(f.toCity)||coName(f.toCo))+'　'+esc(f.date||'')+(f.no?'　'+esc(f.no):'')+(f.from||f.to?'（'+esc(f.from||'')+' → '+esc(f.to||'')+'）':'')+(f.dep?'　'+esc(f.dep)+' 起飛':'')+(f.arr?'・'+esc(f.arr)+(f.plus>0?' '+plusTxt(f):'')+' 抵達':'')+'</li>'}).join('')+'</ul>';
   if(hp.length)h+='<h3>城市間移動</h3><ul class="hops">'+hp.map(function(x){return '<li>'+esc(C[x.from].n)+' → '+esc(C[x.to].n)+'：'+MNAME[x.mode]+'，約 '+fmtMin(x.min)+'（約 '+fmtKm(x.km)+'），約 '+fmt(x.cost)+'</li>'}).join('')+'</ul>';
   h+='<h3>交通建議</h3><ul>'+modes.map(function(x){return '<li><b>'+MODES[x]+'</b>：'+MODE_TXT[x]+'</li>'}).join('')+
     (modes.indexOf('drive')>-1?cos.map(function(c){return '<li>'+esc(CO[c].n)+'：'+esc(CO[c].drive)+'</li>'}).join(''):'')+'</ul>'+
