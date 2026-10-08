@@ -47,8 +47,14 @@ function accessLeg(A,toAirport,ms,at){
   return toAirport?leg(hub,air,A.hub.ll,A.ll,ms,at,est):leg(air,hub,A.ll,A.hub.ll,ms,at,est);
 }
 // 起點或終點在機場時，改成「機場 ⇄ 車站」加上「車站 ⇄ 目的地」；其餘回傳 null
+// 機場路段內部再查「車站 ⇄ 目的地」時不可以再套用一次機場規則（接駁車站離機場很近時會無限遞迴）
+var AIR_BUSY=false;
 function airportLeg(fq,tq,a,b,ms,at){
-  if(!a||!b)return null;
+  if(AIR_BUSY||!a||!b)return null;
+  AIR_BUSY=true;
+  try{return airportLegInner(fq,tq,a,b,ms,at)}finally{AIR_BUSY=false}
+}
+function airportLegInner(fq,tq,a,b,ms,at){
   var A=airportAt(a),B=airportAt(b);
   if(!!A===!!B)return null;
   var X=A||B,hubQ=llq(X.hub.ll),hn=X.hub.n+(X.via?'（'+X.via.split('（')[0]+'）':'');
