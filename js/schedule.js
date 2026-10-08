@@ -22,6 +22,14 @@ var isFood=function(x){return x.s==='f'};
 // 出發日期用行程當天的實際日期（已過去的日期才改用下週同一個星期），並以 15 分鐘為單位。需要搭船的路段，由 Google／NAVITIME 依船班時刻計算（含等船時間）。
 var ROUTE={},ROUTE_TRIED={},ROUTE_MSG='',ROUTE_BUSY=false,ROUTE_DAY=0,LEGDAY=1,LEGCO='';
 var TZ={jp:9,kr:9,tw:8,sg:8,th:7,fr:1,it:1,uk:0,us:-5};
+function transitModes(){
+  var m=st.modes||[],t=[];
+  if(m.indexOf('ferry')>-1)return [];
+  if(m.indexOf('metro')>-1)t.push('SUBWAY','LIGHT_RAIL');
+  if(m.indexOf('bus')>-1)t.push('BUS');
+  if(m.indexOf('train')>-1)t.push('TRAIN','RAIL');
+  return t;
+}
 function gMode(m){return m==='walk'?'WALK':(m==='drive'?'DRIVE':'TRANSIT')}
 // 第 no 天查詢路線用的出發日期（YYYY-MM-DD）：就是行程當天的實際日期（時刻表、末班車、季節班次都依這一天）。
 // 只有行程日期已經過去（或還沒設好日期）時，才改用「下週同一個星期」，避免查不到過期的時刻表。
@@ -45,10 +53,11 @@ function depFor(no,co,at){
 function leg(fq,tq,a,b,ms,at,estO){
   var fx=estO?null:(airportLeg(fq,tq,a,b,ms,at)||ferryLeg(fq,tq,a,b,ms,at));if(fx)return fx;
   var est=estO||((inAnyIsle(a)&&inAnyIsle(b))?islandWalk(a,b):localLeg(a,b,ms)),g=gMode(est.mode),dep=g==='TRANSIT'?depFor(LEGDAY,LEGCO,at||0).iso:'',nav=(g==='TRANSIT'&&LEGCO==='jp'&&!(st.prov&&st.prov[fq+'>'+tq]==='G'));   // 日本預設用 NAVITIME，每段可改選 Google
-  var key=(nav?'NAVI':g)+'|'+fq+'|'+tq+(dep?'|'+dep:''),h=ROUTE[key],out;
+  var tmv=(!nav&&g==='TRANSIT')?transitModes():[];   // Google：依所選交通工具限定搭乘種類（沒選或含渡輪＝不限）
+  var key=(nav?'NAVI':g)+'|'+fq+'|'+tq+(dep?'|'+dep:'')+(tmv.length?'|M'+tmv.join('.'):''),h=ROUTE[key],out;
   if(h)out={km:h.m/1000,min:Math.max(15,Math.round(h.s/60/15)*15),mode:est.mode,g:true,fare:h.f||0,src:nav?'NAVITIME':'Google'};
   else out=est;
-  out.key=key;out.req={key:key,mode:g,prov:nav?'NAVI':'',from:fq,to:tq,dep:dep};
+  out.key=key;out.req={key:key,mode:g,prov:nav?'NAVI':'',from:fq,to:tq,dep:dep,tm:tmv};
   return out;
 }
 function setRouteMsg(t){
@@ -70,13 +79,13 @@ async function askRoutes(reqs){
   (d.results||[]).forEach(function(x){ROUTE[x.key]={s:x.s,m:x.m,f:x.f};got++});
   if(d.error)return {stop:'路線查詢失敗：'+d.error,got:got};
   if(d.capped)return {stop:'今日查詢額度已用完，其餘路線維持估算，明天可再按一次。',got:got};
-  return {got:got,fails:d.fails||0,lastErr:d.lastErr||''};
+  return {got:got,fails:d.fails||0,lastErr:d.lastErr||'',approx:d.approx||0};
 }
 // 只更新某一天：先一次查完步行（與時間無關），再依序查每段大眾運輸，後一段用前一段的結果推算出發時間
 async function calcDay(no){
   if(ROUTE_BUSY||!sb)return;
   ROUTE_BUSY=true;ROUTE_DAY=no;ROUTE_TRIED={};
-  var got=0,fails=0,lastErr='',stop='';
+  var got=0,fails=0,lastErr='',stop='',apx=0;
   function pending(){
     var d=plan().days.filter(function(x){return x.no===no})[0];
     return d?d.rows.filter(function(r){return r.type==='move'&&!r.lg.g&&!ROUTE_TRIED[r.lg.key]}):[];
@@ -86,20 +95,20 @@ async function calcDay(no){
     var walk=pending().filter(function(r){return r.lg.req.mode==='WALK'});
     for(var i=0;i<walk.length&&!stop;i+=20){
       var res=await askRoutes(walk.slice(i,i+20).map(function(r){return r.lg.req}));
-      got+=res.got||0;fails+=res.fails||0;if(res.lastErr)lastErr=res.lastErr;if(res.stop)stop=res.stop;
+      got+=res.got||0;apx+=res.approx||0;fails+=res.fails||0;if(res.lastErr)lastErr=res.lastErr;if(res.stop)stop=res.stop;
     }
     for(var n=0;n<40&&!stop;n++){
       var rows=pending();
       if(!rows.length)break;
       setRouteMsg('第 '+no+' 天：計算移動時間中…（'+rows.length+' 段待查）');
       var r1=await askRoutes([rows[0].lg.req]);
-      got+=r1.got||0;fails+=r1.fails||0;if(r1.lastErr)lastErr=r1.lastErr;if(r1.stop)stop=r1.stop;
+      got+=r1.got||0;apx+=r1.approx||0;fails+=r1.fails||0;if(r1.lastErr)lastErr=r1.lastErr;if(r1.stop)stop=r1.stop;
       render(true);
     }
   }catch(err){stop='路線查詢失敗：'+(err.message||err)}
   ROUTE_BUSY=false;
   render(true);
-  setRouteMsg(stop||('第 '+no+' 天移動時間已更新：本次新查詢 '+got+' 段'+(fails?'，'+fails+' 段無法規劃（維持估算）'+(lastErr?'，原因：'+lastErr:''):'')+'。'));
+  setRouteMsg(stop||('第 '+no+' 天移動時間已更新：本次新查詢 '+got+' 段'+(apx?'（其中 '+apx+' 段因行程日期太遠、時刻表尚未公布，改用最近的相同星期班次估算）':'')+(fails?'，'+fails+' 段無法規劃（維持估算）'+(lastErr?'，原因：'+lastErr:''):'')+'。'));
 }
 async function loadRoutes(){
   try{
