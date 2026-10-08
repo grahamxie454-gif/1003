@@ -19,15 +19,20 @@ var isFood=function(x){return x.s==='f'};
 // 規劃與調整順序時一律先用估算值（顯示「估算」）。按每天的「更新」圖示，只更新那一天：
 // 依序查詢每個路段，下一段的出發時間 = 前一段查到的實際結束時間。
 // 1.5 公里內用步行（不需要出發時間，查過就用快取）；1.5 公里以上用大眾運輸（日本用 NAVITIME，其他用 Google），
-// 出發日期一律用「下週同一個星期」，並以 15 分鐘為單位。需要搭船的路段，由 Google／NAVITIME 依船班時刻計算（含等船時間）。
+// 出發日期用行程當天的實際日期（已過去的日期才改用下週同一個星期），並以 15 分鐘為單位。需要搭船的路段，由 Google／NAVITIME 依船班時刻計算（含等船時間）。
 var ROUTE={},ROUTE_TRIED={},ROUTE_MSG='',ROUTE_BUSY=false,ROUTE_DAY=0,LEGDAY=1,LEGCO='';
 var TZ={jp:9,kr:9,tw:8,sg:8,th:7,fr:1,it:1,uk:0,us:-5};
 function gMode(m){return m==='walk'?'WALK':(m==='drive'?'DRIVE':'TRANSIT')}
-// 第 no 天對應的出發日期（YYYY-MM-DD）：取行程當天是星期幾，換成「下週」的同一個星期
+// 第 no 天查詢路線用的出發日期（YYYY-MM-DD）：就是行程當天的實際日期（時刻表、末班車、季節班次都依這一天）。
+// 只有行程日期已經過去（或還沒設好日期）時，才改用「下週同一個星期」，避免查不到過期的時刻表。
 function dayDateISO(no){
-  var fp=flightPlan(),o=fp.ok?fp.start:'',base=(o&&!isNaN(Date.parse(o)))?Date.parse(o)+(no-1)*864e5:Date.now()+(no-1)*864e5;
+  var fp=flightPlan(),n=new Date(),today=Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate());
+  if(fp.ok){
+    var iso=addDaysStr(fp.start,no-1);
+    if(Date.parse(iso)>=today)return iso;
+  }
+  var o=fp.ok?fp.start:'',base=(o&&!isNaN(Date.parse(o)))?Date.parse(o)+(no-1)*864e5:Date.now()+(no-1)*864e5;
   var w=new Date(base).getUTCDay();
-  var n=new Date(),today=Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate());
   var toMon=((8-new Date(today).getUTCDay())%7)||7;            // 到下週一的天數
   return new Date(today+(toMon+((w+6)%7))*864e5).toISOString().slice(0,10);
 }
