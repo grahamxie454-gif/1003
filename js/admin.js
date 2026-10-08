@@ -139,7 +139,7 @@ function adminData(){
   if(t==='spots')defaults.district_id=AF.district;
   h+='<tr class="new">'+cols.map(function(c){return '<td>'+cellHtml(c,defaults[c[0]],'new',true)+'</td>'}).join('')+'<td class="cell-actions"><button type="button" data-row-act="add">新增</button></td></tr>';
   rows.forEach(function(r){
-    h+='<tr>'+cols.map(function(c){return '<td>'+cellHtml(c,r[c[0]],r.id,false)+'</td>'}).join('')+'<td class="cell-actions"><button type="button" data-row-act="save" data-r="'+esc(r.id)+'">儲存</button><button type="button" class="ghost danger" data-row-act="del" data-r="'+esc(r.id)+'">刪除</button></td></tr>';
+    h+='<tr>'+cols.map(function(c){return '<td>'+cellHtml(c,r[c[0]],r.id,false)+'</td>'}).join('')+'<td class="cell-actions"><button type="button" data-row-act="save" data-r="'+esc(r.id)+'">儲存</button>'+(t==='spots'?'<button type="button" class="ghost" data-row-act="refresh" data-r="'+esc(r.id)+'" title="向 Google 查詢這一筆的評分、座標與營業時間（若「地圖連結」欄貼了 Google 地圖連結，會以該連結的地點為準）">更新</button>':'')+'<button type="button" class="ghost danger" data-row-act="del" data-r="'+esc(r.id)+'">刪除</button></td></tr>';
   });
   $('adminBody').innerHTML=h+'</tbody></table></div>';
 }
@@ -184,6 +184,21 @@ function readRow(t,rid,isNew){
 async function rowAction(b){
   var t=DSUB,a=b.dataset.rowAct,rid=b.dataset.r;
   try{
+    if(a==='refresh'){
+      // 單筆更新：向 Google 查這一筆的評分、座標與營業時間。「地圖連結」欄若貼了 Google 地圖連結，以該連結的地點為準
+      b.disabled=true;aMsg('更新中…');
+      var mu=document.querySelector('#adminBody [data-c="maps_url"][data-r="'+(window.CSS&&CSS.escape?CSS.escape(String(rid)):rid)+'"]'),mv=mu?mu.value.trim():'';
+      var rr=await sb.functions.invoke('update-ratings',{body:{id:parseInt(rid,10),url:/^https:\/\/(maps\.app\.goo\.gl|goo\.gl|(www\.)?google\.[a-z.]+|maps\.google\.[a-z.]+)\//i.test(mv)&&mv.indexOf('/maps/search/?api=1')<0?mv:''}});
+      var dd=rr.data||{};
+      b.disabled=false;
+      if(rr.error)throw new Error(rr.error.message||'呼叫失敗');
+      if(dd.error==='not_configured')throw new Error('尚未設定 Google Places 金鑰（GOOGLE_PLACES_KEY）');
+      if(dd.error)throw new Error(dd.error);
+      await loadBuiltin();
+      if(dd.missed)aMsg('「'+dd.name+'」在 Google 找不到對應的地點。可以在「地圖連結」欄貼上該地點的 Google 地圖分享連結後再按「更新」。',true);
+      else aMsg('已更新「'+dd.name+'」（比對到：'+dd.matched+'，方式：'+dd.via+'）：評分 '+(dd.rating==null?'無':dd.rating)+'，座標 '+(dd.lat==null?'未取得':dd.lat.toFixed(5)+', '+dd.lng.toFixed(5))+'，營業時間 '+(dd.hours||'Google 沒有提供（維持原內容）'));
+      adminData();return;
+    }
     if(a==='del'){
       if(!b.dataset.sure){b.dataset.sure='1';b.textContent='確定刪除？';setTimeout(function(){delete b.dataset.sure;b.textContent='刪除'},4000);return}
       var d=await sb.from(t).delete().eq('id',rid);if(d.error)throw d.error;

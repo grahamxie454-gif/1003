@@ -21,7 +21,7 @@ function reqUi(ref,kind,attrs){
   return h+'<button type="button" class="ghost sm" data-act="req" data-kind="'+kind+'" '+attrs+'>申請收錄</button>';
 }
 function spotPayload(k,c){
-  return {name:c.name,tag:c.tag||'',district:c.d||'',style:c.s||'x',cost:c.cost||0,hours:c.hours||'',stay:(st.stay&&st.stay[c.id])||(c.s==='f'?75:60),url:c.url||'',rating:c.rating||null,
+  return {name:c.name,tag:c.tag||'',district:c.d||'',style:c.s||'x',cost:c.cost||0,hours:c.hours||'',stay:(st.stay&&st.stay[c.id])||c.stay||(c.s==='f'?75:60),url:c.url||'',rating:c.rating||null,
     lat:typeof c.lat==='number'?c.lat:null,lng:typeof c.lng==='number'?c.lng:null,descr:''};
 }
 // 回傳 {kind,ref,payload} 或 {err}

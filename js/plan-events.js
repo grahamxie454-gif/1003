@@ -92,10 +92,14 @@ on('pick','click',async function(e){
     }
     if(!nm&&info&&info.name)nm=info.name;
     if(!nm){setSave('請輸入地點名稱，或貼上含名稱的 Google 地圖連結。');return}
+    var sp0=info?placeToSpot(info,k,s.d):null;   // 還沒自動帶入就按新增時，用連結的資料補齊空白欄位
     var cost=parseInt($('cc_'+k).value,10),gv=$('cg_'+k).value.trim(),ll=gv?parseLL(gv):null;
     if(gv&&!ll){$('cg_'+k).setCustomValidity('座標格式錯誤');$('cg_'+k).reportValidity();$('cg_'+k).setCustomValidity('');return}
-    var spot={id:'x'+(++uid),name:nm,d:$('cl_'+k).value,cost:cost>0?cost:0,s:$('ct_'+k).value||'x'};
-    var tg=$('ctag_'+k).value.trim();if(tg)spot.tag=tg.slice(0,12);
+    if(isNaN(cost)&&sp0)cost=sp0.cost;
+    var spot={id:'x'+(++uid),name:nm,d:$('cl_'+k).value||(sp0&&sp0.district)||'',cost:cost>0?cost:0,s:$('ct_'+k).value||'x'};
+    if(spot.s==='x'&&sp0&&sp0.s!=='x')spot.s=sp0.s;
+    var tg=$('ctag_'+k).value.trim()||(sp0&&sp0.tag)||'';if(tg)spot.tag=tg.slice(0,12);
+    var sty=parseInt($('cst_'+k).value,10);if(isNaN(sty)&&sp0)sty=sp0.stay;if(sty>=15&&sty<=720)spot.stay=sty;
     var hr=$('chr_'+k).value.trim();
     if(!hr&&info&&info.hours)hr=info.hours;
     if(hr){if(!parseHours(hr)){setSave('營業時間格式不正確，請參考：一-五 10:00-18:00;六日 10:00-20:00;二休');return}spot.hours=hr.slice(0,300)}
@@ -359,7 +363,7 @@ on('pick','drop',function(e){
   render();
 });
 
-// ===== 新增景點：貼上 Google 地圖連結後，自動帶入名稱（與座標、評分） =====
+// ===== 新增景點：貼上 Google 地圖連結後，自動帶入名稱、類型、子分類、地區、座標、評分、營業時間、費用與停留時間 =====
 var PLACEINFO={};
 async function fillFromMapLink(inp){
   var k=inp.id.slice(3),url=inp.value.trim(),nameEl=$('cs_'+k);
@@ -371,13 +375,32 @@ async function fillFromMapLink(inp){
   try{
     var r=await sb.functions.invoke('trip-tools',{body:{action:'place',url:url}});
     var info=r.data&&!r.data.error?r.data:null;
-    if(!info||!info.name){setSave(local?'已帶入名稱（無法取得評分與座標）':'讀取連結失敗，請手動輸入名稱。');return}
+    if(!info||!info.name){setSave(local?'已帶入名稱（無法取得其他資料，請手動填寫）':'讀取連結失敗，請手動輸入名稱。');return}
     PLACEINFO[k]={url:url,info:info};
-    if(!nameEl.value.trim()||nameEl.value.trim()===local)nameEl.value=info.name;
-    var g=$('cg_'+k);
-    if(g&&!g.value.trim()&&typeof info.lat==='number')g.value=info.lat+', '+info.lng;
-    setSave('已帶入名稱：'+info.name+(info.rating?'・評分 ★'+info.rating:''));
-  }catch(err){setSave(local?'已帶入名稱（無法取得評分與座標）':'讀取連結失敗，請手動輸入名稱。')}
+    // 換了新連結 = 換了一個景點：整張表單的欄位都依這個地點重新帶入
+    var sp=placeToSpot(info,k,ensureSel(k).d),put=function(id,v){var el=$(id+k);if(el)el.value=v==null?'':v};
+    nameEl.value=sp.name;
+    put('cl_',sp.district);
+    if(sp.s!=='x')put('ct_',sp.s);
+    put('ctag_',sp.tag);
+    put('chr_',sp.hours);
+    put('cst_',sp.stay);
+    put('cc_',sp.cost>0?sp.cost:'');
+    if(sp.lat!=null)put('cg_',sp.lat+', '+sp.lng);
+    var got=['名稱'];
+    if(sp.s!=='x')got.push('類型「'+STYLE[sp.s]+'」'+(sp.tag?'・'+sp.tag:''));
+    if(sp.district)got.push('地區「'+sp.district+'」');
+    if(sp.lat!=null)got.push('座標');
+    if(sp.rating)got.push('評分 ★'+sp.rating);
+    if(sp.hours)got.push('營業時間');
+    if(sp.cost>0)got.push('每人約 NT$ '+sp.cost+'（估計）');
+    got.push('建議停留 '+sp.stay+' 分');
+    var miss=[];
+    if(sp.s==='x')miss.push('類型');
+    if(!sp.hours)miss.push('營業時間');
+    if(!(sp.cost>0))miss.push('每人費用（門票或餐費）');
+    setSave('已自動帶入：'+got.join('、')+'。'+(miss.length?'Google 沒有提供：'+miss.join('、')+'，可自行補填。':'')+'請確認後按「新增地點」。');
+  }catch(err){setSave(local?'已帶入名稱（無法取得其他資料，請手動填寫）':'讀取連結失敗，請手動輸入名稱。')}
 }
 on('pick','change',function(e){
   if(e.target.id&&e.target.id.indexOf('cu_')===0)fillFromMapLink(e.target);
