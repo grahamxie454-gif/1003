@@ -42,7 +42,7 @@ async function loadView(host,url){
   if(!r.ok)throw new Error('無法載入 '+url);
   host.innerHTML=await r.text();
 }
-var APP_VER='20261019';
+var APP_VER='20261020';
 
 // ===== Google 地圖：圖示與連結 =====
 // Maps JavaScript API 的瀏覽器金鑰（只用來顯示「當日所有地點」的地圖頁 map.html）。
@@ -57,6 +57,7 @@ function iconLink(href,svg,label){
   return '<a class="iconlink" href="'+esc(href)+'" target="_blank" rel="noopener" title="'+esc(label)+'" aria-label="'+esc(label)+'">'+svg+'</a>';
 }
 // 兩點之間的路徑。epoch（秒）有值時帶入出發時間（大眾運輸／開車）；步行不需要時間。
+// !7e2＝時間以「當地時間」從 1970/1/1 0:00 起算，所以 epoch 要用「旅遊當地的時鐘時間當成 UTC」換算，不可再扣時差。
 function dirLink(o,dst,mode,epoch){
   var seg=function(s){return encodeURIComponent(s).replace(/%20/g,'+')};
   var m=({walk:'!3e2',drive:'!3e0'})[mode]||'!3e3';

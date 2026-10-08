@@ -44,11 +44,29 @@ function dayDateISO(no){
   var toMon=((8-new Date(today).getUTCDay())%7)||7;            // 到下週一的天數
   return new Date(today+(toMon+((w+6)%7))*864e5).toISOString().slice(0,10);
 }
-// 出發時間：回傳 ISO（含時區）與 epoch 秒；at 為當天第幾分鐘，取 15 分鐘為單位
+// 出發時間：iso＝旅遊當地時區的時間（含當地時差，歐美會依日期自動套用夏令時間）；epoch＝給 Google 地圖網址用，
+// 網址的 !7e2 代表「以當地時間從 1970/1/1 0:00 起算」，所以 epoch 是「當地時間當成 UTC」換算的秒數，不能再扣掉時差。
+// at 為當天第幾分鐘，取 15 分鐘為單位
+var ZONE={jp:'Asia/Tokyo',kr:'Asia/Seoul',tw:'Asia/Taipei',sg:'Asia/Singapore',th:'Asia/Bangkok',fr:'Europe/Paris',it:'Europe/Rome',uk:'Europe/London',us:'America/New_York'};
+function zoneOffsetMin(zone,utcMs){
+  var p={};
+  new Intl.DateTimeFormat('en-US',{timeZone:zone,hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).formatToParts(new Date(utcMs)).forEach(function(x){p[x.type]=x.value});
+  return Math.round((Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second)-utcMs)/60000);
+}
+function localOffsetMin(co,date,hm){
+  var zone=ZONE[co],guess=Date.parse(date+'T'+hm+':00Z');
+  if(zone){
+    try{
+      var off=zoneOffsetMin(zone,guess),off2=zoneOffsetMin(zone,guess-off*60000);
+      return off2;
+    }catch(e){}
+  }
+  return (TZ[co]!==undefined?TZ[co]:8)*60;
+}
 function depFor(no,co,at){
-  var m=Math.min(1425,Math.max(0,Math.round(at/15)*15)),tz=TZ[co]!==undefined?TZ[co]:8,pad=function(n){return ('0'+n).slice(-2)};
-  var date=dayDateISO(no),hm=pad(Math.floor(m/60))+':'+pad(m%60);
-  return {iso:date+'T'+hm+':00'+(tz<0?'-':'+')+pad(Math.abs(tz))+':00',epoch:Math.floor(Date.parse(date+'T'+hm+':00Z')/1000)-tz*3600};
+  var m=Math.min(1425,Math.max(0,Math.round(at/15)*15)),pad=function(n){return ('0'+n).slice(-2)};
+  var date=dayDateISO(no),hm=pad(Math.floor(m/60))+':'+pad(m%60),off=localOffsetMin(co,date,hm),ao=Math.abs(off);
+  return {iso:date+'T'+hm+':00'+(off<0?'-':'+')+pad(Math.floor(ao/60))+':'+pad(ao%60),epoch:Math.floor(Date.parse(date+'T'+hm+':00Z')/1000)};
 }
 function leg(fq,tq,a,b,ms,at,estO){
   var fx=estO?null:(airportLeg(fq,tq,a,b,ms,at)||ferryLeg(fq,tq,a,b,ms,at));if(fx)return fx;
