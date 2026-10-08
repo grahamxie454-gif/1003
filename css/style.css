@@ -372,3 +372,23 @@ button.iconbtn.spin svg{animation:rot 1s linear infinite}
 @media(max-width:560px){.who #whoRole{display:none}.curview{display:none}}
 .hrs{color:var(--muted);font-size:12px}
 .hrs.closed{color:var(--stamp);font-weight:700}
+/* 內建資料：一筆一張卡片，欄位自動換行；左邊是圖示功能列，窄螢幕時垂直排列 */
+.recs{display:flex;flex-direction:column;gap:10px}
+.rec{display:grid;grid-template-columns:auto 1fr;gap:12px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.rec.new{border-style:dashed}
+.recact{display:flex;flex-direction:row;flex-wrap:wrap;gap:6px;align-content:flex-start;width:122px}
+.recf{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px;min-width:0}
+.rf{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted);min-width:0}
+.rf.wide{grid-column:span 2}
+.rf input,.rf select,.rf textarea{width:100%;min-width:0}
+.rf textarea{min-height:64px}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;border-radius:8px;background:transparent;color:var(--ink,inherit);border:1px solid var(--line)}
+.ib:hover{background:rgba(127,127,127,.2)}
+.ib.danger{color:var(--stamp)}
+.ib.armed{background:var(--stamp);color:#fff;border-color:var(--stamp)}
+.ib:disabled{opacity:.5}
+@media(max-width:640px){
+  .rec{grid-template-columns:auto 1fr;gap:8px}
+  .recact{flex-direction:column;flex-wrap:nowrap;width:auto}
+  .rf.wide{grid-column:auto}
+}

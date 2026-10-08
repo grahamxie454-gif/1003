@@ -130,18 +130,33 @@ function adminData(){
     rows=rows.filter(function(r){return String(r.district_id)===String(AF.district)});
   }
   var h='<div class="tabs" id="dsubs">'+DT.map(function(x){return '<button type="button" class="tab'+(x===t?' on':'')+'" data-dsub="'+x+'">'+DTL[x]+'</button>'}).join('')+'</div>'+
-    '<div class="adminbar" style="margin:12px 0">'+filt+(t==='spots'?'<button type="button" class="ghost" id="updRatings">更新評價與座標（每次最多 30 筆）</button>':'')+'<span class="muted">修改後按該列的「儲存」。刪除國家、城市或地區會一併刪除底下的內容。</span></div>'+
-    '<div class="tblwrap"><table class="t"><thead><tr>'+cols.map(function(c){return '<th>'+esc(c[1])+'</th>'}).join('')+'<th></th></tr></thead><tbody>';
-  // 新增列
+    '<div class="adminbar" style="margin:12px 0">'+filt+(t==='spots'?'<button type="button" class="ghost" id="updRatings">批次更新評價、座標與營業時間（每次最多 30 筆）</button>':'')+'<span class="muted">修改後按該筆左邊的儲存圖示。新增景點時，貼上 Google 地圖連結會自動帶入完整資料。刪除國家、城市或地區會一併刪除底下的內容。</span></div>';
+  // 新增
   var defaults={};
   if(t==='cities'){defaults.country_id=AF.country||(DB.countries[0]&&DB.countries[0].id)}
   if(t==='districts')defaults.city_id=AF.city;
   if(t==='spots')defaults.district_id=AF.district;
-  h+='<tr class="new">'+cols.map(function(c){return '<td>'+cellHtml(c,defaults[c[0]],'new',true)+'</td>'}).join('')+'<td class="cell-actions"><button type="button" data-row-act="add">新增</button></td></tr>';
-  rows.forEach(function(r){
-    h+='<tr>'+cols.map(function(c){return '<td>'+cellHtml(c,r[c[0]],r.id,false)+'</td>'}).join('')+'<td class="cell-actions"><button type="button" data-row-act="save" data-r="'+esc(r.id)+'">儲存</button>'+(t==='spots'?'<button type="button" class="ghost" data-row-act="refresh" data-r="'+esc(r.id)+'" title="向 Google 查詢這一筆的評分、座標與營業時間（若「地圖連結」欄貼了 Google 地圖連結，會以該連結的地點為準）">更新</button>':'')+'<button type="button" class="ghost danger" data-row-act="del" data-r="'+esc(r.id)+'">刪除</button></td></tr>';
-  });
-  $('adminBody').innerHTML=h+'</tbody></table></div>';
+  h+='<div class="recs">'+recHtml(cols,defaults,t,true);
+  rows.forEach(function(r){h+=recHtml(cols,r,t,false)});
+  $('adminBody').innerHTML=h+'</div>';
+}
+// 圖示按鈕（左邊的功能列）
+var AICON={
+  save:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>',
+  del:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>',
+  add:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>'
+};
+function iconBtn(act,rid,title,svg,cls){return '<button type="button" class="ib'+(cls?' '+cls:'')+'" data-row-act="'+act+'" data-r="'+esc(rid)+'" title="'+esc(title)+'" aria-label="'+esc(title)+'">'+svg+'</button>'}
+var WIDE_COLS={descr:1,maps_url:1,hours:1,tips:1,drive:1,season:1,fh:1};
+// 一筆資料 = 一張卡片：左邊是圖示功能列，右邊的欄位依視窗寬度自動分成多列；視窗太窄時，圖示在最左邊垂直排列
+function recHtml(cols,r,t,isNew){
+  var rid=isNew?'new':r.id,acts=isNew?iconBtn('add','new','新增',AICON.add):
+    iconBtn('save',rid,'儲存',AICON.save)+(t==='spots'?iconBtn('refresh',rid,'向 Google 更新這一筆的評分、座標與營業時間（若「地圖連結」欄貼了 Google 地圖連結，會以該連結的地點為準）',ICON_REFRESH):'')+iconBtn('del',rid,'刪除',AICON.del,'danger');
+  var f=cols.map(function(c){
+    if(c[2]==='auto'&&isNew)return '';
+    return '<label class="rf'+(WIDE_COLS[c[0]]||c[2]==='lines'?' wide':'')+'"><span>'+esc(c[1])+'</span>'+cellHtml(c,r[c[0]],rid,isNew)+'</label>';
+  }).join('');
+  return '<div class="rec'+(isNew?' new':'')+'" data-rec="'+esc(rid)+'"><div class="recact">'+acts+'</div><div class="recf">'+f+'</div></div>';
 }
 document.addEventListener('click',async function(e){
   var ub=e.target.closest('#updRatings');
@@ -162,7 +177,7 @@ document.addEventListener('click',async function(e){
 });
 function readRow(t,rid,isNew){
   var cols=colsFor(t),o={};
-  var root=isNew?document.querySelector('#adminBody tr.new'):document.querySelector('#adminBody [data-r="'+(window.CSS&&CSS.escape?CSS.escape(String(rid)):rid)+'"]').closest('tr');
+  var root=isNew?document.querySelector('#adminBody .rec.new'):document.querySelector('#adminBody [data-r="'+(window.CSS&&CSS.escape?CSS.escape(String(rid)):rid)+'"]').closest('.rec');
   for(var i=0;i<cols.length;i++){
     var c=cols[i],el=root.querySelector('[data-c="'+c[0]+'"]');
     if(!el)continue;
@@ -200,11 +215,15 @@ async function rowAction(b){
       adminData();return;
     }
     if(a==='del'){
-      if(!b.dataset.sure){b.dataset.sure='1';b.textContent='確定刪除？';setTimeout(function(){delete b.dataset.sure;b.textContent='刪除'},4000);return}
+      if(!b.dataset.sure){b.dataset.sure='1';b.classList.add('armed');b.title='再按一次確認刪除';aMsg('再按一次刪除圖示，確認刪除。',true);setTimeout(function(){delete b.dataset.sure;b.classList.remove('armed');b.title='刪除'},4000);return}
       var d=await sb.from(t).delete().eq('id',rid);if(d.error)throw d.error;
     }else{
       var o=readRow(t,rid,a==='add');
-      if(a==='add'){var i=await sb.from(t).insert(o);if(i.error)throw i.error}
+      if(a==='add'){
+        // 用 Google 地圖連結自動帶入時，一併記下 place id，之後的批次或單筆更新就不會配對錯店
+        var root=document.querySelector('#adminBody .rec.new');
+        if(t==='spots'&&root&&root.dataset.pid){o.place_id=root.dataset.pid;o.rated_at=o.hours_at=new Date().toISOString()}
+        var i=await sb.from(t).insert(o);if(i.error)throw i.error}
       else{delete o.id;var u=await sb.from(t).update(o).eq('id',rid);if(u.error)throw u.error}
     }
     await loadBuiltin();aMsg('已儲存');adminData();
@@ -267,4 +286,48 @@ on('adminBody','click',async function(e){
     }
     await adminRequests();
   }catch(err){aMsg('操作失敗：'+(err.message||err),true);btn.disabled=false}
+});
+
+// ===== 內建資料新增景點：貼上 Google 地圖連結後，自動查詢並填入完整資料 =====
+// 名稱、類型、子分類、說明、座標、評分、營業時間、每人概估費用、建議停留時間與最接近的地區
+on('adminBody','change',async function(e){
+  var el=e.target;
+  if(ASUB!=='data'||DSUB!=='spots'||!el.dataset||el.dataset.c!=='maps_url'||el.dataset.r!=='new')return;
+  var url=el.value.trim(),root=el.closest('.rec');
+  if(!url||!root)return;
+  if(!/^https:\/\/(maps\.app\.goo\.gl|goo\.gl|(www\.)?google\.[a-z.]+|maps\.google\.[a-z.]+)\//i.test(url)){aMsg('請貼上 Google 地圖的分享連結。',true);return}
+  aMsg('正在向 Google 查詢景點資訊…');
+  try{
+    var r=await sb.functions.invoke('trip-tools',{body:{action:'place',url:url}});
+    var info=r.data&&!r.data.error?r.data:null;
+    if(!info||!info.name){aMsg('讀取連結失敗，請確認連結，或手動輸入。',true);return}
+    var sp=placeToSpot(info,AF.city,[]);
+    var put=function(c,v){var x=root.querySelector('[data-c="'+c+'"]');if(x)x.value=(v==null?'':v)};
+    put('name',sp.name.slice(0,60));
+    if(sp.s!=='x')put('style',sp.s);
+    put('tag',sp.tag);put('cost',sp.cost>0?sp.cost:0);put('stay',sp.stay);
+    put('rating',sp.rating);put('hours',sp.hours);
+    put('descr',(info.summary||'').slice(0,80));
+    if(sp.lat!=null){put('lat',sp.lat);put('lng',sp.lng)}
+    // 最接近的地區（同一個城市、30 公里內）
+    var best='',bd=30;
+    if(sp.lat!=null)DB.districts.filter(function(d){return d.city_id===AF.city&&typeof d.lat==='number'}).forEach(function(d){var k=hav([sp.lat,sp.lng],[d.lat,d.lng]);if(k<bd){bd=k;best=d.id}});
+    if(best!==''){put('district_id',best);AF.district=String(best)}
+    root.dataset.pid=info.placeId||'';
+    var got=['名稱'];
+    if(sp.s!=='x')got.push('類型「'+STYLE[sp.s]+'」'+(sp.tag?'・'+sp.tag:''));
+    if(best!=='')got.push('地區「'+(DB.districts.filter(function(d){return d.id===best})[0]||{}).name+'」');
+    if(sp.lat!=null)got.push('座標');
+    if(sp.rating)got.push('評分 ★'+sp.rating);
+    if(sp.hours)got.push('營業時間');
+    if(info.summary)got.push('說明');
+    if(sp.cost>0)got.push('每人約 NT$ '+sp.cost+'（估計）');
+    got.push('建議停留 '+sp.stay+' 分');
+    var miss=[];
+    if(sp.s==='x')miss.push('類型');
+    if(!sp.hours)miss.push('營業時間');
+    if(!(sp.cost>0))miss.push('每人費用（門票或餐費）');
+    if(!info.summary)miss.push('說明');
+    aMsg('已自動帶入：'+got.join('、')+'。'+(miss.length?'Google 沒有提供：'+miss.join('、')+'，可自行補填。':'')+'確認後按左邊的「＋」新增。');
+  }catch(err){aMsg('查詢失敗：'+(err.message||err),true)}
 });
