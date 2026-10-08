@@ -73,7 +73,12 @@ function leg(fq,tq,a,b,ms,at,estO){
   var est=estO||((inAnyIsle(a)&&inAnyIsle(b))?islandWalk(a,b):localLeg(a,b,ms)),g=gMode(est.mode),dep=g==='TRANSIT'?depFor(LEGDAY,LEGCO,at||0).iso:'',nav=(g==='TRANSIT'&&LEGCO==='jp'&&!(st.prov&&st.prov[fq+'>'+tq]==='G'));   // 日本預設用 NAVITIME，每段可改選 Google
   var tmv=(!nav&&g==='TRANSIT')?transitModes():[];   // Google：依所選交通工具限定搭乘種類（沒選或含渡輪＝不限）
   var key=(nav?'NAVI':g)+'|'+fq+'|'+tq+(dep?'|'+dep:'')+(tmv.length?'|M'+tmv.join('.'):''),h=ROUTE[key],out;
-  if(h)out={km:h.m/1000,min:Math.max(15,Math.round(h.s/60/15)*15),mode:est.mode,g:true,fare:h.f||0,src:nav?'NAVITIME':'Google'};
+  // 實際查到的時間以 5 分鐘為單位顯示（太粗的單位會讓短程接駁變得不準，例如 20 分鐘不能變成 15 分鐘）
+  if(h){
+    out={km:h.m/1000,min:Math.max(5,Math.round(h.s/60/5)*5),mode:est.mode,g:true,fare:h.f||0,src:nav?'NAVITIME':'Google'};
+    // Google 不提供票價：機場接駁等有固定票價的路段，沿用資料庫的費用（例如免費接駁巴士 NT$0），不要改用平均交通費
+    if(!(h.f>0)&&estO&&estO.twd>=0){out.twd=estO.twd;out.tbl=true}
+  }
   else out=est;
   out.key=key;out.req={key:key,mode:g,prov:nav?'NAVI':'',from:fq,to:tq,dep:dep,tm:tmv};
   return out;
