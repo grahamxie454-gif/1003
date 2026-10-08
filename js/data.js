@@ -45,6 +45,7 @@ function openTrip(row){
   if(s.lay&&typeof s.lay==='object')st.lay=s.lay;
   if(s.fix&&typeof s.fix==='object')st.fix=s.fix;
   if(s.fixSeq&&typeof s.fixSeq==='object')st.fixSeq=s.fixSeq;
+  if(s.prov&&typeof s.prov==='object')st.prov=s.prov;
   sel=d.sel||{};uid=d.uid||0;cuid=d.cuid||0;DAYS=d.days||{};OPEN={};
   if(Array.isArray(s.flights)){
     st.flights=s.flights.map(function(f){return Object.assign({},f)});

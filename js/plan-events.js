@@ -260,7 +260,7 @@ on('res','drop',function(e){
   DRAG=null;clearMarks();
   moveSpot(id,ol.dataset.day,i);
 });
-on('res','click',function(e){
+on('res','click',async function(e){
   var b=e.target.closest('button[data-act]');
   if(!b)return;
   var a=b.dataset.act,id=b.dataset.id;
@@ -271,6 +271,23 @@ on('res','click',function(e){
     if(st.fix&&st.fix[arr[j]]){setSave('相鄰的項目已固定，無法交換。');return}
     var t=arr[i];arr[i]=arr[j];arr[j]=t;
     st.lay=L;render();
+  }else if(a==='prov'){
+    // 這一段改用 Google 或 NAVITIME 估算；已查過就直接用快取，沒查過就只查這一段
+    if(b.disabled||ROUTE_BUSY)return;
+    st.prov=st.prov||{};
+    var pk=b.dataset.fq+'>'+b.dataset.tq;
+    st.prov[pk]=b.dataset.p;
+    render();
+    var dn=+b.dataset.no,pd=plan().days.filter(function(x){return x.no===dn})[0];
+    var prow=pd&&pd.rows.filter(function(r){return r.type==='move'&&r.fromQ===b.dataset.fq&&r.toQ===b.dataset.tq})[0];
+    if(prow&&!prow.lg.g&&sb){
+      ROUTE_BUSY=true;ROUTE_DAY=dn;
+      setRouteMsg('正在用 '+(b.dataset.p==='N'?'NAVITIME':'Google 地圖')+' 查詢這一段…');
+      var pres;
+      try{pres=await askRoutes([prow.lg.req])}catch(err){pres={stop:'路線查詢失敗：'+(err.message||err)}}
+      ROUTE_BUSY=false;render(true);
+      setRouteMsg(pres.stop||(pres.got?'已更新這一段（'+(b.dataset.p==='N'?'NAVITIME':'Google 地圖')+'）。':'這一段查不到路線，維持估算'+(pres.lastErr?'：'+pres.lastErr:'')+'。'));
+    }
   }else if(a==='calcday'){
     calcDay(+b.dataset.no);
   }else if(a==='hrefresh'){

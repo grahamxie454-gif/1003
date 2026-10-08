@@ -42,7 +42,7 @@ async function loadView(host,url){
   if(!r.ok)throw new Error('無法載入 '+url);
   host.innerHTML=await r.text();
 }
-var APP_VER='20261017';
+var APP_VER='20261018';
 
 // ===== Google 地圖：圖示與連結 =====
 // Maps JavaScript API 的瀏覽器金鑰（只用來顯示「當日所有地點」的地圖頁 map.html）。
@@ -51,6 +51,7 @@ var APP_VER='20261017';
 var GMAPS_KEY='AIzaSyAtXgb-DvkObH-kRRYeEnGE1-XN02BS_NU';
 var ICON_PIN='<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="#ea4335" d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.6" fill="#fff"/></svg>';
 var ICON_ROUTE='<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="none" stroke="#1a73e8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM18 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 17h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6"/></svg>';
+var ICON_NAVI='<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><rect x="5" y="3" width="14" height="14" rx="3" fill="none" stroke="#00a0a0" stroke-width="2"/><path d="M5 11h14M9 21l2-4M15 21l-2-4" fill="none" stroke="#00a0a0" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="14" r="1.2" fill="#00a0a0"/><circle cx="15" cy="14" r="1.2" fill="#00a0a0"/></svg>';
 var ICON_REFRESH='<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>';
 function iconLink(href,svg,label){
   return '<a class="iconlink" href="'+esc(href)+'" target="_blank" rel="noopener" title="'+esc(label)+'" aria-label="'+esc(label)+'">'+svg+'</a>';

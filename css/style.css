@@ -392,3 +392,7 @@ button.iconbtn.spin svg{animation:rot 1s linear infinite}
   .recact{flex-direction:column;flex-wrap:nowrap;width:auto}
   .rf.wide{grid-column:auto}
 }
+.provsw{display:inline-flex;gap:3px;margin-left:6px;vertical-align:middle}
+button.iconbtn.pv{width:24px;height:24px;border-radius:5px}
+button.iconbtn.pv.on{background:var(--accent);border-color:var(--accent)}
+button.iconbtn.pv:not(.on){opacity:.6}

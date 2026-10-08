@@ -44,7 +44,7 @@ function depFor(no,co,at){
 }
 function leg(fq,tq,a,b,ms,at,estO){
   var fx=estO?null:(airportLeg(fq,tq,a,b,ms,at)||ferryLeg(fq,tq,a,b,ms,at));if(fx)return fx;
-  var est=estO||((inAnyIsle(a)&&inAnyIsle(b))?islandWalk(a,b):localLeg(a,b,ms)),g=gMode(est.mode),dep=g==='TRANSIT'?depFor(LEGDAY,LEGCO,at||0).iso:'',nav=(g==='TRANSIT'&&LEGCO==='jp');
+  var est=estO||((inAnyIsle(a)&&inAnyIsle(b))?islandWalk(a,b):localLeg(a,b,ms)),g=gMode(est.mode),dep=g==='TRANSIT'?depFor(LEGDAY,LEGCO,at||0).iso:'',nav=(g==='TRANSIT'&&LEGCO==='jp'&&!(st.prov&&st.prov[fq+'>'+tq]==='G'));   // 日本預設用 NAVITIME，每段可改選 Google
   var key=(nav?'NAVI':g)+'|'+fq+'|'+tq+(dep?'|'+dep:''),h=ROUTE[key],out;
   if(h)out={km:h.m/1000,min:Math.max(15,Math.round(h.s/60/15)*15),mode:est.mode,g:true,fare:h.f||0,src:nav?'NAVITIME':'Google'};
   else out=est;

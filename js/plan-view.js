@@ -166,7 +166,7 @@ function rowHtml(r,d,p){
     b='<input type="text" class="freetxt" data-no="'+d.no+'" data-tk="'+r.key+'" maxlength="40" value="'+esc(txtOf(d,r.key,''))+'" placeholder="自行安排行程（可改文字）" aria-label="空檔安排"> <label class="stayin"><input type="number" min="5" max="720" step="5" data-no="'+d.no+'" data-gapkey="'+r.key+'" value="'+(r.end-r.start)+'" aria-label="空檔分鐘"> 分</label> <button type="button" class="ghost sm x" data-act="gapdel" data-no="'+d.no+'" data-key="'+r.key+'" aria-label="刪除這段空檔">✕</button>';
   }
   else if(r.type==='hop'){cls='mv';b='<span class="soft">↓ '+MNAME[r.hop.mode]+'前往'+esc(C[r.hop.to].n)+'・約 '+fmtMin(r.hop.min)+'・約 '+fmtKm(r.hop.km)+'・約 '+fmt(r.hop.cost)+'</span>'}
-  else if(r.type==='move'){cls='mv';b='<span class="soft">↓ '+MNAME[r.lg.mode]+'約 '+fmtMin(r.lg.min)+'・約 '+fmtKm(r.lg.km)+(r.cost?'・約 NT$ '+r.cost:'')+'・前往 '+esc(r.to)+(r.lg.g?' <span class="gtag">'+(r.lg.src||'Google')+'</span>':' <span class="gtag est">'+(r.lg.tbl?'機場交通參考值':'估算')+'</span>')+' '+iconLink(inf.link,ICON_ROUTE,'路徑（Google 地圖，帶入出發時間）')+'</span>'}
+  else if(r.type==='move'){cls='mv';b='<span class="soft">↓ '+MNAME[r.lg.mode]+'約 '+fmtMin(r.lg.min)+'・約 '+fmtKm(r.lg.km)+(r.cost?'・約 NT$ '+r.cost:'')+'・前往 '+esc(r.to)+(r.lg.g?' <span class="gtag">'+(r.lg.src||'Google')+'</span>':' <span class="gtag est">'+(r.lg.tbl?'機場交通參考值':'估算')+'</span>')+' '+iconLink(inf.link,ICON_ROUTE,'路徑（Google 地圖，帶入出發時間）')+provBtns(r,d)+'</span>'}
   else if(r.type==='meal'){
     cls='ml';
     if(r.s){
@@ -234,3 +234,11 @@ function render(skipSave){
 function rebuildAll(skipSave){normalize();buildStatic();buildCities();renderOrder();buildAdder();renderFlights();render(skipSave)}
 
 
+
+// 大眾運輸路段：選擇用 Google 地圖或 NAVITIME 估算（NAVITIME 只有日本可用）
+function provBtns(r,d){
+  if(!(r.lg.req&&r.lg.req.mode==='TRANSIT'&&r.fromQ&&r.toQ))return '';
+  var jp=!!(C[d.city]&&C[d.city].co==='jp'),cur=r.lg.req.prov==='NAVI'?'N':'G';
+  var btn=function(p,ic,tip,dis){return '<button type="button" class="iconbtn pv'+(cur===p?' on':'')+'" data-act="prov" data-p="'+p+'" data-no="'+d.no+'" data-fq="'+esc(r.fromQ)+'" data-tq="'+esc(r.toQ)+'" title="'+tip+'" aria-label="'+tip+'" aria-pressed="'+(cur===p)+'"'+(dis?' disabled':'')+'>'+ic+'</button>'};
+  return '<span class="provsw" role="group" aria-label="這一段的路線估算來源">'+btn('G',ICON_PIN,'用 Google 地圖估算這一段',false)+btn('N',ICON_NAVI,jp?'用 NAVITIME 估算這一段':'NAVITIME 只支援日本',!jp)+'</span>';
+}
