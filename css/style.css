@@ -370,3 +370,5 @@ button.iconbtn.spin svg{animation:rot 1s linear infinite}
 .menupop .mi.sub{padding-left:28px}
 .menupop .mgroup{padding:10px 12px 4px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);margin-top:4px}
 @media(max-width:560px){.who #whoRole{display:none}.curview{display:none}}
+.hrs{color:var(--muted);font-size:12px}
+.hrs.closed{color:var(--stamp);font-weight:700}

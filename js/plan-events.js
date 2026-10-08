@@ -96,6 +96,9 @@ on('pick','click',async function(e){
     if(gv&&!ll){$('cg_'+k).setCustomValidity('座標格式錯誤');$('cg_'+k).reportValidity();$('cg_'+k).setCustomValidity('');return}
     var spot={id:'x'+(++uid),name:nm,d:$('cl_'+k).value,cost:cost>0?cost:0,s:$('ct_'+k).value||'x'};
     var tg=$('ctag_'+k).value.trim();if(tg)spot.tag=tg.slice(0,12);
+    var hr=$('chr_'+k).value.trim();
+    if(!hr&&info&&info.hours)hr=info.hours;
+    if(hr){if(!parseHours(hr)){setSave('營業時間格式不正確，請參考：一-五 10:00-18:00;六日 10:00-20:00;二休');return}spot.hours=hr.slice(0,300)}
     if(url)spot.url=url;
     if(!ll&&info&&typeof info.lat==='number')ll=[info.lat,info.lng];
     if(ll){spot.lat=ll[0];spot.lng=ll[1]}

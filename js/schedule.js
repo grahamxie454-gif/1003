@@ -172,9 +172,12 @@ function simDay(o){
     rows.push({type:'buffer',text:'辦理入住或寄放行李',start:t,end:t+30});t+=30;
   }
   // 自動挑餐廳：優先挑當天景點同地區、離目前位置最近的
-  function pickFood(){
+  function pickFood(m){
     if(o.noPick||!o.food.length)return null;
-    var idx=o.food.map(function(f,i){return i}),pref=idx.filter(function(i){return dayD[o.food[i].dist]});
+    // 只挑「當天、用餐時段有營業」的餐廳（沒提供營業時間的不受限制）
+    var est=Math.max(t,m?m.lo:t),idx=o.food.map(function(f,i){return i}).filter(function(i){var ft=openFit(o.food[i],o.no,est,m?m.dur:75);return !!ft&&!ft.short&&ft.start<=est+30});
+    if(!idx.length)return null;
+    var pref=idx.filter(function(i){return dayD[o.food[i].dist]});
     if(!pref.length&&q[0]&&!isFood(q[0]))pref=idx.filter(function(i){return o.food[i].dist===q[0].dist});
     if(!pref.length)pref=idx;
     var best=pref[0];
@@ -192,12 +195,13 @@ function simDay(o){
     return {len:len,row:{type:'free',key:k,start:a,end:a+len,nat:nat}};
   }
   function meal(m,maxGap){
-    var rest=pickFood();
+    var rest=pickFood(m);
     if(!rest&&onIsle())leaveIsle();   // 離島上沒有指定餐廳時，先回本島再用餐
-    var tgt=rest?spotLL(rest):cur;
+    var tgt=rest?spotLL(rest):cur,lo=m.lo;
     var lg=(cur&&rest)?leg(curQ,mapQ(rest),cur,tgt,ms,t):null,arr=t+(lg?lg.min:0);
     if(rest&&m.lo-arr>maxGap){o.food.unshift(rest);rest=null;tgt=cur;lg=null;arr=t}
-    var g=gapLen(arr,Math.max(arr,m.lo)),s0=arr+g.len;
+    if(rest){var sMeal=Math.max(arr,m.lo),fitR=openFit(rest,o.no,sMeal,(st.stay&&st.stay[rest.id])||m.dur);if(!fitR||fitR.short||fitR.start>sMeal+30){o.food.unshift(rest);rest=null;tgt=cur;lg=null;arr=t}else lo=Math.max(lo,fitR.start)}   // 到了還沒開／快打烊：改成自行安排用餐
+    var g=gapLen(arr,Math.max(arr,lo)),s0=arr+g.len;
     var dur=rest?((st.stay&&st.stay[rest.id])||m.dur):(MMIN[m.k]||m.dur),en=s0+dur;
     if(s0>m.hi||en>o.end){if(rest)o.food.unshift(rest);return false}
     if(rest&&o.endLoc){var rr=leg(mapQ(rest),o.endLoc.q,tgt,llOf(o.endLoc,tgt),ms,en);if(rr.min>=600){o.food.unshift(rest);return false}}   // 離島餐廳：吃完要趕得上回程船
@@ -220,24 +224,31 @@ function simDay(o){
     if(isFood(x)){
       // 人為放入的餐廳：照順序排，超出用餐時段會標示紅框
       while(meals.length&&arr>meals[0].hi)meals.shift();
-      var mm=meals[0],en2=arr+((st.stay&&st.stay[x.id])||75),over2=!mm||arr<mm.lo||arr>mm.hi;
+      var dur2=(st.stay&&st.stay[x.id])||75,fitF=openFit(x,o.no,arr,dur2),arr0F=arr;
+      if(fitF){arr=fitF.start;dur2=fitF.stay}
+      var mm=meals[0],en2=arr+dur2,over2=!mm||arr<mm.lo||arr>mm.hi;
       if(mm)meals.shift();
       if(lg)mv(lg,x.name,xq,t);
-      rows.push({type:'meal',n:mm?mm.n:'用餐',key:'f_'+x.id,s:x,start:arr,end:en2,cost:x.cost,over:over2});
+      if(fitF&&arr>arr0F)rows.push({type:'buffer',text:'等候開店（'+hm(arr)+' 開始營業）',start:arr0F,end:arr});
+      rows.push({type:'meal',n:mm?mm.n:'用餐',key:'f_'+x.id,s:x,start:arr,end:en2,cost:x.cost,over:over2||!fitF,closed:!fitF,short:!!(fitF&&fitF.short)});
       cost+=x.cost;curLoc=null;cur=tgt;curName=x.name;curQ=xq;t=en2;q.shift();
       if(onIsle()&&!(q[0]&&inAnyIsle(spotLL(q[0]))))leaveIsle();
       continue;
     }
-    var d=stayOf(x),en=arr+d;
+    var d=stayOf(x),arr0=arr,fit=openFit(x,o.no,arr,d);
+    // 營業時間：還沒開就等（最多 90 分鐘）、快打烊就縮短停留；當天公休或時間對不上就排不進來
+    if(fit){arr=fit.start;d=fit.stay;if(arr>arr0)ret=o.endLoc?leg(xq,o.endLoc.q,tgt,llOf(o.endLoc,tgt),ms,arr+d).min:0}
+    var en=arr+d,closed=!fit;
     if(m&&q.filter(isFood).length<meals.length){
       if(d>=240&&arr<m.hi&&en>m.lo)meals.shift();
       else if(en>m.hi-45&&m.lo-t<=60){meal(m,60);meals.shift();continue}
     }
     var over=en+ret>o.end;
-    // 自動排程：放不下就留在未排入；固定或手動排入的景點一律排入，超時會標示
-    if(over&&!o.force&&!x.pin){skipped.push(q.shift());continue}
+    // 自動排程：放不下（或不在營業時間內）就留在未排入；固定或手動排入的景點一律排入，超時或不在營業時間內會標示
+    if((over||closed)&&!o.force&&!x.pin){skipped.push(q.shift());continue}
     if(lg)mv(lg,x.name,xq,t);
-    rows.push({type:'sight',s:x,start:arr,end:en,cost:x.cost,over:over});
+    if(fit&&arr>arr0)rows.push({type:'buffer',text:'等候開放（'+hm(arr)+' 開始營業）',start:arr0,end:arr});
+    rows.push({type:'sight',s:x,start:arr,end:en,cost:x.cost,over:over||closed,closed:closed,short:!!(fit&&fit.short)});
     cost+=x.cost;sights++;dayD[x.dist]=1;curLoc=null;cur=tgt;curName=x.name;curQ=xq;t=en;q.shift();
     if(onIsle()&&!(q[0]&&inAnyIsle(spotLL(q[0]))))leaveIsle();
   }
@@ -256,7 +267,8 @@ function simDay(o){
   return {rows:rows,rest:skipped.concat(q),cost:cost,travel:travel,end:t};
 }
 // 自動排程時挑出當天的景點：只取同一個地區的景點（依樹狀清單的地區順序）
-function pickExtras(rem,pinned,cap){
+function pickExtras(rem,pinned,cap,dn){
+  rem=rem.filter(function(x){return openThatDay(x,dn)});   // 當天公休的景點留給其他天
   // 預設同一天只排一個地區；有空檔時，由使用者自行把另一個地區的景點指派進來（最多兩區）
   var D=[];
   pinned.forEach(function(x){if(!isFood(x)&&D.indexOf(x.dist)<0)D.push(x.dist)});
@@ -367,7 +379,7 @@ function plan(){
           var pin=pinnedFor(dn),left2=0;
           for(var q2=dn;q2<=lastDay;q2++)if(!(DAYS[q2]&&DAYS[q2].off))left2++;
           var capDay=(greedy||left2<=1)?99:Math.max(1,Math.ceil(rem.length/left2));
-          var extras=pickExtras(rem,pin,capDay);
+          var extras=pickExtras(rem,pin,capDay,dn);
           queue=pin.concat(extras);cap=99;
           if(extras.length>capDay)cap=pin.filter(function(x){return !isFood(x)}).length+capDay;
         }
