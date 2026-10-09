@@ -1,9 +1,10 @@
       <div class="tripbar">
         <select id="tripSel" aria-label="選擇行程"></select>
         <input type="text" id="tripName" maxlength="30" placeholder="行程名稱" aria-label="行程名稱">
-        <button type="button" class="ghost" data-trip="new">新增行程</button>
-        <button type="button" class="ghost" data-trip="rename">重新命名</button>
-        <button type="button" class="ghost danger" data-trip="del">刪除</button>
+        <button type="button" class="ib" data-trip="new" title="新增行程" aria-label="新增行程"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button type="button" class="ib" data-trip="rename" title="重新命名" aria-label="重新命名"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+        <button type="button" class="ib" data-trip="reset" title="清除：清除這份行程的自訂內容並重設（再按一次確認）" aria-label="清除這份行程的自訂內容並重設"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20H9l-5.3-5.3a1.5 1.5 0 0 1 0-2.1l8.9-8.9a1.5 1.5 0 0 1 2.1 0l5.3 5.3a1.5 1.5 0 0 1 0 2.1L12 20"/><path d="M8 11l6 6"/></svg></button>
+        <button type="button" class="ib danger" data-trip="del" title="刪除這份行程（再按一次確認）" aria-label="刪除行程"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg></button>
         <span class="status" id="saveSt"></span>
       </div>
       <div class="grid">
@@ -28,7 +29,6 @@
             <div id="order"></div>
             <details class="adder"><summary>＋ 自訂國家／城市</summary><div id="adder"></div></details>
           </fieldset>
-          <button type="button" class="ghost" data-act="reset">清除這份行程的自訂內容並重設</button>
         </form>
         <main aria-live="polite">
           <div class="pickbar" id="pickbar" hidden><input type="search" id="pickQ" placeholder="搜尋景點：名稱、地區、類型或子分類（例如：拉麵、寺廟、博多）" aria-label="搜尋景點" autocomplete="off"><span class="muted" id="pickQn"></span></div>

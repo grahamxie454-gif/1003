@@ -413,3 +413,7 @@ button.iconbtn.pv:not(.on){opacity:.6}
 .ib.addbtn{width:36px;height:36px}
 /* 行程規劃頁的景點搜尋欄位：與功能圖示同高（36px） */
 .pickbar input{height:36px;min-height:36px;box-sizing:border-box;padding-top:0;padding-bottom:0;line-height:34px}
+/* 行程列與右上角的圖示按鈕 */
+.tripbar .ib,.who .ib{flex:none}
+.tripbar{align-items:center}
+.who .ib{width:36px;height:36px}

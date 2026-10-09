@@ -475,3 +475,11 @@ on('pickQ','input',function(e){
   clearTimeout(pickQTimer);
   pickQTimer=setTimeout(function(){renderPick()},120);
 });
+
+// 清除這份行程的自訂內容並重設（按鈕在行程列，圖示）
+function resetTrip(){
+  Object.keys(CO).forEach(function(x){if(CO[x].custom)delete CO[x]});
+  Object.keys(C).forEach(function(x){if(C[x].custom)delete C[x]});
+  st=DEF();sel={};DAYS={};OPEN={};
+  rebuildAll();
+}

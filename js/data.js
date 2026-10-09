@@ -130,13 +130,17 @@ onSel('.tripbar','click',async function(e){
       var u=await sb.from('trips').update({name:name}).eq('id',TRIP.id);
       if(u.error)throw u.error;
       TRIP.name=name;buildTripSel();setSave('已重新命名');
+    }else if(a==='reset'){
+      // 清除這份行程的自訂內容並重設（要再按一次確認）
+      if(!b.dataset.sure){b.dataset.sure='1';b.classList.add('armed');setSave('再按一次清除圖示，確認清除這份行程的自訂內容並重設。');setTimeout(function(){delete b.dataset.sure;b.classList.remove('armed')},4000);return}
+      delete b.dataset.sure;b.classList.remove('armed');resetTrip();
     }else if(a==='del'){
       if(TRIPS.length<2){setSave('至少要保留一份行程。');return}
-      if(!b.dataset.sure){b.dataset.sure='1';b.textContent='再按一次確認刪除';setTimeout(function(){delete b.dataset.sure;b.textContent='刪除'},4000);return}
+      if(!b.dataset.sure){b.dataset.sure='1';b.classList.add('armed');setSave('再按一次刪除圖示，確認刪除這份行程。');setTimeout(function(){delete b.dataset.sure;b.classList.remove('armed')},4000);return}
       var d=await sb.from('trips').delete().eq('id',TRIP.id);
       if(d.error)throw d.error;
       TRIPS=TRIPS.filter(function(t){return t.id!==TRIP.id});
-      delete b.dataset.sure;b.textContent='刪除';buildTripSel();openTrip(TRIPS[0]);
+      delete b.dataset.sure;b.classList.remove('armed');buildTripSel();openTrip(TRIPS[0]);
     }
   }catch(err){setSave('操作失敗：'+err.message)}
 });
