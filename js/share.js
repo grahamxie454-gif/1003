@@ -3,7 +3,7 @@
 function shareUrl(page){return new URL(page+'?trip='+TRIP.id,location.href).href}
 function buildSnapshot(p){
   return {
-    v:5,
+    v:6,
     cities:p.cities.map(function(k){return C[k].n}),
     days:p.days.map(function(d){
       return {
@@ -12,7 +12,7 @@ function buildSnapshot(p){
         rows:d.rows.map(function(r){
           var inf=rowInfo(r,d);if(!inf)return null;
           var k=(r.type==='sight'||r.type==='meal')&&r.s?'s:'+r.s.id:(r.type==='tour'?'t:'+d.no:(r.type==='flight'?'x:'+d.no+':'+d.rows.filter(function(q){return q.type==='flight'}).indexOf(r):((r.type==='free'||r.type==='meal')&&r.key?(r.type==='free'?'f:':'m:')+d.no+':'+r.key:'')));
-          return {t:r.type==='ferry'?'buffer':r.type,im:(r.s&&r.s.images)||'',k:k,s:r.start,e:r.end,n:inf.name,c:typeof inf.cost==='number'?inf.cost:0,l:inf.link||'',r:(r.s&&r.s.rating)||null,o:!!r.over};
+          return {t:r.type==='ferry'?'buffer':r.type,im:(r.s&&r.s.images)||'',k:k,s:r.start,e:r.end,n:inf.name,c:typeof inf.cost==='number'?inf.cost:0,l:inf.link||'',r:(r.s&&r.s.rating)||null,o:!!r.over,x:snapExtra(r,d)};
         }).filter(Boolean)
       };
     })
@@ -48,3 +48,24 @@ on('res','click',function(e){
   var ok=function(){st_.textContent='已複製連結'};
   try{navigator.clipboard.writeText(u).then(ok,function(){$('shareUrl').select();st_.textContent='請按 Ctrl+C 複製'})}catch(err){$('shareUrl').select();st_.textContent='請按 Ctrl+C 複製'}
 });
+
+// 分享頁要和行程規劃顯示一樣：把每一列需要的資訊（說明、風格、營業時間、交通工具與轉乘分段…）一起放進快照
+function snapExtra(r,d){
+  var x={};
+  if((r.type==='sight'||r.type==='meal')&&r.s){
+    var s=r.s;
+    x.ty=s.s;x.tg=s.tag||'';x.dt=s.dist||'';x.ct=costTxt(s);x.sy=Math.round(r.end-r.start);x.hl=hoursLabel(s,d.no);
+    if(r.type==='sight')x.ds=s.desc||'';else x.ml=r.n||'';
+    if(r.closed)x.cl=1;else if(r.over)x.ov=1;
+    if(r.short)x.sh=1;
+  }else if(r.type==='meal'){x.ml=r.n||'用餐';x.ph=1}
+  else if(r.type==='move'){
+    x.mo=r.lg.mode;x.km=Math.round(r.lg.km*10)/10;x.mi=r.lg.min;x.wt=r.lg.wait||0;x.g=r.lg.g?1:0;x.sr=r.lg.src||'';x.tb=r.lg.tbl?1:0;x.to=r.to||'';
+    if(r.lg.segs&&r.lg.segs.length)x.sg=r.lg.segs;
+  }else if(r.type==='hop'){
+    x.mo=r.hop.mode;x.km=Math.round(r.hop.km*10)/10;x.mi=r.hop.min;x.to=C[r.hop.to]?C[r.hop.to].n:'';
+  }else if(r.type==='ferry'){
+    x.fx=r.text||'';x.se=r.season||'';x.ti=r.times||'';if(r.none)x.no=1;
+  }
+  return x;
+}

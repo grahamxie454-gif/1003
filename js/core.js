@@ -42,7 +42,7 @@ async function loadView(host,url){
   if(!r.ok)throw new Error('無法載入 '+url);
   host.innerHTML=await r.text();
 }
-var APP_VER='20261036';
+var APP_VER='20261037';
 
 // ===== Google 地圖：圖示與連結 =====
 // Maps JavaScript API 的瀏覽器金鑰（只用來顯示「當日所有地點」的地圖頁 map.html）。
@@ -88,4 +88,13 @@ function modeIcon(m,sz,bare){
   if(bare)return s;
   var nm=(typeof MNAME!=='undefined'&&MNAME[m])||({tram:'電車'}[m])||m;
   return '<span class="modeico" style="color:'+(MI_C[m]||'#5f6368')+'" title="'+nm+'" role="img" aria-label="'+nm+'">'+s+'</span>';
+}
+// 路線分段（轉乘）：步行 › 地鐵 › 公車…，每一段各自的彩色圖示、路線名稱與分鐘
+function segsHtml(lg){
+  var s=lg&&lg.segs;
+  if(!s||!s.length||(s.length<2&&s[0].m==='walk'))return '';
+  return '<div class="segs" aria-label="路線分段">'+s.map(function(x){
+    var tip=(x.f&&x.t)?x.f+' → '+x.t:'';
+    return '<span class="seg"'+(tip?' title="'+esc(tip)+'"':'')+'>'+modeIcon(x.m,16)+(x.n?'<b>'+esc(x.n)+'</b>':'')+'<em>'+x.min+' 分</em></span>';
+  }).join('<span class="segsep">›</span>')+'</div>';
 }

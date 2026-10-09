@@ -246,15 +246,6 @@ function provBtns(r,d){
   return '<span class="provsw" role="group" aria-label="這一段的路線估算來源">'+btn('G',ICON_PIN,'用 Google 地圖估算這一段',false)+btn('N',ICON_NAVI,jp?'用 NAVITIME 估算這一段':'NAVITIME 只支援日本',!jp)+'</span>';
 }
 
-// 路線分段（轉乘）：步行 › 地鐵 › 公車…，每一段各自的彩色圖示、路線名稱與分鐘
-function segsHtml(lg){
-  var s=lg&&lg.segs;
-  if(!s||!s.length||(s.length<2&&s[0].m==='walk'))return '';
-  return '<div class="segs" aria-label="路線分段">'+s.map(function(x){
-    var tip=(x.f&&x.t)?x.f+' → '+x.t:'';
-    return '<span class="seg"'+(tip?' title="'+esc(tip)+'"':'')+'>'+modeIcon(x.m,16)+(x.n?'<b>'+esc(x.n)+'</b>':'')+'<em>'+x.min+' 分</em></span>';
-  }).join('<span class="segsep">›</span>')+'</div>';
-}
 
 // 空檔／用餐的「從同地區挑選」圖示按鈕（插入位置 = 這一列前面已排入的景點與餐廳數）
 function pickBtn(r,d,mode){

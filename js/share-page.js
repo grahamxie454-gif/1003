@@ -90,20 +90,7 @@ function renderShare(){
     h+='<article class="day" data-no="'+d.no+'"><h3>第 '+d.no+' 天'+(d.date?'<em class="date">'+esc(d.date)+'</em>':'')+'<em class="city">'+esc(d.city)+'</em>'+(d.stops&&d.stops.length?' '+iconLink(pinsUrl(d.stops,'第 '+d.no+' 天・'+d.city),ICON_PIN,'在 Google 地圖查看當日所有地點的位置（不規劃路線）'):'')+'</h3>';
     if(d.hotel)h+='<p class="note">住宿：'+(d.hotel.url?'<a class="maplink" href="'+esc(d.hotel.url)+'" target="_blank" rel="noopener">'+esc(d.hotel.name)+'</a>':esc(d.hotel.name))+'</p>';
     if(d.off)h+='<p class="note">今天休息，不安排行程。</p>';
-    h+='<ol class="tl">'+d.rows.map(function(r){
-      var cls=r.t==='move'||r.t==='hop'?'mv':(r.t==='free'||r.t==='buffer'?'fr':(r.t==='meal'?'ml':''));
-      var link=/^https?:\/\//i.test(r.l||'')?r.l:'';
-      var ph=r.k?itemPhotos(r.k):[];
-      // 第一排：景點圖片（點擊放大）；第二排：上傳的照片（相機圖示旁顯示張數）
-      var spotImgs=(r.t==='sight'||r.t==='meal')?thumbsHtml(IMGMAP[r.k]||r.im,r.n):'';
-      var tools=r.k?'<div class="mvbar phbar"><button type="button" class="ib phcam" data-ph-open="'+esc(r.k)+'" title="照片（'+ph.length+' 張）：查看'+(ph.length?'與編輯':'')+'" aria-label="照片 '+ph.length+' 張">'+SH_ICON.cam+'<span class="phn">'+ph.length+'</span></button>'+
-        '<button type="button" class="ib" data-ph-open="'+esc(r.k)+'" data-ph-up="1" title="上傳照片" aria-label="上傳照片">'+SH_ICON.up+'</button>'+
-        (ph.length?'<button type="button" class="ib" data-ph-open="'+esc(r.k)+'" title="編輯照片與註解" aria-label="編輯照片與註解">'+SH_ICON.edit+'</button>':'')+
-        ph.slice(0,4).map(function(p){return p.url?'<img class="thumb" data-ph-open="'+esc(r.k)+'" loading="lazy" src="'+esc(p.url)+'" alt="">':''}).join('')+'</div>':'';
-      return '<li class="tr '+cls+(r.o?' over':'')+'"><div class="tt">'+minStr(r.s)+(r.e>r.s?'<small>–'+minStr(r.e)+'</small>':'')+'</div><div class="tb">'+
-        ((r.t==='move'||r.t==='hop')?'<span class="soft">'+esc(r.n)+'</span>'+(link?' '+iconLink(link,ICON_ROUTE,'路徑（Google 地圖，帶入出發時間）'):''):(link&&r.t!=='move'?'<a class="maplink" href="'+esc(link)+'" target="_blank" rel="noopener"><b>'+esc(r.n)+'</b></a>':(cls==='mv'||cls==='fr'?'<span class="soft">'+esc(r.n)+'</span>':'<b>'+esc(r.n)+'</b>')))+
-        (r.r?' <span class="rate">★ '+Number(r.r).toFixed(1)+'</span>':'')+(r.c?' <span class="muted">'+money(r.c)+'</span>':'')+spotImgs+tools+'</div></li>';
-    }).join('')+'</ol>';
+    h+='<ol class="tl">'+d.rows.map(shareRow).join('')+'</ol>';
     h+='<div class="notes"><h4>留言</h4>'+(notes.length?notes.map(function(n){
       return '<p class="note2"><b>'+esc(nameOf(n.user_id,n.user_email))+'</b> <span class="muted">'+esc(fmtDT(n.created_at))+'</span><br>'+esc(n.body)+
         ((n.user_id===ME.id||SHARE.is_owner)?' <button type="button" class="ghost sm x" data-del-note="'+esc(n.id)+'" aria-label="刪除留言">刪除</button>':'')+'</p>';
@@ -275,3 +262,49 @@ on('itin','click',function(e){
 on('itin','change',function(e){
   if(e.target.matches&&e.target.matches('select[data-daysel-sel]'))setShDay(+e.target.value||0);
 });
+
+// 一列行程的顯示：和行程規劃頁一致（景點的風格・子分類・說明・營業時間，交通的彩色圖示與轉乘分段…），只是唯讀
+function shareBody(r){
+  var x=r.x,link=/^https?:\/\//i.test(r.l||'')?r.l:'',rate=r.r?' <span class="rate" title="Google 地圖評分（參考值）">★ '+Number(r.r).toFixed(1)+'</span>':'';
+  if(!x)return null;
+  var imgs=thumbsHtml(IMGMAP[r.k]||r.im,r.n);
+  if(r.t==='sight'&&x.ty){
+    return '<div class="n"><b>'+esc(r.n)+'</b><span class="tag">'+esc(STYLE[x.ty]||'')+(x.tg?'・'+esc(x.tg):'')+'</span>'+rate+(link?'<a class="maplink" href="'+esc(link)+'" target="_blank" rel="noopener">看地圖</a>':'')+'</div>'+imgs+
+      (x.ds?'<p>'+esc(x.ds)+'</p>':'')+
+      '<div class="meta">'+esc(x.dt)+'・'+esc(x.ct)+'・<span class="hrs'+(/公休/.test(x.hl)?' closed':'')+'">'+esc(x.hl)+'</span>・停留 '+x.sy+' 分</div>'+
+      (x.cl?'<p class="overnote">⚠ 當天這個時段不在營業時間內（'+esc(x.hl)+'），請移到其他天或調整時間。</p>':(x.ov||r.o?'<p class="overnote">⚠ 已超過當天回住宿或航班前的時間。</p>':''))+
+      (x.sh?'<p class="note">營業時間限制，停留縮短為 '+x.sy+' 分鐘。</p>':'');
+  }
+  if(r.t==='meal'&&x.ty){
+    return '<div class="n"><span class="tag meal">'+esc(x.ml||'用餐')+'</span><b>'+esc(r.n.replace(/^[^：]*：/,''))+'</b>'+rate+(link?'<a class="maplink" href="'+esc(link)+'" target="_blank" rel="noopener">看地圖</a>':'')+'</div>'+imgs+
+      '<div class="meta">'+esc(x.dt)+'・<span class="hrs'+(/公休/.test(x.hl)?' closed':'')+'">'+esc(x.hl)+'</span>・用餐 '+x.sy+' 分・'+esc(x.ct)+'</div>'+
+      (x.cl?'<p class="overnote">⚠ 當天這個時段不在營業時間內（'+esc(x.hl)+'）。</p>':(x.ov||r.o?'<p class="overnote">⚠ 用餐開始時間不在建議時段內（午餐 11:00–13:30、晚餐 17:30–20:00）。</p>':''));
+  }
+  if(r.t==='meal'&&x.ph)return '<div class="n"><span class="tag meal">'+esc(x.ml)+'</span><b>'+esc(r.n.replace(/^[^：]*：/,''))+'</b></div>';
+  if(r.t==='move'&&x.mo){
+    return '<span class="soft">↓ '+modeIcon(x.mo)+' 約 '+fmtMin(x.mi)+'・約 '+fmtKm(x.km)+(r.c?'・約 NT$ '+(Math.round(r.c/10)*10)+'':'')+(x.wt>=5?'（含候車約 '+x.wt+' 分）':'')+'・前往 '+esc(x.to)+
+      (x.g?' <span class="gtag" title="從預定出發時間算到抵達（含等車）">'+esc(x.sr||'Google')+'</span>':' <span class="gtag est">'+(x.tb?'機場交通參考值':'估算')+'</span>')+(link?' '+iconLink(link,ICON_ROUTE,'路徑（Google 地圖，帶入出發時間）'):'')+'</span>'+segsHtml({segs:x.sg});
+  }
+  if(r.t==='hop'&&x.mo){
+    return '<span class="soft">↓ '+modeIcon(x.mo)+' 前往'+esc(x.to)+'・約 '+fmtMin(x.mi)+'・約 '+fmtKm(x.km)+(r.c?'・約 NT$ '+(Math.round(r.c/10)*10):'')+(link?' '+iconLink(link,ICON_ROUTE,'路徑（Google 地圖，帶入出發時間）'):'')+'</span>';
+  }
+  if(r.t==='buffer'&&x.fx!==undefined)return '<span class="soft">⛴ '+esc(x.fx)+(r.c?'・約 NT$ '+(Math.round(r.c/10)*10):'')+(link&&!x.no?' '+iconLink(link,ICON_ROUTE,'路徑（Google 地圖）'):'')+'</span><div class="meta">'+esc(x.se)+'：當天班次 '+esc(x.ti)+'。停航或客滿請以船公司公告為準。</div>'+(x.no?'<p class="overnote">⚠ 這個景點在當天搭不到船，請移到其他天或調整時間。</p>':'');
+  return null;
+}
+function shareRow(r){
+  var cls=r.t==='move'||r.t==='hop'?'mv':(r.t==='free'||r.t==='buffer'?'fr':(r.t==='meal'?'ml':'')),
+    link=/^https?:\/\//i.test(r.l||'')?r.l:'',ph=r.k?itemPhotos(r.k):[];
+  if(r.x&&r.x.fx!==undefined)cls='mv ferry';
+  var tools=r.k?'<div class="mvbar phbar"><button type="button" class="ib phcam" data-ph-open="'+esc(r.k)+'" title="照片（'+ph.length+' 張）：查看'+(ph.length?'與編輯':'')+'" aria-label="照片 '+ph.length+' 張">'+SH_ICON.cam+'<span class="phn">'+ph.length+'</span></button>'+
+    '<button type="button" class="ib" data-ph-open="'+esc(r.k)+'" data-ph-up="1" title="上傳照片" aria-label="上傳照片">'+SH_ICON.up+'</button>'+
+    (ph.length?'<button type="button" class="ib" data-ph-open="'+esc(r.k)+'" title="編輯照片與註解" aria-label="編輯照片與註解">'+SH_ICON.edit+'</button>':'')+
+    ph.slice(0,4).map(function(p){return p.url?'<img class="thumb" data-ph-open="'+esc(r.k)+'" loading="lazy" src="'+esc(p.url)+'" alt="">':''}).join('')+'</div>':'';
+  var body=shareBody(r);
+  if(body===null){
+    // 舊版快照（沒有詳細資訊）：維持原本的簡單顯示
+    var spotImgs=(r.t==='sight'||r.t==='meal')?thumbsHtml(IMGMAP[r.k]||r.im,r.n):'';
+    body=((r.t==='move'||r.t==='hop')?'<span class="soft">'+esc(r.n)+'</span>'+(link?' '+iconLink(link,ICON_ROUTE,'路徑（Google 地圖，帶入出發時間）'):''):(link&&r.t!=='move'?'<a class="maplink" href="'+esc(link)+'" target="_blank" rel="noopener"><b>'+esc(r.n)+'</b></a>':(cls==='mv'||cls==='fr'?'<span class="soft">'+esc(r.n)+'</span>':'<b>'+esc(r.n)+'</b>')))+
+      (r.r?' <span class="rate">★ '+Number(r.r).toFixed(1)+'</span>':'')+(r.c?' <span class="muted">'+money(r.c)+'</span>':'')+spotImgs;
+  }
+  return '<li class="tr '+cls+(r.o?' over':'')+'"><div class="tt">'+minStr(r.s)+(r.e>r.s?'<small>–'+minStr(r.e)+'</small>':'')+'</div><div class="tb">'+body+tools+'</div></li>';
+}
