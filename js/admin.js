@@ -91,7 +91,7 @@ on('adminBody','click',async function(e){
 });
 
 // 內建資料編輯：以通用表格處理國家、城市、地區、景點
-var DT=['countries','cities','districts','spots'],DTL={countries:'國家',cities:'城市',districts:'地區',spots:'景點'};
+var DSUB='countries';
 var DT=['countries','cities','districts','spots','airports','ferries'],DTL={countries:'國家',cities:'城市',districts:'地區',spots:'景點',airports:'機場',ferries:'渡船'};
 var DTBL={ferries:'ferry_routes'},DPK={airports:'code'};
 var tblOf=function(t){return DTBL[t]||t},pkOf=function(t){return DPK[t]||'id'};
