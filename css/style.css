@@ -407,3 +407,7 @@ button.iconbtn.pv:not(.on){opacity:.6}
 .seas.wide{grid-column:1/-1}
 .rf b{font-size:14px;color:var(--ink,inherit)}
 .ib.leaf{color:#3a9a4a}
+/* 後台篩選列：關鍵字欄位、下拉選單與圖示按鈕同高（36px） */
+.adminbar{align-items:center}
+.adminbar .afq,.adminbar select{height:36px;min-height:36px;box-sizing:border-box;padding-top:0;padding-bottom:0;line-height:34px}
+.ib.addbtn{width:36px;height:36px}
