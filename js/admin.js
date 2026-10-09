@@ -98,7 +98,7 @@ var tblOf=function(t){return DTBL[t]||t},pkOf=function(t){return DPK[t]||'id'};
 function colsFor(t){
   if(t==='airports')return AIR_COLS;
   var cn=DB.countries.map(function(c){return [c.id,c.name]}),ct=DB.cities.map(function(c){return [c.id,c.name]}),dt=DB.districts.map(function(d){return [d.id,d.name]});
-  if(t==='countries')return [['id','代碼','id'],['name','名稱','text'],['flight','機票 NT$','int'],['fh','飛行時間','text'],['drive','自駕提醒','text'],['tips','小提醒（一行一則）','lines'],['rail','鐵路時速','int'],['sort','排序','int']];
+  if(t==='countries')return [['id','代碼','id'],['name','名稱','text'],['fh','飛行時間','text'],['drive','自駕提醒','text'],['tips','小提醒（一行一則）','lines'],['rail','鐵路時速','int'],['sort','排序','int']];
   if(t==='cities')return [['id','代碼','id'],['country_id','國家','sel',cn],['name','名稱','text'],['code','機場代碼','text'],['lat','緯度','num'],['lng','經度','num'],['hotel','住宿（節省,適中,舒適）','ints3'],['food','餐飲（節省,適中,舒適）','ints3'],['season','最佳季節說明','text'],['sort','排序','int']];
   if(t==='districts')return [['id','編號','auto'],['city_id','城市','sel',ct],['name','名稱','text'],['lat','緯度','num'],['lng','經度','num'],['sort','排序','int']];
   return [['id','編號','auto'],['district_id','地區','sel',dt],['name','名稱','text'],['style','風格','sel',[['f','美食'],['c','文化'],['n','自然'],['s','購物']]],['tag','子分類','text'],['cost','每人概估費用 NT$（門票／餐費）','int'],['hours','營業時間（一-五 10:00-18:00;六日 10:00-20:00;二休）','text'],['stay','建議停留（分鐘）','int'],['rating','Google 評分','numopt'],['lat','緯度','numopt'],['lng','經度','numopt'],['maps_url','地圖連結（選填）','text'],['descr','說明','text'],['sort','排序','int']];
@@ -330,7 +330,7 @@ function reqSummary(x){
   if(x.kind==='spot')t='城市代碼 '+p.city_id+'・地區「'+(p.district||'（未指定）')+'」・類型 '+(STYLE[p.style]||p.style)+'・費用 '+(p.cost||0)+'・停留 '+(p.stay||60)+' 分'+(p.url?'・'+p.url:'');
   else if(x.kind==='district')t='城市代碼 '+p.city_id+'・含 '+((p.spots||[]).length)+' 個景點：'+(p.spots||[]).map(function(s){return s.name}).join('、');
   else if(x.kind==='city')t='所屬國家代碼 '+p.country_id+'・地區 '+((p.districts||[]).length)+' 個：'+(p.districts||[]).map(function(d){return d.name+'('+(d.spots||[]).length+')'}).join('、');
-  else t='機票 '+(p.flight||'')+'・飛行 '+(p.fh||'')+'・最佳季節 '+(p.season||'');
+  else t='飛行 '+(p.fh||'')+'・最佳季節 '+(p.season||'');
   return t;
 }
 function reqControls(x){

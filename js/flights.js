@@ -184,6 +184,8 @@ function applyLookup(i,d){
 
 // ----- 畫面 -----
 var FMSG={},FLBUSY={};
+var FL_SVG='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+var FL_PLUS=FL_SVG+'<path d="M12 5v14M5 12h14"/></svg>',FL_SEARCH=FL_SVG+'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>';
 function planSig(){var p=flightPlan();return JSON.stringify([p.ok,p.total,p.countries,p.counts])}
 function newFlight(fromCity,toCity){return {no:'',date:'',plus:0,from:'',to:'',dep:'',arr:'',fromCity:fromCity||'',toCity:toCity||'',stay:60}}
 // 航班預設至少兩段（去程、回程）；超過兩段的才能刪除
@@ -203,7 +205,7 @@ function renderFlights(){
     h+='<div class="fl'+(cs.errs[i]?' bad':'')+'"><div class="flhead"><b>第 '+(i+1)+' 段航班'+(i===0?'（去程）':(i===1?'（回程，或接續下一個國家）':''))+'</b>'+(last&&i>=2?'<button type="button" class="ghost sm x" data-fdel="'+i+'" aria-label="刪除這段航班">✕</button>':'')+'</div>'+
       '<div class="row"><input type="text" data-fi="'+i+'" data-ff="no" value="'+esc(f.no||'')+'" placeholder="航班號 例：CI100" maxlength="8" aria-label="航班號">'+
       '<input type="date" data-fi="'+i+'" data-ff="date" value="'+esc(f.date||'')+'" aria-label="起飛日期">'+
-      '<button type="button" class="ghost" data-fi="'+i+'" data-fact="lookup"'+(FLBUSY[i]?' disabled':'')+'>'+(FLBUSY[i]?'查詢中…':'查詢')+'</button></div>'+
+      '<button type="button" class="ib'+(FLBUSY[i]?' spin':'')+'" data-fi="'+i+'" data-fact="lookup"'+(FLBUSY[i]?' disabled':'')+' title="'+(FLBUSY[i]?'查詢中…':'查詢航班（自動帶入機場、城市與起降時間）')+'" aria-label="查詢航班">'+FL_SEARCH+'</button></div>'+
       '<div class="row"><input type="text" data-fi="'+i+'" data-ff="from" value="'+esc(f.from||'')+'" placeholder="出發機場" maxlength="20" aria-label="出發機場"><input type="text" data-fi="'+i+'" data-ff="to" value="'+esc(f.to||'')+'" placeholder="抵達機場" maxlength="20" aria-label="抵達機場"></div>'+
       '<div class="row"><label>起飛時間<input type="time" data-fi="'+i+'" data-ff="dep" value="'+esc(f.dep||'')+'"></label><label>降落時間'+((f.plus||0)>0?' <span class="plus">'+plusTxt(f)+'</span>':'')+'<input type="time" data-fi="'+i+'" data-ff="arr" value="'+esc(f.arr||'')+'"></label>'+
         '<label>跨日<select data-fi="'+i+'" data-ff="plus"><option value="0">當天抵達</option><option value="1"'+((f.plus||0)===1?' selected':'')+'>+1 天</option><option value="2"'+((f.plus||0)===2?' selected':'')+'>+2 天</option></select></label></div>'+
@@ -212,10 +214,11 @@ function renderFlights(){
       (flLocked(f)?'<p class="hint">城市由航班查詢結果決定，不能變更；如要自行選擇，請清空航班號，或改航班號／日期後重新查詢。</p>':'')+
       (f.toCo&&f.toCo!==home?'<div class="row"><label>抵達後在機場的停留時間（分鐘，不得少於 60）<input type="number" min="60" step="15" data-fi="'+i+'" data-ff="stay" value="'+airportStay(f)+'"></label></div>'+
         '<label class="checkin">抵達機場後<select data-fi="'+i+'" data-ff="checkin" aria-label="第 '+(i+1)+' 段航班抵達後的安排"><option value="hotel"'+(f.checkin!=='direct'?' selected':'')+'>先到住宿點入住，再從住宿點出發</option><option value="direct"'+(f.checkin==='direct'?' selected':'')+'>從機場直接去第一個行程，晚上再回住宿點</option></select></label>':'')+
+      '<div class="row"><label>機票費用（每人，NT$，選填）<input type="number" min="0" step="100" data-fi="'+i+'" data-ff="price" value="'+(f.price>0?f.price:'')+'" placeholder="例如 8500"></label></div>'+
       '<p class="fmsg'+((cs.errs[i]||(FMSG[i]&&FMSG[i][0]==='!'))?' err':'')+'">'+esc(cs.errs[i]||(FMSG[i]||'').replace(/^!/,'')||'')+'</p></div>';
   });
   var why=!cs.canAdd?(F.length&&cs.anyErr?'上方有航班錯誤，請先修正':(F.length&&F[F.length-1].toCo===home?'行程已完整（已回到出發國家）':'請先完成上一段航班（日期、抵達國家與城市）')):'';
-  h+='<div class="row"><button type="button" class="ghost" data-fadd="1"'+(cs.canAdd?'':' disabled')+'>＋ '+(F.length?'新增接續航班':'新增第一段航班')+'</button>'+(why?'<span class="muted">'+esc(why)+'</span>':'')+'</div>';
+  h+='<div class="row"><button type="button" class="ib" data-fadd="1"'+(cs.canAdd?'':' disabled')+' title="'+(F.length?'新增接續航班':'新增第一段航班')+'" aria-label="'+(F.length?'新增接續航班':'新增第一段航班')+'">'+FL_PLUS+'</button>'+(why?'<span class="muted">'+esc(why)+'</span>':'')+'</div>';
   $('flights').innerHTML=h;
   renderExpand();
 }
@@ -242,6 +245,7 @@ on('flights','change',function(e){
   if(ff==='no'||ff==='date'){f.looked=false;if(ff==='no'&&!v)f.dFromCo=''}
   if(ff==='no')v=v.replace(/\s+/g,'').toUpperCase();
   if(ff==='plus')f.plus=parseInt(v,10)||0;
+  else if(ff==='price'){var pr=parseInt(v,10);if(pr>0)f.price=pr;else delete f.price}
   else if(ff==='stay'){var n=parseInt(v,10);f.stay=(n>=60)?n:60;FMSG[i]=(n>=60)?'':'!機場停留時間不得少於 60 分鐘，已改為 60。'}
   else if(ff==='fromCity'&&i>0){var pc2=F[i-1].toCity;f.fromCity=v||pc2;f.fromManual=!!v&&v!==pc2;f.dFromCo=''}
   else if(ff==='fromCity'){var oc=f.fromCity,oh=homeCo();f.fromCity=v;f.dFromCo='';syncFlights();var rt=F[1];if(rt&&v&&(rt.toCity===oc||(rt.toCo===oh&&C[v].co!==oh)))rt.toCity=v}

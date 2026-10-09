@@ -25,8 +25,8 @@ on('f','click',async function(e){
   if(a==='req'){b.disabled=true;await submitRequest(b.dataset.kind,k);rebuildAll(true);return}
   if(a==='addco'){
     var nm=$('nco').value.trim();if(!nm)return;
-    var fl=parseInt($('nfl').value,10);
-    CO['u'+(++cuid)]={n:nm,flight:fl>=0?fl:18000,fh:'請自行查詢',season:'請自行查詢',drive:'請自行查詢當地駕駛方向與駕照承認方式。',tips:['請自行查詢簽證、入境與匯率資訊。'],rail:100,custom:true};
+
+    CO['u'+(++cuid)]={n:nm,fh:'請自行查詢',season:'請自行查詢',drive:'請自行查詢當地駕駛方向與駕照承認方式。',tips:['請自行查詢簽證、入境與匯率資訊。'],rail:100,custom:true};
   }else if(a==='addci'){
     var cn=$('nci').value.trim();if(!cn)return;
     var km=parseInt($('nkm').value,10),co=$('ncc').value,ck='v'+(++cuid);

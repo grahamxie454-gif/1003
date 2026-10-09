@@ -417,3 +417,7 @@ button.iconbtn.pv:not(.on){opacity:.6}
 .tripbar .ib,.who .ib{flex:none}
 .tripbar{align-items:center}
 .who .ib{width:36px;height:36px}
+/* 所有輸入欄位與下拉選單統一高度 36px（核取方塊、選項鈕、拉桿、檔案、多行文字除外） */
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=file]),select{
+  height:36px;min-height:36px;box-sizing:border-box;padding-top:0;padding-bottom:0}
+.ib.spin svg{animation:rot 1s linear infinite}

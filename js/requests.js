@@ -48,7 +48,7 @@ function buildRequest(kind,k,extra){
   }
   if(kind==='country'){
     var o=CO[k];
-    return {kind:'country',ref:refOf(k),payload:{name:o.n,flight:o.flight,fh:o.fh,season:o.season,drive:o.drive,tips:o.tips||[],rail:o.rail}};
+    return {kind:'country',ref:refOf(k),payload:{name:o.n,fh:o.fh,season:o.season,drive:o.drive,tips:o.tips||[],rail:o.rail}};
   }
   return {err:'不支援的類型'};
 }

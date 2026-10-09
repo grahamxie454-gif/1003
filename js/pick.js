@@ -17,7 +17,7 @@ function buildCities(){
 function buildAdder(){
   var cus=Object.keys(CO).filter(function(k){return CO[k].custom}),cuc=Object.keys(C).filter(function(k){return C[k].custom});
   $('adder').innerHTML=
-    '<div class="addrow"><input type="text" id="nco" maxlength="12" placeholder="國家名稱，例如：越南" aria-label="新國家名稱"><input type="number" id="nfl" min="0" step="1000" placeholder="來回機票 NT$（選填）" aria-label="來回機票"><button type="button" class="ghost" data-act="addco">新增國家</button></div>'+
+    '<div class="addrow"><input type="text" id="nco" maxlength="12" placeholder="國家名稱，例如：越南" aria-label="新國家名稱"><button type="button" class="ghost" data-act="addco">新增國家</button></div>'+
     '<div class="addrow"><input type="text" id="nci" maxlength="14" placeholder="城市名稱，例如：沖繩" aria-label="新城市名稱"><select id="ncc" aria-label="城市所屬國家">'+
       Object.keys(CO).map(function(k){return '<option value="'+esc(k)+'">'+esc(CO[k].n)+'</option>'}).join('')+'</select>'+
       '<input type="number" id="nkm" min="1" placeholder="距其他已選城市約幾公里（預設 150）" aria-label="與其他城市的距離"><button type="button" class="ghost" data-act="addci">新增城市</button></div>'+

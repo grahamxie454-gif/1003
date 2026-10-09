@@ -40,7 +40,7 @@ function renderRes(p){
   p=p||plan();var cs=p.cities,n=cs.length,total=st.days,nights=total-1,t=st.tier,m=TIERS[t][1];
   var modes=st.modes.length?st.modes:['metro'];
   var firstC=C[cs[0]],lastC=C[cs[n-1]],fc=CO[firstC.co];
-  var fl=fc.flight*m;st.co.slice(1).forEach(function(c){fl+=0.5*CO[c].flight*m});   // 去回程機票 + 每多一個國家的航班（估算）
+  var fl=flList().reduce(function(a,x){return a+(x.price>0?x.price:0)},0);   // 機票：各段航班填的費用加總（每人）
   var hotel=0,food=0,tr=0;
   p.days.forEach(function(d){
     if(d.home)return;
@@ -50,7 +50,7 @@ function renderRes(p){
   });
   p.hops.forEach(function(x){if(x)tr+=x.cost});
   var tot=fl+hotel+food+tr+p.spots;
-  var parts=[['機票',fl,'c1'],['住宿',hotel,'c2'],['餐飲',food,'c3'],['交通',tr,'c5'],['景點門票餐費',p.spots,'c4']].filter(function(x){return x[1]>0});
+  var parts=[['機票（航班費用加總）',fl,'c1'],['住宿',hotel,'c2'],['餐飲',food,'c3'],['交通',tr,'c5'],['景點門票餐費',p.spots,'c4']].filter(function(x){return x[1]>0});
   var cos=[];cs.forEach(function(k){if(cos.indexOf(C[k].co)<0)cos.push(C[k].co)});
   var h='';
   if(p.over)h+='<p class="warn">天數不足以安排 '+st.ci.length+' 座城市，目前只排前 '+n+' 座。請增加天數或減少城市。</p>';

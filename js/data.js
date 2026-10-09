@@ -14,7 +14,7 @@ async function loadBuiltin(){
 }
 function buildBuiltin(){
   CO={};C={};
-  DB.countries.forEach(function(c){CO[c.id]={n:c.name,flight:c.flight,fh:c.fh,season:c.season,drive:c.drive,tips:c.tips||[],rail:c.rail}});
+  DB.countries.forEach(function(c){CO[c.id]={n:c.name,fh:c.fh,season:c.season,drive:c.drive,tips:c.tips||[],rail:c.rail}});
   DB.cities.forEach(function(c){if(CO[c.country_id])C[c.id]={n:c.name,co:c.country_id,code:c.code,lat:c.lat,lng:c.lng,hotel:c.hotel,food:c.food,season:c.season||'請自行查詢',d:{},pos:{}}});
   var dm={};
   DB.districts.forEach(function(d){if(C[d.city_id]){C[d.city_id].d[d.name]=[];C[d.city_id].pos[d.name]=[d.lat,d.lng];dm[d.id]=[d.city_id,d.name]}});
