@@ -62,7 +62,7 @@ var styleOk=function(){return true};
 var byOrd=function(a,b){return ORD[a.s]-ORD[b.s]};
 function customObj(k,c){
   var has=typeof c.lat==='number';
-  return {custom:true,id:c.id,k:k,name:c.name,s:c.s||'x',tag:c.tag||'',hours:c.hours||'',cost:c.cost||0,url:c.url||'',rating:c.rating||null,lat:has?c.lat:null,lng:has?c.lng:null,stay:(st.stay&&st.stay[c.id])||c.stay||(c.s==='f'?75:60),
+  return {custom:true,id:c.id,k:k,name:c.name,s:c.s||'x',tag:c.tag||'',hours:c.hours||'',images:c.images||'',cost:c.cost||0,url:c.url||'',rating:c.rating||null,lat:has?c.lat:null,lng:has?c.lng:null,stay:(st.stay&&st.stay[c.id])||c.stay||(c.s==='f'?75:60),
     desc:'自訂地點'+(has?'，座標 '+c.lat+', '+c.lng:'，位置為估計')+(c.cost?'':'，費用未計入'),dist:c.d||'自訂'};
 }
 function costTxt(x){return x.cost?(x.s==='f'?'每人餐費約 ':(x.s==='s'?'每人預算約 ':'每人門票約 '))+fmt(x.cost):(x.s==='x'?'自訂，費用未計':'免費')}
@@ -74,7 +74,7 @@ function distSpots(k,dn){
   var s=ensureSel(k),out=[];
   (C[k].d[dn]||[]).forEach(function(sp){
     var id=k+'|'+sp[4];
-    out.push({id:id,k:k,name:sp[0],s:sp[1],cost:sp[2],desc:sp[3],dist:dn,rating:sp[5],url:sp[6],stay:(st.stay&&st.stay[id])||sp[7]||0,lat:sp[8]==null?null:sp[8],lng:sp[9]==null?null:sp[9],tag:sp[10]||'',hours:sp[11]||''});
+    out.push({id:id,k:k,name:sp[0],s:sp[1],cost:sp[2],desc:sp[3],dist:dn,rating:sp[5],url:sp[6],stay:(st.stay&&st.stay[id])||sp[7]||0,lat:sp[8]==null?null:sp[8],lng:sp[9]==null?null:sp[9],tag:sp[10]||'',hours:sp[11]||'',images:sp[12]||''});
   });
   out.sort(byOrd);
   s.cs.filter(function(c){return c.d===dn}).forEach(function(c){out.push(customObj(k,c))});
@@ -137,7 +137,7 @@ function renderPick(p){
     });
     h+='</div><div class="addrow"><input type="text" id="cd_'+k+'" maxlength="20" placeholder="自訂地區，例如：中野" aria-label="自訂地區"><button type="button" class="ghost" data-act="addd" data-k="'+esc(k)+'">新增地區</button></div>'+
       '<div class="addrow"><input type="text" id="cs_'+k+'" maxlength="30" placeholder="自訂地點，例如：某某咖啡廳" aria-label="自訂地點"><select id="cl_'+k+'" aria-label="自訂地點所屬地區"><option value="">不指定地區</option>'+
-      s.d.map(function(d){return '<option value="'+esc(d)+'">'+esc(d)+'</option>'}).join('')+'</select><select id="ct_'+k+'" aria-label="自訂地點類型"><option value="x">類型：自訂</option><option value="f">美食</option><option value="c">文化</option><option value="n">自然</option><option value="s">購物</option></select><input type="text" id="ctag_'+k+'" maxlength="12" placeholder="子分類（選填，例如：火鍋）" aria-label="自訂地點子分類"><input type="url" id="cu_'+k+'" placeholder="Google 地圖分享連結（選填，自動帶入名稱與評分）" aria-label="Google 地圖連結"><input type="text" id="cg_'+k+'" placeholder="座標（選填），例如 25.0330, 121.5654" aria-label="自訂地點座標" inputmode="decimal"><input type="number" id="cst_'+k+'" min="15" max="720" step="5" placeholder="建議停留分鐘（選填）" aria-label="自訂地點建議停留分鐘"><input type="text" id="chr_'+k+'" maxlength="200" placeholder="營業時間（選填），例如 一-五 10:00-18:00;六日 10:00-20:00;二休" aria-label="自訂地點營業時間"><input type="number" id="cc_'+k+'" min="0" step="100" placeholder="每人概估費用 NT$（門票／餐費，選填）" aria-label="自訂地點每人概估費用"><button type="button" class="ghost" data-act="adds" data-k="'+esc(k)+'">新增地點</button><button type="button" class="ghost" data-act="reqtoggle" data-k="'+esc(k)+'" aria-expanded="'+(REQOPEN?'true':'false')+'">我的收錄申請'+reqCountTxt()+(REQOPEN?'（收合）':'')+'</button></div></section>';
+      s.d.map(function(d){return '<option value="'+esc(d)+'">'+esc(d)+'</option>'}).join('')+'</select><select id="ct_'+k+'" aria-label="自訂地點類型"><option value="x">類型：自訂</option><option value="f">美食</option><option value="c">文化</option><option value="n">自然</option><option value="s">購物</option></select><input type="text" id="ctag_'+k+'" maxlength="12" placeholder="子分類（選填，例如：火鍋）" aria-label="自訂地點子分類"><input type="url" id="cu_'+k+'" placeholder="Google 地圖分享連結（選填，自動帶入名稱與評分）" aria-label="Google 地圖連結"><input type="text" id="cg_'+k+'" placeholder="座標（選填），例如 25.0330, 121.5654" aria-label="自訂地點座標" inputmode="decimal"><input type="number" id="cst_'+k+'" min="15" max="720" step="5" placeholder="建議停留分鐘（選填）" aria-label="自訂地點建議停留分鐘"><input type="text" id="cim_'+k+'" placeholder="圖片連結（選填，多個以逗號分隔；貼 Google 地圖連結會自動帶入第一張）" aria-label="自訂地點圖片連結"><input type="text" id="chr_'+k+'" maxlength="200" placeholder="營業時間（選填），例如 一-五 10:00-18:00;六日 10:00-20:00;二休" aria-label="自訂地點營業時間"><input type="number" id="cc_'+k+'" min="0" step="100" placeholder="每人概估費用 NT$（門票／餐費，選填）" aria-label="自訂地點每人概估費用"><button type="button" class="ghost" data-act="adds" data-k="'+esc(k)+'">新增地點</button><button type="button" class="ghost" data-act="reqtoggle" data-k="'+esc(k)+'" aria-expanded="'+(REQOPEN?'true':'false')+'">我的收錄申請'+reqCountTxt()+(REQOPEN?'（收合）':'')+'</button></div></section>';
   });
   if(toks.length&&!shownTotal)h+='<p class="empty">找不到符合的景點，請換個關鍵字。</p>';
   $('pickQn').textContent=toks.length?('找到 '+shownTotal+' 個景點'):'';

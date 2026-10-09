@@ -142,7 +142,7 @@ function poolHtml(d,p){
   var list=p.pool[d.city]||[],days=p.days.filter(function(x){return x.city===d.city&&!x.off});
   var items=list.map(function(s){
     return '<li class="tr sg pool" draggable="true" data-id="'+esc(s.id)+'" data-day="pool" data-city="'+esc(d.city)+'"><div class="tt">—</div><div class="tb"><div class="n"><span class="grip" aria-hidden="true" title="拖曳到上方任一天">⋮⋮</span><b>'+esc(s.name)+'</b><span class="tag">'+STYLE[s.s]+(s.tag?'・'+esc(s.tag):'')+'</span>'+rateTxt(s)+'<a class="maplink" href="'+esc(mapSearch(s))+'" target="_blank" rel="noopener">看地圖</a></div>'+
-      '<div class="meta">'+esc(s.dist)+'・'+costTxt(s)+'・'+hoursTagWeek(s)+(isFood(s)?'':'・<label class="stayin">停留 <input type="number" min="15" max="720" step="15" data-stay="'+esc(s.id)+'" value="'+stayOf(s)+'" aria-label="停留分鐘"> 分</label>')+'</div>'+
+      thumbsHtml(s.images,s.name)+'<div class="meta">'+esc(s.dist)+'・'+costTxt(s)+'・'+hoursTagWeek(s)+(isFood(s)?'':'・<label class="stayin">停留 <input type="number" min="15" max="720" step="15" data-stay="'+esc(s.id)+'" value="'+stayOf(s)+'" aria-label="停留分鐘"> 分</label>')+'</div>'+
       '<div class="mvbar">'+(days.length?'<select data-mv="'+esc(s.id)+'" aria-label="加入某一天"><option value="">加入某一天…</option>'+days.map(function(x){return '<option value="'+x.no+'">第 '+x.no+' 天</option>'}).join('')+'</select>':'')+
       '<button type="button" class="ghost sm x" data-act="rm" data-id="'+esc(s.id)+'" aria-label="移除並取消勾選">✕</button></div></div></li>';
   }).join('');
@@ -172,7 +172,7 @@ function rowHtml(r,d,p){
     if(r.s){
       var pm=!!r.s.pin;
       cls+=' sg'+(pm?' pinned':'');
-      b='<div class="n"><span class="grip" aria-hidden="true" title="拖曳調整順序">⋮⋮</span><span class="tag meal">'+r.n+'</span><b>'+esc(r.s.name)+'</b>'+rateTxt(r.s)+'<a class="maplink" href="'+esc(mapSearch(r.s))+'" target="_blank" rel="noopener">看地圖</a></div><div class="meta">'+esc(r.s.dist)+'・'+hoursTag(r.s,d.no)+'・<label class="stayin">用餐 <input type="number" min="15" max="240" step="5" data-stay="'+esc(r.s.id)+'" value="'+(r.end-r.start)+'" aria-label="用餐分鐘"> 分</label>・'+costTxt(r.s)+'</div>'+itemCtl(r.s,d,p,pm);
+      b='<div class="n"><span class="grip" aria-hidden="true" title="拖曳調整順序">⋮⋮</span><span class="tag meal">'+r.n+'</span><b>'+esc(r.s.name)+'</b>'+rateTxt(r.s)+'<a class="maplink" href="'+esc(mapSearch(r.s))+'" target="_blank" rel="noopener">看地圖</a></div>'+thumbsHtml(r.s.images,r.s.name)+'<div class="meta">'+esc(r.s.dist)+'・'+hoursTag(r.s,d.no)+'・<label class="stayin">用餐 <input type="number" min="15" max="240" step="5" data-stay="'+esc(r.s.id)+'" value="'+(r.end-r.start)+'" aria-label="用餐分鐘"> 分</label>・'+costTxt(r.s)+'</div>'+itemCtl(r.s,d,p,pm);
       if(r.closed)b+='<p class="overnote">⚠ 當天這個時段不在營業時間內（'+esc(hoursLabel(r.s,d.no))+'）。</p>';
       else if(r.over)b+='<p class="overnote">⚠ 用餐開始時間不在建議時段內（午餐 11:00–13:30、晚餐 17:30–20:00）。</p>';
       li=(pm?'':' draggable="true"')+' data-id="'+esc(r.s.id)+'" data-day="'+d.no+'" data-city="'+esc(d.city)+'"';
@@ -182,7 +182,7 @@ function rowHtml(r,d,p){
   }else if(r.type==='sight'){
     cls='sg'+(r.s.pin?' pinned':'');
     var s=r.s,pn=!!s.pin;
-    b='<div class="n"><span class="grip" aria-hidden="true" title="拖曳調整順序">⋮⋮</span><b>'+esc(s.name)+'</b><span class="tag">'+STYLE[s.s]+(s.tag?'・'+esc(s.tag):'')+'</span>'+rateTxt(s)+'<a class="maplink" href="'+esc(mapSearch(s))+'" target="_blank" rel="noopener">看地圖</a></div><p>'+esc(s.desc)+'</p>'+
+    b='<div class="n"><span class="grip" aria-hidden="true" title="拖曳調整順序">⋮⋮</span><b>'+esc(s.name)+'</b><span class="tag">'+STYLE[s.s]+(s.tag?'・'+esc(s.tag):'')+'</span>'+rateTxt(s)+'<a class="maplink" href="'+esc(mapSearch(s))+'" target="_blank" rel="noopener">看地圖</a></div>'+thumbsHtml(s.images,s.name)+'<p>'+esc(s.desc)+'</p>'+
       '<div class="meta">'+esc(s.dist)+'・'+costTxt(s)+'・'+hoursTag(s,d.no)+'・<label class="stayin">停留 <input type="number" min="15" max="720" step="15" data-stay="'+esc(s.id)+'" value="'+(r.end-r.start)+'" aria-label="停留分鐘"> 分</label></div>'+itemCtl(s,d,p,pn);
     if(r.closed)b+='<p class="overnote">⚠ 當天這個時段不在營業時間內（'+esc(hoursLabel(s,d.no))+'），請移到其他天或調整時間。</p>';
     else if(r.over)b+='<p class="overnote">⚠ 已超過當天回住宿或航班前的時間，請調整停留時間或移到其他天。</p>';

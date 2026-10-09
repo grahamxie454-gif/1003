@@ -421,3 +421,17 @@ button.iconbtn.pv:not(.on){opacity:.6}
 input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=file]),select{
   height:36px;min-height:36px;box-sizing:border-box;padding-top:0;padding-bottom:0}
 .ib.spin svg{animation:rot 1s linear infinite}
+/* 景點圖片縮圖與放大檢視 */
+.ithumbs{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.ithumb{height:56px;width:76px;object-fit:cover;border-radius:6px;border:1px solid var(--line);cursor:zoom-in;background:var(--soft)}
+.ithumb:hover{outline:2px solid var(--accent)}
+.lightbox{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;flex-direction:column;padding:16px}
+.lightbox img{max-width:min(96vw,1100px);max-height:82vh;object-fit:contain;border-radius:8px;cursor:pointer}
+.lbcap{color:#fff;margin-top:10px;font-size:14px;text-align:center}
+.lightbox .lbx{position:absolute;top:14px;right:14px;color:#fff;border-color:rgba(255,255,255,.5);background:rgba(0,0,0,.4)}
+.lightbox .lbn{position:absolute;top:50%;transform:translateY(-50%);color:#fff;border-color:rgba(255,255,255,.5);background:rgba(0,0,0,.4);width:44px;height:44px}
+.lightbox .lbp{left:14px}.lightbox .lbnx{right:14px}
+/* 分享頁：照片圖示與張數 */
+.phbar .ib{position:relative}
+.ib.phcam{width:auto;min-width:36px;padding:0 8px;gap:4px}
+.phn{font-size:13px;font-weight:700;line-height:1}

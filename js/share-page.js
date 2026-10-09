@@ -51,6 +51,15 @@ async function refresh(){
   if(MOD&&!$('modal').hidden)renderModal(true);
 }
 
+var SH_S='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+var SH_ICON={
+  cam:SH_S+'<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+  up:SH_S+'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg>',
+  edit:SH_S+'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  save:SH_S+'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>',
+  del:SH_S+'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>',
+  x:SH_S+'<path d="M6 6l12 12M18 6L6 18"/></svg>'
+};
 function money(c){return c>0?'約 NT$ '+(Math.round(c/10)*10).toLocaleString('zh-TW'):''}
 function itemPhotos(k){return PHOTOS.filter(function(p){return p.item_key===k})}
 function renderShare(){
@@ -65,11 +74,15 @@ function renderShare(){
       var cls=r.t==='move'||r.t==='hop'?'mv':(r.t==='free'||r.t==='buffer'?'fr':(r.t==='meal'?'ml':''));
       var link=/^https?:\/\//i.test(r.l||'')?r.l:'';
       var ph=r.k?itemPhotos(r.k):[];
-      var tools=r.k?'<div class="mvbar"><button type="button" class="ghost sm" data-ph-open="'+esc(r.k)+'">📷 照片（'+ph.length+'）'+(ph.length?'・編輯':'・上傳')+'</button>'+
+      // 第一排：景點圖片（點擊放大）；第二排：上傳的照片（相機圖示旁顯示張數）
+      var spotImgs=(r.t==='sight'||r.t==='meal')?thumbsHtml(r.im,r.n):'';
+      var tools=r.k?'<div class="mvbar phbar"><button type="button" class="ib phcam" data-ph-open="'+esc(r.k)+'" title="照片（'+ph.length+' 張）：查看'+(ph.length?'與編輯':'')+'" aria-label="照片 '+ph.length+' 張">'+SH_ICON.cam+'<span class="phn">'+ph.length+'</span></button>'+
+        '<button type="button" class="ib" data-ph-open="'+esc(r.k)+'" data-ph-up="1" title="上傳照片" aria-label="上傳照片">'+SH_ICON.up+'</button>'+
+        (ph.length?'<button type="button" class="ib" data-ph-open="'+esc(r.k)+'" title="編輯照片與註解" aria-label="編輯照片與註解">'+SH_ICON.edit+'</button>':'')+
         ph.slice(0,4).map(function(p){return p.url?'<img class="thumb" data-ph-open="'+esc(r.k)+'" loading="lazy" src="'+esc(p.url)+'" alt="">':''}).join('')+'</div>':'';
       return '<li class="tr '+cls+(r.o?' over':'')+'"><div class="tt">'+minStr(r.s)+(r.e>r.s?'<small>–'+minStr(r.e)+'</small>':'')+'</div><div class="tb">'+
         ((r.t==='move'||r.t==='hop')?'<span class="soft">'+esc(r.n)+'</span>'+(link?' '+iconLink(link,ICON_ROUTE,'路徑（Google 地圖，帶入出發時間）'):''):(link&&r.t!=='move'?'<a class="maplink" href="'+esc(link)+'" target="_blank" rel="noopener"><b>'+esc(r.n)+'</b></a>':(cls==='mv'||cls==='fr'?'<span class="soft">'+esc(r.n)+'</span>':'<b>'+esc(r.n)+'</b>')))+
-        (r.r?' <span class="rate">★ '+Number(r.r).toFixed(1)+'</span>':'')+(r.c?' <span class="muted">'+money(r.c)+'</span>':'')+tools+'</div></li>';
+        (r.r?' <span class="rate">★ '+Number(r.r).toFixed(1)+'</span>':'')+(r.c?' <span class="muted">'+money(r.c)+'</span>':'')+spotImgs+tools+'</div></li>';
     }).join('')+'</ol>';
     h+='<div class="notes"><h4>留言</h4>'+(notes.length?notes.map(function(n){
       return '<p class="note2"><b>'+esc(nameOf(n.user_id,n.user_email))+'</b> <span class="muted">'+esc(fmtDT(n.created_at))+'</span><br>'+esc(n.body)+
@@ -122,21 +135,21 @@ function renderModal(keepPending){
     h+='<div class="mrow"><a href="slideshow.html?trip='+TID+'&p='+p.id+'" target="_blank" rel="noopener">'+(p.url?'<img src="'+esc(p.url)+'" alt="">':'')+'</a><div class="mcol">'+
       '<input type="text" maxlength="100" data-cap-id="'+esc(p.id)+'" value="'+esc(p.caption||'')+'" placeholder="註解"'+(mine?'':' disabled')+' aria-label="照片註解">'+
       '<span class="muted">'+esc(nameOf(p.user_id,p.user_email))+'・上傳 '+esc(fmtDT(p.created_at))+(p.taken_at?'・拍攝 '+esc(fmtDT(p.taken_at)):'')+'</span>'+
-      '<div class="mvbar">'+(mine?'<button type="button" class="sm" data-cap-save="'+esc(p.id)+'">儲存註解</button>':'')+
-      (mine?'<button type="button" class="ghost sm x" data-del-photo="'+esc(p.id)+'">刪除照片</button>':'<span class="muted">只有上傳者能修改或刪除</span>')+'</div></div></div>';
+      '<div class="mvbar">'+(mine?'<button type="button" class="ib" data-cap-save="'+esc(p.id)+'" title="儲存註解" aria-label="儲存註解">'+SH_ICON.save+'</button>':'')+
+      (mine?'<button type="button" class="ib danger" data-del-photo="'+esc(p.id)+'" title="刪除照片（再按一次確認）" aria-label="刪除照片">'+SH_ICON.del+'</button>':'<span class="muted">只有上傳者能修改或刪除</span>')+'</div></div></div>';
   });
   h+='<h3>新增照片</h3><input type="file" id="mFiles" accept="image/jpeg,image/png,image/webp" multiple aria-label="選擇照片">';
   MOD.pending.forEach(function(p,i){
     h+='<div class="mrow"><img src="'+esc(p.url)+'" alt=""><div class="mcol"><input type="text" maxlength="100" data-pend-cap="'+i+'" value="'+esc(p.caption)+'" placeholder="這張的註解（選填）" aria-label="新照片註解">'+
-      '<div class="mvbar"><button type="button" class="ghost sm x" data-pend-del="'+i+'">移除</button></div></div></div>';
+      '<div class="mvbar"><button type="button" class="ib" data-pend-del="'+i+'" title="移除這張" aria-label="移除這張">'+SH_ICON.x+'</button></div></div></div>';
   });
-  if(MOD.pending.length)h+='<div class="mvbar"><button type="button" id="mUpload">上傳 '+MOD.pending.length+' 張</button></div>';
+  if(MOD.pending.length)h+='<div class="mvbar"><button type="button" class="ib phcam" id="mUpload" title="上傳 '+MOD.pending.length+' 張" aria-label="上傳 '+MOD.pending.length+' 張">'+SH_ICON.up+'<span class="phn">'+MOD.pending.length+'</span></button></div>';
   h+='<p class="status" id="mSt"></p>';
   $('mBody').innerHTML=h;
 }
 on('itin','click',async function(e){
   var o=e.target.closest('[data-ph-open]');
-  if(o){openModal(o.dataset.phOpen);return}
+  if(o){openModal(o.dataset.phOpen);if(o.dataset.phUp)setTimeout(function(){var fi=$('mFiles');if(fi)fi.click()},60);return}
   var b=e.target.closest('button');
   if(!b)return;
   if(b.dataset.delNote){
@@ -183,8 +196,8 @@ on('mBody','click',async function(e){
     $('mSt').textContent='註解已儲存。';
   }else if(b.dataset.delPhoto){
     if(!b.dataset.sure){
-      b.dataset.sure='1';b.textContent='再按一次確認刪除';
-      setTimeout(function(){if(b.isConnected){delete b.dataset.sure;b.textContent='刪除照片'}},4000);
+      b.dataset.sure='1';b.classList.add('armed');st_.textContent='再按一次刪除圖示，確認刪除這張照片。';
+      setTimeout(function(){if(b.isConnected){delete b.dataset.sure;b.classList.remove('armed')}},4000);
       return;
     }
     b.disabled=true;

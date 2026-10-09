@@ -100,6 +100,8 @@ on('pick','click',async function(e){
     if(spot.s==='x'&&sp0&&sp0.s!=='x')spot.s=sp0.s;
     var tg=$('ctag_'+k).value.trim()||(sp0&&sp0.tag)||'';if(tg)spot.tag=tg.slice(0,12);
     var sty=parseInt($('cst_'+k).value,10);if(isNaN(sty)&&sp0)sty=sp0.stay;if(sty>=15&&sty<=720)spot.stay=sty;
+    var im=$('cim_'+k).value.trim()||(info&&info.image)||'';
+    if(im){if(imgList(im).length!==im.split(/[,，]+/).filter(function(x){return x.trim()}).length){setSave('圖片連結要是 http 或 https 開頭的網址，多個請用逗號分隔。');return}spot.images=im.slice(0,2000)}
     var hr=$('chr_'+k).value.trim();
     if(!hr&&info&&info.hours)hr=info.hours;
     if(hr){if(!parseHours(hr)){setSave('營業時間格式不正確，請參考：一-五 10:00-18:00;六日 10:00-20:00;二休');return}spot.hours=hr.slice(0,300)}
@@ -400,7 +402,7 @@ async function fillFromMapLink(inp){
     put('cl_',sp.district);
     if(sp.s!=='x')put('ct_',sp.s);
     put('ctag_',sp.tag);
-    put('chr_',sp.hours);
+    put('chr_',sp.hours);put('cim_',sp.images);
     put('cst_',sp.stay);
     put('cc_',sp.cost>0?sp.cost:'');
     if(sp.lat!=null)put('cg_',sp.lat+', '+sp.lng);

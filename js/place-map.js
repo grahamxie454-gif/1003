@@ -54,7 +54,7 @@ function placeToSpot(info,k,districts){
   var ps=placeStyle(info),has=typeof info.lat==='number';
   return {
     name:info.name||'',s:ps.s,tag:ps.tag,stay:ps.stay,type:ps.type,
-    cost:placeCost(info,ps.s),hours:info.hours||'',rating:info.rating||null,
+    cost:placeCost(info,ps.s),hours:info.hours||'',images:info.image||'',rating:info.rating||null,
     lat:has?info.lat:null,lng:has?info.lng:null,
     district:has&&districts&&districts.length?nearestDistrict(k,[info.lat,info.lng],districts):''
   };

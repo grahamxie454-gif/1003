@@ -101,7 +101,7 @@ function colsFor(t){
   if(t==='countries')return [['id','代碼','id'],['name','名稱','text'],['fh','飛行時間','text'],['drive','自駕提醒','text'],['tips','小提醒（一行一則）','lines'],['rail','鐵路時速','int'],['sort','排序','int']];
   if(t==='cities')return [['id','代碼','id'],['country_id','國家','sel',cn],['name','名稱','text'],['code','機場代碼','text'],['lat','緯度','num'],['lng','經度','num'],['hotel','住宿（節省,適中,舒適）','ints3'],['food','餐飲（節省,適中,舒適）','ints3'],['season','最佳季節說明','text'],['sort','排序','int']];
   if(t==='districts')return [['id','編號','auto'],['city_id','城市','sel',ct],['name','名稱','text'],['lat','緯度','num'],['lng','經度','num'],['sort','排序','int']];
-  return [['id','編號','auto'],['district_id','地區','sel',dt],['name','名稱','text'],['style','風格','sel',[['f','美食'],['c','文化'],['n','自然'],['s','購物']]],['tag','子分類','text'],['cost','每人概估費用 NT$（門票／餐費）','int'],['hours','營業時間（一-五 10:00-18:00;六日 10:00-20:00;二休）','text'],['stay','建議停留（分鐘）','int'],['rating','Google 評分','numopt'],['lat','緯度','numopt'],['lng','經度','numopt'],['maps_url','地圖連結（選填）','text'],['descr','說明','text'],['sort','排序','int']];
+  return [['id','編號','auto'],['district_id','地區','sel',dt],['name','名稱','text'],['style','風格','sel',[['f','美食'],['c','文化'],['n','自然'],['s','購物']]],['tag','子分類','text'],['cost','每人概估費用 NT$（門票／餐費）','int'],['hours','營業時間（一-五 10:00-18:00;六日 10:00-20:00;二休）','text'],['stay','建議停留（分鐘）','int'],['rating','Google 評分','numopt'],['lat','緯度','numopt'],['lng','經度','numopt'],['maps_url','地圖連結（選填）','text'],['images','圖片連結（多個以逗號分隔；更新景點資料時，沒有圖片的會自動抓 Google 第一張）','text'],['descr','說明','text'],['sort','排序','int']];
 }
 function cellHtml(col,val,rid,isNew){
   var k=col[0],type=col[2],a=' data-c="'+k+'" data-r="'+esc(rid)+'" aria-label="'+esc(col[1])+'"';
@@ -230,7 +230,7 @@ var AICON={
   add:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>'
 };
 function iconBtn(act,rid,title,svg,cls){return '<button type="button" class="ib'+(cls?' '+cls:'')+'" data-row-act="'+act+'" data-r="'+esc(rid)+'" title="'+esc(title)+'" aria-label="'+esc(title)+'">'+svg+'</button>'}
-var WIDE_COLS={descr:1,maps_url:1,hours:1,tips:1,drive:1,season:1,fh:1};
+var WIDE_COLS={descr:1,maps_url:1,images:1,hours:1,tips:1,drive:1,season:1,fh:1};
 // 一筆資料 = 一張卡片：左邊是圖示功能列，右邊的欄位依視窗寬度自動分成多列；視窗太窄時，圖示在最左邊垂直排列
 function recHtml(cols,r,t,isNew){
   var rid=isNew?'new':r[pkOf(t)],acts=isNew?iconBtn('add','new','新增',AICON.add):
@@ -251,7 +251,7 @@ document.addEventListener('click',async function(e){
       if(r.error)throw new Error(r.error.message||'呼叫失敗');
       if(d.error==='not_configured')aMsg('尚未設定 Google Places 金鑰（GOOGLE_PLACES_KEY）。',true);
       else if(d.error)aMsg(d.error,true);
-      else{await loadBuiltin();aMsg('已更新 '+d.updated+' 筆（以 place id 精準查詢 '+(d.viaId||0)+' 筆、名稱搜尋 '+(d.viaSearch||0)+' 筆），找不到對應地點 '+d.missed+' 筆，還有 '+d.remaining+' 筆待處理。');adminData()}
+      else{await loadBuiltin();aMsg('已更新 '+d.updated+' 筆（以 place id 精準查詢 '+(d.viaId||0)+' 筆、名稱搜尋 '+(d.viaSearch||0)+' 筆），其中新增營業時間 '+(d.withHours||0)+' 筆、新增圖片 '+(d.withImages||0)+' 筆；找不到對應地點 '+d.missed+' 筆，還有 '+d.remaining+' 筆待處理。');adminData()}
     }catch(err){aMsg('更新失敗：'+(err.message||err),true)}
     return;
   }
@@ -282,6 +282,7 @@ function readRow(t,rid,isNew){
     if(Math.abs(o.hub_lat)>90||Math.abs(o.hub_lng)>180)throw new Error('車站座標超出範圍');
     (o.default_cities||[]).forEach(function(c){if(!DB.cities.some(function(x){return x.id===c}))throw new Error('預設城市「'+c+'」不是內建城市代碼')});
   }
+  if(t==='spots'&&o.images&&imgList(o.images).length!==o.images.split(/[,，]+/).filter(function(x){return x.trim()}).length)throw new Error('「圖片連結」每一個都要是 http 或 https 開頭的網址，多個請用逗號分隔');
   if(t==='spots'&&o.hours&&!parseHours(o.hours))throw new Error('「營業時間」格式不正確，請參考：一-五 10:00-18:00;六日 10:00-20:00;二休（每日 24h 表示全天）');
   if((t==='countries'||t==='cities')&&isNew&&!/^[a-z0-9_]{2,12}$/.test(o.id||''))throw new Error('代碼請用 2–12 個小寫英文字母或數字');
   if(o.lat!=null&&(o.lat<-90||o.lat>90||o.lng<-180||o.lng>180))throw new Error('座標超出範圍');
@@ -304,7 +305,7 @@ async function rowAction(b){
       if(dd.error)throw new Error(dd.error);
       await loadBuiltin();
       if(dd.missed)aMsg('「'+dd.name+'」在 Google 找不到對應的地點。可以在「地圖連結」欄貼上該地點的 Google 地圖分享連結後再按「更新」。',true);
-      else aMsg('已更新「'+dd.name+'」（比對到：'+dd.matched+'，方式：'+dd.via+'）：評分 '+(dd.rating==null?'無':dd.rating)+'，座標 '+(dd.lat==null?'未取得':dd.lat.toFixed(5)+', '+dd.lng.toFixed(5))+'，營業時間 '+(dd.hours||'Google 沒有提供（維持原內容）'));
+      else aMsg('已更新「'+dd.name+'」（比對到：'+dd.matched+'，方式：'+dd.via+'）：'+(dd.image?'已自動抓取第一張圖片，':'')+'評分 '+(dd.rating==null?'無':dd.rating)+'，座標 '+(dd.lat==null?'未取得':dd.lat.toFixed(5)+', '+dd.lng.toFixed(5))+'，營業時間 '+(dd.hours||'Google 沒有提供（維持原內容）'));
       adminData();return;
     }
     if(a==='del'){
@@ -399,7 +400,7 @@ on('adminBody','change',async function(e){
     put('name',sp.name.slice(0,60));
     if(sp.s!=='x')put('style',sp.s);
     put('tag',sp.tag);put('cost',sp.cost>0?sp.cost:0);put('stay',sp.stay);
-    put('rating',sp.rating);put('hours',sp.hours);
+    put('rating',sp.rating);put('hours',sp.hours);put('images',sp.images);
     put('descr',(info.summary||'').slice(0,80));
     if(sp.lat!=null){put('lat',sp.lat);put('lng',sp.lng)}
     // 最接近的地區（同一個城市、30 公里內）

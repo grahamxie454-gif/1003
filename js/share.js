@@ -3,7 +3,7 @@
 function shareUrl(page){return new URL(page+'?trip='+TRIP.id,location.href).href}
 function buildSnapshot(p){
   return {
-    v:4,
+    v:5,
     cities:p.cities.map(function(k){return C[k].n}),
     days:p.days.map(function(d){
       return {
@@ -12,7 +12,7 @@ function buildSnapshot(p){
         rows:d.rows.map(function(r){
           var inf=rowInfo(r,d);if(!inf)return null;
           var k=(r.type==='sight'||r.type==='meal')&&r.s?'s:'+r.s.id:(r.type==='tour'?'t:'+d.no:(r.type==='flight'?'x:'+d.no+':'+d.rows.filter(function(q){return q.type==='flight'}).indexOf(r):((r.type==='free'||r.type==='meal')&&r.key?(r.type==='free'?'f:':'m:')+d.no+':'+r.key:'')));
-          return {t:r.type==='ferry'?'buffer':r.type,k:k,s:r.start,e:r.end,n:inf.name,c:typeof inf.cost==='number'?inf.cost:0,l:inf.link||'',r:(r.s&&r.s.rating)||null,o:!!r.over};
+          return {t:r.type==='ferry'?'buffer':r.type,im:(r.s&&r.s.images)||'',k:k,s:r.start,e:r.end,n:inf.name,c:typeof inf.cost==='number'?inf.cost:0,l:inf.link||'',r:(r.s&&r.s.rating)||null,o:!!r.over};
         }).filter(Boolean)
       };
     })
