@@ -465,3 +465,6 @@ article.day[hidden]{display:none}
 .poolsec.allempty,.poolbox.empty{display:none}
 #res.dragging .poolsec.allempty{display:flex}
 #res.dragging .poolbox.empty{display:block}
+a.ib{text-decoration:none;color:var(--ink,inherit)}
+a.ib:hover{background:rgba(127,127,127,.2)}
+.topbar .tabs{flex-wrap:nowrap}

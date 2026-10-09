@@ -17,18 +17,17 @@
   <section id="auth" class="card" hidden></section>
   <div id="app" hidden>
     <div class="topbar">
-      <div class="who"><span id="whoEmail"></span><span class="nick" id="nickForm" hidden><input type="text" id="nickIn" maxlength="20" aria-label="暱稱"><button type="button" class="sm" id="nickSave">儲存</button><button type="button" class="ghost sm" id="nickCancel">取消</button><span class="muted" id="nickMsg"></span></span><button type="button" class="ghost sm" id="nickEdit" aria-label="修改暱稱">改暱稱</button></div>
       <div class="tabs">
-        <a class="tab" id="backPlan" href="index.html">← 返回行程規劃</a>
-        <a class="tab" id="goSlides" href="#">照片幻燈片</a>
-        <button type="button" class="tab" id="logout">登出</button>
+        <a class="ib" id="backPlan" href="index.html" title="返回行程規劃" aria-label="返回行程規劃"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></a>
+        <a class="ib" id="goSlides" href="#" title="照片幻燈片" aria-label="照片幻燈片"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M10 8.5v5l4.5-2.5zM8 21h8"/></svg></a>
       </div>
+      <div class="who"><span id="whoEmail"></span><span class="nick" id="nickForm" hidden><input type="text" id="nickIn" maxlength="20" aria-label="暱稱"><button type="button" class="ib" id="nickSave" title="儲存暱稱" aria-label="儲存暱稱"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></button><button type="button" class="ib" id="nickCancel" title="取消" aria-label="取消"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span class="muted" id="nickMsg"></span></span><button type="button" class="ib" id="nickEdit" title="改暱稱" aria-label="修改暱稱"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.6 3.1-6 7-6 1.5 0 2.8.3 4 .9"/><path d="M15 21l1-4 5-5a1.6 1.6 0 0 1 2.3 2.3l-5 5z" transform="translate(-1.5 -1)"/></svg></button><button type="button" class="ib" id="logout" title="登出" aria-label="登出"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></button></div>
     </div>
     <section id="itin"></section>
   </div>
   <div id="modal" class="modal" hidden>
     <div class="modalbox" role="dialog" aria-modal="true" aria-labelledby="mTitle">
-      <div class="modalhead"><h2 id="mTitle"></h2><button type="button" class="ghost sm" id="mClose">關閉</button></div>
+      <div class="modalhead"><h2 id="mTitle"></h2><button type="button" class="ib" id="mClose" title="關閉" aria-label="關閉"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
       <div id="mBody"></div>
     </div>
   </div>
