@@ -406,3 +406,4 @@ button.iconbtn.pv:not(.on){opacity:.6}
 .modal .rec{display:block;border:0;padding:0;background:transparent}
 .seas.wide{grid-column:1/-1}
 .rf b{font-size:14px;color:var(--ink,inherit)}
+.ib.leaf{color:#3a9a4a}

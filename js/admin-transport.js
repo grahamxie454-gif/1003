@@ -7,6 +7,8 @@ var AIR_COLS=[
   ['mode','方式','sel',[['train','火車'],['metro','地鐵'],['bus','巴士／叫車']]],['via','搭乘說明','text'],
   ['minutes','單程分鐘','int'],['fare_twd','費用 NT$','int'],['km','公里','num'],['default_cities','預設城市（代碼，逗號分隔）','csv']
 ];
+// 葉子圖示：新增季節（和其他「＋」新增區分）
+var LEAF_ICON='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6.5C9.7 13.6 12 12 13 10"/></svg>';
 var FERRY_EDIT=[],FERRY_NEW=null;
 function emptyFerry(){
   return {id:'',name:'',source:'',main_name:'',main_lat:'',main_lng:'',isle_name:'',isle_lat:'',isle_lng:'',isle_center_lat:'',isle_center_lng:'',
@@ -32,7 +34,7 @@ function ferryCard(f,idx){
       '<label class="rf"><span>離島 → 本島 發船時間</span><input type="text" data-sf="toMain" value="'+esc((s.toMain||[]).join(','))+'"></label>'+
       fbtn('delseason','刪除這個季節',CLOSE_ICON,'',' data-si="'+si+'"')+'</div>';
   });
-  return h+'<div class="rf wide">'+fbtn('addseason','新增季節',AICON.add)+'</div></div></div>';
+  return h+'<div class="rf wide">'+fbtn('addseason','新增季節',LEAF_ICON,'leaf')+'</div></div></div>';
 }
 function readFerryCard(card){
   var o={},num=function(k,n){var v=parseFloat(card.querySelector('[data-fc="'+k+'"]').value);if(isNaN(v))throw new Error('「'+n+'」請填數字');return v};
