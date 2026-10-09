@@ -75,7 +75,7 @@ function leg(fq,tq,a,b,ms,at,estO){
   var key=(nav?'NAVI':g)+'|'+fq+'|'+tq+(dep?'|'+dep:'')+(tmv.length?'|M'+tmv.join('.'):''),h=ROUTE[key],out;
   // 實際查到的時間以 5 分鐘為單位顯示（太粗的單位會讓短程接駁變得不準，例如 20 分鐘不能變成 15 分鐘）
   if(h){
-    out={km:h.m/1000,min:Math.max(5,Math.round(h.s/60/5)*5),mode:est.mode,g:true,fare:h.f||0,src:nav?'NAVITIME':'Google',wait:Math.round((h.w||0)/60)};
+    out={km:h.m/1000,min:Math.max(5,Math.round(h.s/60/5)*5),mode:est.mode,g:true,fare:h.f||0,src:nav?'NAVITIME':'Google',wait:Math.round((h.w||0)/60),segs:h.p||null};
     // Google 不提供票價：機場接駁等有固定票價的路段，沿用資料庫的費用（例如免費接駁巴士 NT$0），不要改用平均交通費
     if(!(h.f>0)&&estO&&estO.twd>=0){out.twd=estO.twd;out.tbl=true}
   }
@@ -99,7 +99,7 @@ async function askRoutes(reqs){
   if(d.error==='not_configured')return {stop:'尚未設定 Google 金鑰，路線時間維持估算。'};
   if(d.error==='not_configured_navitime')return {stop:'尚未設定 NAVITIME 金鑰（Supabase Secrets：NAVITIME_KEY 或 AERODATABOX_KEY），日本大眾運輸維持估算。'};
   var got=0;
-  (d.results||[]).forEach(function(x){ROUTE[x.key]={s:x.s,m:x.m,f:x.f,w:x.w||0};got++});
+  (d.results||[]).forEach(function(x){ROUTE[x.key]={s:x.s,m:x.m,f:x.f,w:x.w||0,p:x.p||null};got++});
   if(d.error)return {stop:'路線查詢失敗：'+d.error,got:got};
   if(d.capped)return {stop:'今日查詢額度已用完，其餘路線維持估算，明天可再按一次。',got:got};
   return {got:got,fails:d.fails||0,lastErr:d.lastErr||'',approx:d.approx||0};
@@ -136,9 +136,9 @@ async function calcDay(no){
 async function loadRoutes(){
   try{
     for(var from=0;from<5000;from+=1000){
-      var r=await sb.from('route_cache').select('key,secs,meters,fare,wait_secs').range(from,from+999);
+      var r=await sb.from('route_cache').select('key,secs,meters,fare,wait_secs,steps').range(from,from+999);
       if(r.error||!r.data)break;
-      r.data.forEach(function(x){ROUTE[x.key]={s:x.secs,m:x.meters,f:x.fare,w:x.wait_secs||0}});
+      r.data.forEach(function(x){ROUTE[x.key]={s:x.secs,m:x.meters,f:x.fare,w:x.wait_secs||0,p:x.steps||null}});
       if(r.data.length<1000)break;
     }
   }catch(e){}

@@ -79,12 +79,15 @@ var SH_ICON={
 };
 function money(c){return c>0?'約 NT$ '+(Math.round(c/10)*10).toLocaleString('zh-TW'):''}
 function itemPhotos(k){return PHOTOS.filter(function(p){return p.item_key===k})}
+var SHDAY=0;
 function renderShare(){
   var days=(SHARE.share_data&&SHARE.share_data.days)||[],h='';
+  if(SHDAY>days.length)SHDAY=0;
+  if(days.length)h+='<div id="daySel">'+daySelHtml(days.length,SHDAY)+'</div>';
   if(!days.length)h='<p class="muted">擁有者尚未發佈行程內容。</p>';
   days.forEach(function(d){
     var notes=NOTES.filter(function(n){return n.day_no===d.no});
-    h+='<article class="day"><h3>第 '+d.no+' 天'+(d.date?'<em class="date">'+esc(d.date)+'</em>':'')+'<em class="city">'+esc(d.city)+'</em>'+(d.stops&&d.stops.length?' '+iconLink(pinsUrl(d.stops,'第 '+d.no+' 天・'+d.city),ICON_PIN,'在 Google 地圖查看當日所有地點的位置（不規劃路線）'):'')+'</h3>';
+    h+='<article class="day" data-no="'+d.no+'"><h3>第 '+d.no+' 天'+(d.date?'<em class="date">'+esc(d.date)+'</em>':'')+'<em class="city">'+esc(d.city)+'</em>'+(d.stops&&d.stops.length?' '+iconLink(pinsUrl(d.stops,'第 '+d.no+' 天・'+d.city),ICON_PIN,'在 Google 地圖查看當日所有地點的位置（不規劃路線）'):'')+'</h3>';
     if(d.hotel)h+='<p class="note">住宿：'+(d.hotel.url?'<a class="maplink" href="'+esc(d.hotel.url)+'" target="_blank" rel="noopener">'+esc(d.hotel.name)+'</a>':esc(d.hotel.name))+'</p>';
     if(d.off)h+='<p class="note">今天休息，不安排行程。</p>';
     h+='<ol class="tl">'+d.rows.map(function(r){
@@ -108,6 +111,7 @@ function renderShare(){
       '<div class="noterow"><input type="text" maxlength="500" data-note-in="'+d.no+'" placeholder="寫下這一天的註解或心得" aria-label="第 '+d.no+' 天留言"><button type="button" data-note-add="'+d.no+'">送出</button></div></div></article>';
   });
   $('itin').innerHTML=h;
+  applyDaySel($('itin'),SHDAY);
 }
 
 // ---- 照片處理：讀取拍攝時間、縮圖、移除定位資訊 ----
@@ -257,3 +261,17 @@ async function deletePhoto(id,msgEl){
 }
 bootPage();
 function onNickChanged(){renderShare();if(MOD&&!$('modal').hidden)renderModal(true)}
+
+// 選擇某一天來顯示（6 天以內用按鈕，超過 6 天用下拉選單）
+function setShDay(n){
+  SHDAY=n;
+  var box=$('daySel');if(box)box.innerHTML=daySelHtml(((SHARE.share_data&&SHARE.share_data.days)||[]).length,SHDAY);
+  applyDaySel($('itin'),SHDAY);
+}
+on('itin','click',function(e){
+  var b=e.target.closest('button[data-daysel]');if(!b)return;
+  var n=+b.dataset.daysel;setShDay(SHDAY===n?0:n);
+});
+on('itin','change',function(e){
+  if(e.target.matches&&e.target.matches('select[data-daysel-sel]'))setShDay(+e.target.value||0);
+});

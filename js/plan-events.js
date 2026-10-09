@@ -273,6 +273,8 @@ on('res','click',async function(e){
     if(st.fix&&st.fix[arr[j]]){setSave('相鄰的項目已固定，無法交換。');return}
     var t=arr[i];arr[i]=arr[j];arr[j]=t;
     st.lay=L;render();
+  }else if(a==='pickfree'){
+    openFreePicker(+b.dataset.no,+b.dataset.idx,b.dataset.mode);
   }else if(a==='prov'){
     // 這一段改用 Google 或 NAVITIME 估算；已查過就直接用快取，沒查過就只查這一段
     if(b.disabled||ROUTE_BUSY)return;
@@ -485,3 +487,22 @@ function resetTrip(){
   st=DEF();sel={};DAYS={};OPEN={};
   rebuildAll();
 }
+
+// 新增地區／新增景點：預設收起，點選後才展開（重畫時記住展開狀態）
+on('pick','toggle',function(e){
+  var el=e.target;if(el.matches&&el.matches('details.adddet'))ADOPEN[el.dataset.ad]=el.open;
+},true);
+
+// ===== 選擇某一天來編輯：6 天以內用按鈕（再按一次取消），超過 6 天用下拉選單 =====
+function setDaySel(n){
+  DAYSEL=n;
+  var box=$('daySel');if(box)box.innerHTML=daySelHtml(st.days,DAYSEL);
+  applyDaySel($('res'),DAYSEL);
+}
+on('res','click',function(e){
+  var b=e.target.closest('button[data-daysel]');if(!b)return;
+  var n=+b.dataset.daysel;setDaySel(DAYSEL===n?0:n);
+});
+on('res','change',function(e){
+  if(e.target.matches&&e.target.matches('select[data-daysel-sel]'))setDaySel(+e.target.value||0);
+});

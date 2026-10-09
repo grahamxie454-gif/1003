@@ -60,7 +60,8 @@ function renderRes(p){
    '<div class="stub"><span class="lbl">每人預算概估</span><span class="total">'+fmt(tot)+'</span><span class="sub">'+TIERS[t][0]+'等級・不含額外購物</span>'+
    '<div class="bar">'+parts.map(function(x){return '<span class="'+x[2]+'" style="width:'+(x[1]/tot*100)+'%"></span>'}).join('')+'</div>'+
    '<div class="legend">'+parts.map(function(x){return '<span><i class="'+x[2]+'"></i>'+x[0]+' '+fmt(x[1]).replace('NT$ ','')+'</span>'}).join('')+'</div></div></section>';
-  h+='<section class="days">';
+  if(DAYSEL>total)DAYSEL=0;
+  h+='<div id="daySel">'+daySelHtml(total,DAYSEL)+'</div><section class="days">';
   p.days.forEach(function(d){
     if(d.home){h+=homeDayHtml(d);return}
     var notes=[];
@@ -72,7 +73,7 @@ function renderRes(p){
     if(d.depF&&d.depNoTime)notes.push(d.goHome?'返程日（未填起飛時間），預留至少 3 小時前往機場，只安排上午行程。':'搭機離開日（未填起飛時間），傍晚前結束行程。');
     if(d.hotel)notes.push('今晚住宿：'+(d.hotel.url?'<a class="maplink" href="'+esc(d.hotel.url)+'" target="_blank" rel="noopener">'+esc(d.hotel.name)+'</a>':esc(d.hotel.name))+'。');
     var area=d.rows.filter(function(r){return r.type==='sight'}).map(function(r){return r.s.dist}).filter(function(v,j,a){return a.indexOf(v)===j}).join('、');
-    h+='<article class="day"><h3>第 '+d.no+' 天'+(dayDate(d.no)?'<em class="date">'+dayDate(d.no)+'</em>':'')+'<em class="city">'+esc(C[d.city].n)+'</em>'+(area?'<em class="area">'+esc(area)+'</em>':'')+
+    h+='<article class="day" data-no="'+d.no+'"><h3>第 '+d.no+' 天'+(dayDate(d.no)?'<em class="date">'+dayDate(d.no)+'</em>':'')+'<em class="city">'+esc(C[d.city].n)+'</em>'+(area?'<em class="area">'+esc(area)+'</em>':'')+
       (d.travel?'<em class="move'+(d.travel>180?' long':'')+'">移動約 '+fmtMin(d.travel)+'</em>':'')+'</h3>'+(notes.length?'<p class="note">'+notes.join('')+'</p>':'');
     if(d.travel>180)h+='<p class="note" style="color:var(--stamp)">當天移動時間偏長，建議取消幾個地點或改用更快的交通工具。</p>';
     h+='<div class="dayact">';
@@ -112,6 +113,7 @@ function renderRes(p){
   h+='<div class="actions"><button type="button" id="copy">複製行程文字</button>'+(st.lay?'<button type="button" class="ghost" id="reflow">自動重排（清除手動順序）</button>':'')+'<span class="status" id="cs"></span></div><p class="hint" id="routeStat">'+routeStatTxt(p)+'</p><div id="fb"></div>';
   h+=shareBoxHtml();
   $('res').innerHTML=h;
+  applyDaySel($('res'),DAYSEL);
   $('copy').onclick=function(){copyText(toText(p,tot))};
   if($('reflow'))$('reflow').onclick=function(){
     var seq={};
@@ -163,10 +165,10 @@ function rowHtml(r,d,p){
   else if(r.type==='ferry'){cls='mv ferry';b='<span class="soft">⛴ '+esc(r.text)+(r.cost?'・約 NT$ '+r.cost:'')+(r.none?'':' '+iconLink(inf.link,ICON_ROUTE,'路徑（Google 地圖）'))+'</span><div class="meta">'+esc(r.season)+'：當天班次 '+esc(r.times)+'。停航或客滿請以船公司公告為準。</div>'+(r.none?'<p class="overnote">⚠ 這個景點在當天搭不到船，請移到其他天或調整時間。</p>':'')}
   else if(r.type==='free'){
     cls='fr';
-    b='<input type="text" class="freetxt" data-no="'+d.no+'" data-tk="'+r.key+'" maxlength="40" value="'+esc(txtOf(d,r.key,''))+'" placeholder="自行安排行程（可改文字）" aria-label="空檔安排"> <label class="stayin"><input type="number" min="5" max="720" step="5" data-no="'+d.no+'" data-gapkey="'+r.key+'" value="'+(r.end-r.start)+'" aria-label="空檔分鐘"> 分</label> <button type="button" class="ghost sm x" data-act="gapdel" data-no="'+d.no+'" data-key="'+r.key+'" aria-label="刪除這段空檔">✕</button>';
+    b='<input type="text" class="freetxt" data-no="'+d.no+'" data-tk="'+r.key+'" maxlength="40" value="'+esc(txtOf(d,r.key,''))+'" placeholder="自行安排行程（可改文字）" aria-label="空檔安排"> <label class="stayin"><input type="number" min="5" max="720" step="5" data-no="'+d.no+'" data-gapkey="'+r.key+'" value="'+(r.end-r.start)+'" aria-label="空檔分鐘"> 分</label> <button type="button" class="ghost sm x" data-act="gapdel" data-no="'+d.no+'" data-key="'+r.key+'" aria-label="刪除這段空檔">✕</button> '+pickBtn(r,d,'sight');
   }
-  else if(r.type==='hop'){cls='mv';b='<span class="soft">↓ '+MNAME[r.hop.mode]+'前往'+esc(C[r.hop.to].n)+'・約 '+fmtMin(r.hop.min)+'・約 '+fmtKm(r.hop.km)+'・約 '+fmt(r.hop.cost)+'</span>'}
-  else if(r.type==='move'){cls='mv';b='<span class="soft">↓ '+MNAME[r.lg.mode]+'約 '+fmtMin(r.lg.min)+'・約 '+fmtKm(r.lg.km)+(r.cost?'・約 NT$ '+r.cost:'')+(r.lg.wait>=5?'（含候車約 '+r.lg.wait+' 分）':'')+'・前往 '+esc(r.to)+(r.lg.g?' <span class="gtag" title="從預定出發時間算到抵達（含等車）">'+(r.lg.src||'Google')+'</span>':' <span class="gtag est">'+(r.lg.tbl?'機場交通參考值':'估算')+'</span>')+' '+iconLink(inf.link,ICON_ROUTE,'路徑（Google 地圖，帶入出發時間）')+provBtns(r,d)+'</span>'}
+  else if(r.type==='hop'){cls='mv';b='<span class="soft">↓ '+modeIcon(r.hop.mode)+' 前往'+esc(C[r.hop.to].n)+'・約 '+fmtMin(r.hop.min)+'・約 '+fmtKm(r.hop.km)+'・約 '+fmt(r.hop.cost)+'</span>'}
+  else if(r.type==='move'){cls='mv';b='<span class="soft">↓ '+modeIcon(r.lg.mode)+' 約 '+fmtMin(r.lg.min)+'・約 '+fmtKm(r.lg.km)+(r.cost?'・約 NT$ '+r.cost:'')+(r.lg.wait>=5?'（含候車約 '+r.lg.wait+' 分）':'')+'・前往 '+esc(r.to)+(r.lg.g?' <span class="gtag" title="從預定出發時間算到抵達（含等車）">'+(r.lg.src||'Google')+'</span>':' <span class="gtag est">'+(r.lg.tbl?'機場交通參考值':'估算')+'</span>')+' '+iconLink(inf.link,ICON_ROUTE,'路徑（Google 地圖，帶入出發時間）')+provBtns(r,d)+'</span>'+segsHtml(r.lg)}
   else if(r.type==='meal'){
     cls='ml';
     if(r.s){
@@ -177,7 +179,7 @@ function rowHtml(r,d,p){
       else if(r.over)b+='<p class="overnote">⚠ 用餐開始時間不在建議時段內（午餐 11:00–13:30、晚餐 17:30–20:00）。</p>';
       li=(pm?'':' draggable="true"')+' data-id="'+esc(r.s.id)+'" data-day="'+d.no+'" data-city="'+esc(d.city)+'"';
     }else{
-      b='<div class="n"><span class="tag meal">'+r.n+'</span><input type="text" class="freetxt" data-no="'+d.no+'" data-tk="'+r.key+'" maxlength="40" value="'+esc(txtOf(d,r.key,''))+'" placeholder="自行安排用餐（可改文字）" aria-label="用餐安排"></div><div class="meta"><label class="stayin">用餐 <input type="number" min="15" max="240" step="5" data-no="'+d.no+'" data-mealmin="'+r.key+'" value="'+(r.end-r.start)+'" aria-label="用餐分鐘"> 分</label>。從下方「未排入」拖入餐廳，或在樹狀選單勾選美食。</div>';
+      b='<div class="n"><span class="tag meal">'+r.n+'</span><input type="text" class="freetxt" data-no="'+d.no+'" data-tk="'+r.key+'" maxlength="40" value="'+esc(txtOf(d,r.key,''))+'" placeholder="自行安排用餐（可改文字）" aria-label="用餐安排"> '+pickBtn(r,d,'food')+'</div><div class="meta"><label class="stayin">用餐 <input type="number" min="15" max="240" step="5" data-no="'+d.no+'" data-mealmin="'+r.key+'" value="'+(r.end-r.start)+'" aria-label="用餐分鐘"> 分</label>。從下方「未排入」拖入餐廳，或在樹狀選單勾選美食。</div>';
     }
   }else if(r.type==='sight'){
     cls='sg'+(r.s.pin?' pinned':'');
@@ -213,7 +215,7 @@ function copyText(t){
 }
 // 還在出發國家的純飛行日
 function homeDayHtml(d){
-  return '<article class="day homeday"><h3>第 '+d.no+' 天'+(dayDate(d.no)?'<em class="date">'+dayDate(d.no)+'</em>':'')+'<em class="city">'+esc(coName(homeCo()))+'（航班日）</em></h3>'+
+  return '<article class="day homeday" data-no="'+d.no+'"><h3>第 '+d.no+' 天'+(dayDate(d.no)?'<em class="date">'+dayDate(d.no)+'</em>':'')+'<em class="city">'+esc(coName(homeCo()))+'（航班日）</em></h3>'+
     '<ol class="tl" data-day="'+d.no+'" data-city="" data-off="1">'+d.rows.map(function(r){return rowHtml(r,d,null)}).join('')+'</ol></article>';
 }
 // 航班沒設好、或還沒按「展開行程」時，不顯示規劃畫面（旅遊天數完全由航班日期計算）
@@ -224,6 +226,7 @@ function renderGate(){
   $('res').innerHTML='<div class="gate"><b>'+(ready?'航班已設定完成':'請先設定航班')+'</b><p>'+(ready?'請在左側確認交通工具、預算等級與步調後，按「展開行程」，就會顯示城市與景點選擇，並開始規劃每日行程。':'每一段航班都要填航班號與日期（可用「查詢」自動帶入國家、城市與起降時間）。最後一段航班要回到出發國家，旅遊天數會自動計算，之後按「展開行程」才會顯示景點選擇與每日行程規劃。')+'</p>'+
     (!ready&&p.msg?'<p style="color:var(--stamp)">'+esc(p.msg)+'</p>':'')+'</div>';
 }
+var DAYSEL=0;
 function render(skipSave){
   var ok=flightPlan().ok&&!!st.expanded;
   if($('cityBox'))$('cityBox').hidden=!ok;
@@ -241,4 +244,22 @@ function provBtns(r,d){
   var jp=!!(C[d.city]&&C[d.city].co==='jp'),cur=r.lg.req.prov==='NAVI'?'N':'G';
   var btn=function(p,ic,tip,dis){return '<button type="button" class="iconbtn pv'+(cur===p?' on':'')+'" data-act="prov" data-p="'+p+'" data-no="'+d.no+'" data-fq="'+esc(r.fromQ)+'" data-tq="'+esc(r.toQ)+'" title="'+tip+'" aria-label="'+tip+'" aria-pressed="'+(cur===p)+'"'+(dis?' disabled':'')+'>'+ic+'</button>'};
   return '<span class="provsw" role="group" aria-label="這一段的路線估算來源">'+btn('G',ICON_PIN,'用 Google 地圖估算這一段',false)+btn('N',ICON_NAVI,jp?'用 NAVITIME 估算這一段':'NAVITIME 只支援日本',!jp)+'</span>';
+}
+
+// 路線分段（轉乘）：步行 › 地鐵 › 公車…，每一段各自的彩色圖示、路線名稱與分鐘
+function segsHtml(lg){
+  var s=lg&&lg.segs;
+  if(!s||!s.length||(s.length<2&&s[0].m==='walk'))return '';
+  return '<div class="segs" aria-label="路線分段">'+s.map(function(x){
+    var tip=(x.f&&x.t)?x.f+' → '+x.t:'';
+    return '<span class="seg"'+(tip?' title="'+esc(tip)+'"':'')+'>'+modeIcon(x.m,16)+(x.n?'<b>'+esc(x.n)+'</b>':'')+'<em>'+x.min+' 分</em></span>';
+  }).join('<span class="segsep">›</span>')+'</div>';
+}
+
+// 空檔／用餐的「從同地區挑選」圖示按鈕（插入位置 = 這一列前面已排入的景點與餐廳數）
+function pickBtn(r,d,mode){
+  if(!d.city)return '';
+  var ix=d.rows.slice(0,d.rows.indexOf(r)).filter(function(x){return (x.type==='sight'||x.type==='meal')&&x.s}).length;
+  var tip=mode==='food'?'從同地區挑選餐廳（可依子分類篩選）':'從同地區挑選景點（先選風格，再選子分類）';
+  return '<button type="button" class="ib" data-act="pickfree" data-no="'+d.no+'" data-idx="'+ix+'" data-mode="'+mode+'" title="'+tip+'" aria-label="'+tip+'">'+PK_ICON+'</button>';
 }

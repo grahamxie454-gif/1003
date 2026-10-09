@@ -42,7 +42,7 @@ async function loadView(host,url){
   if(!r.ok)throw new Error('無法載入 '+url);
   host.innerHTML=await r.text();
 }
-var APP_VER='20261033';
+var APP_VER='20261034';
 
 // ===== Google 地圖：圖示與連結 =====
 // Maps JavaScript API 的瀏覽器金鑰（只用來顯示「當日所有地點」的地圖頁 map.html）。
@@ -69,4 +69,23 @@ function pinsUrl(stops,title){
   var s=JSON.stringify({t:title||'',s:stops.slice(0,30)});
   var b=btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
   return new URL('map.html#'+b,location.href).href;
+}
+
+// ===== 交通工具彩色圖示 =====
+var MI_C={metro:'#1a73e8',bus:'#2e9e4f',train:'#d93025',tram:'#f29900',ferry:'#00897b',drive:'#5f6368',walk:'#8d6e63',flight:'#0288d1'};
+var MI_P={
+  metro:'<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M9 21l2-4M15 21l-2-4"/><circle cx="9" cy="14" r="1" fill="currentColor"/><circle cx="15" cy="14" r="1" fill="currentColor"/>',
+  bus:'<rect x="4" y="3" width="16" height="14" rx="2"/><path d="M4 11h16M7 17v3M17 17v3"/><circle cx="8" cy="14" r="1" fill="currentColor"/><circle cx="16" cy="14" r="1" fill="currentColor"/>',
+  train:'<path d="M7 3h10a2 2 0 0 1 2 2v9a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V5a2 2 0 0 1 2-2z"/><path d="M5 10h14M9 18l-2 3M15 18l2 3"/><circle cx="9" cy="14" r="1" fill="currentColor"/><circle cx="15" cy="14" r="1" fill="currentColor"/>',
+  tram:'<rect x="5" y="6" width="14" height="12" rx="2"/><path d="M8 3l2 3M16 3l-2 3M5 12h14M8 21l1.5-3M16 21l-1.5-3"/>',
+  ferry:'<path d="M4 15l2-6h12l2 6M12 9V4h3M2 19c2 0 2 1 4 1s2-1 4-1 2 1 4 1 2-1 4-1 2 1 4 1"/>',
+  drive:'<path d="M5 11l2-5h10l2 5M3 11h18v6H3zM6 17v2M18 17v2"/><circle cx="7" cy="14" r="1" fill="currentColor"/><circle cx="17" cy="14" r="1" fill="currentColor"/>',
+  walk:'<circle cx="13" cy="4" r="1.6"/><path d="M10 21l2-7-3-3 2-5 3 3h3M12 14l3 3v4"/>',
+  flight:'<path d="M2 14l8-3-3-7 2-1 6 6 6-2c1 0 2 1 1 2l-5 4 1 7-2 1-3-6-5 3z"/>'
+};
+function modeIcon(m,sz,bare){
+  var p=MI_P[m]||MI_P.train,s='<svg viewBox="0 0 24 24" width="'+(sz||18)+'" height="'+(sz||18)+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>';
+  if(bare)return s;
+  var nm=(typeof MNAME!=='undefined'&&MNAME[m])||({tram:'電車'}[m])||m;
+  return '<span class="modeico" style="color:'+(MI_C[m]||'#5f6368')+'" title="'+nm+'" role="img" aria-label="'+nm+'">'+s+'</span>';
 }

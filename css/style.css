@@ -435,3 +435,28 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]
 .phbar .ib{position:relative}
 .ib.phcam{width:auto;min-width:36px;padding:0 8px;gap:4px}
 .phn{font-size:13px;font-weight:700;line-height:1}
+details.adddet{margin-top:8px;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+details.adddet>summary{cursor:pointer;font-weight:600;font-size:14px}
+details.adddet[open]>summary{margin-bottom:8px}
+.daysel{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0 8px}
+.daysel select{width:auto;min-width:140px}
+article.day[hidden]{display:none}
+/* 交通工具：彩色圖示 */
+.modeico{display:inline-flex;vertical-align:middle;margin:0 2px}
+.chip.micon span{display:flex;align-items:center;justify-content:center;width:46px;height:36px;padding:0;border-radius:10px}
+.chip.micon input:checked+span{background:var(--soft);border:2px solid var(--accent);color:inherit;font-weight:400}
+.chip.micon input:not(:checked)+span{opacity:.55}
+.segs{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:4px 0 2px 18px;font-size:12px;color:var(--muted)}
+.seg{display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border:1px solid var(--line);border-radius:999px;background:var(--bg)}
+.seg b{color:var(--ink);font-weight:600}
+.seg em{font-style:normal}
+.segsep{opacity:.6}
+/* 空檔挑選視窗 */
+.fpm{max-width:720px}
+.fprow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.fprow.tabs .tab{padding:3px 12px}
+.fpq{flex:1 1 200px}
+.fplist{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto}
+.fpitem{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+.fpimg{width:64px;height:48px;border-radius:6px;object-fit:cover;background:var(--soft);flex:none}
+.fpinfo{flex:1;min-width:0}
