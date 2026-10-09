@@ -1,5 +1,5 @@
 // ================= 管理後台 =================
-var AV='plan',ASUB='users',AF={country:'',city:'',district:''};
+var AV='plan',ASUB='users',AF={country:'',city:'',district:'',style:'',q:''};
 var VIEW_TITLE={plan:'行程規劃',shared:'共享行程'},SUB_TITLE={users:'使用者與權限',data:'內建資料',airports:'機場',ferries:'渡船',trips:'所有使用者的行程',requests:'收錄申請'};
 function markMenu(){
   [].forEach.call(document.querySelectorAll('#menuPop .mi'),function(b){
@@ -110,36 +110,94 @@ function cellHtml(col,val,rid,isNew){
   if(type==='ints3')return '<input type="text"'+a+' value="'+esc((val||[]).join(','))+'">';
   return '<input type="'+(type==='text'?'text':'number')+'"'+(type==='num'||type==='numopt'?' step="any"':'')+a+' value="'+esc(val==null?'':val)+'">';
 }
+// 目前篩選條件下的資料列
+function adminMatch(r,toks){
+  var hay=[r.name,r.tag,r.descr,r.hours,STYLE[r.style]].join(' ').toLowerCase(),nm=((r.name||'')+(r.tag||'')).toLowerCase();
+  return toks.every(function(t){
+    if(hay.indexOf(t)>-1)return true;
+    if(t.length<2)return false;
+    var i=0;                                   // 模糊比對：名稱或子分類的字依序出現（中間可夾別的字）
+    for(var j=0;j<nm.length&&i<t.length;j++)if(nm.charAt(j)===t.charAt(i))i++;
+    return i===t.length;
+  });
+}
+function adminRows(){
+  var t=DSUB,rows=DB[t].slice();
+  if(t==='cities'&&AF.country)rows=rows.filter(function(r){return r.country_id===AF.country});
+  if(t==='districts')rows=rows.filter(function(r){return r.city_id===AF.city});
+  if(t==='spots'){
+    var dids=DB.districts.filter(function(d){return d.city_id===AF.city&&(AF.district===''||String(d.id)===String(AF.district))}).map(function(d){return d.id});
+    rows=rows.filter(function(r){return dids.indexOf(r.district_id)>-1});
+    if(AF.style)rows=rows.filter(function(r){return r.style===AF.style});
+    var toks=(AF.q||'').trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if(toks.length)rows=rows.filter(function(r){return adminMatch(r,toks)});
+  }
+  return rows;
+}
+function recsHtml(){
+  var t=DSUB,cols=colsFor(t),rows=adminRows();
+  return rows.length?rows.map(function(r){return recHtml(cols,r,t,false)}).join(''):'<p class="muted">沒有符合的資料。</p>';
+}
+function fillRecs(){
+  var el=$('recs');if(!el)return;
+  el.innerHTML=recsHtml();
+  var c=$('recCount');if(c)c.textContent='共 '+adminRows().length+' 筆';
+}
 function adminData(){
-  var t=DSUB,cols=colsFor(t),rows=DB[t].slice();
-  var filt='';
+  var t=DSUB,filt='',opt=function(v,txt,cur){return '<option value="'+esc(v)+'"'+(String(cur)===String(v)?' selected':'')+'>'+esc(txt)+'</option>'};
   if(t==='cities'){
-    filt='<select data-af="country" aria-label="國家篩選"><option value="">全部國家</option>'+DB.countries.map(function(c){return '<option value="'+esc(c.id)+'"'+(AF.country===c.id?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')+'</select>';
-    if(AF.country)rows=rows.filter(function(r){return r.country_id===AF.country});
+    filt='<select data-af="country" aria-label="國家篩選"><option value="">全部國家</option>'+DB.countries.map(function(c){return opt(c.id,c.name,AF.country)}).join('')+'</select>';
   }
   if(t==='districts'||t==='spots'){
     if(!DB.cities.some(function(c){return c.id===AF.city}))AF.city=DB.cities.length?DB.cities[0].id:'';
-    filt='<select data-af="city" aria-label="城市篩選">'+DB.cities.map(function(c){return '<option value="'+esc(c.id)+'"'+(AF.city===c.id?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')+'</select>';
-    rows=t==='districts'?rows.filter(function(r){return r.city_id===AF.city}):rows;
+    filt='<select data-af="city" aria-label="城市篩選">'+DB.cities.map(function(c){return opt(c.id,c.name,AF.city)}).join('')+'</select>';
   }
   if(t==='spots'){
     var ds=DB.districts.filter(function(d){return d.city_id===AF.city});
-    if(!ds.some(function(d){return String(d.id)===String(AF.district)}))AF.district=ds.length?String(ds[0].id):'';
-    filt='<select data-af="city" aria-label="城市篩選">'+DB.cities.map(function(c){return '<option value="'+esc(c.id)+'"'+(AF.city===c.id?' selected':'')+'>'+esc(c.name)+'</option>'}).join('')+'</select>'+
-      '<select data-af="district" aria-label="地區篩選">'+ds.map(function(d){return '<option value="'+d.id+'"'+(String(AF.district)===String(d.id)?' selected':'')+'>'+esc(d.name)+'</option>'}).join('')+'</select>';
-    rows=rows.filter(function(r){return String(r.district_id)===String(AF.district)});
+    if(AF.district!==''&&!ds.some(function(d){return String(d.id)===String(AF.district)}))AF.district='';
+    filt+='<select data-af="district" aria-label="地區篩選"><option value="">全部地區</option>'+ds.map(function(d){return opt(d.id,d.name,AF.district)}).join('')+'</select>'+
+      '<select data-af="style" aria-label="風格篩選"><option value="">全部風格</option>'+Object.keys(STYLE).filter(function(k){return k!=='x'}).map(function(k){return opt(k,STYLE[k],AF.style)}).join('')+'</select>'+
+      '<input type="search" class="afq" data-afq="1" value="'+esc(AF.q||'')+'" placeholder="搜尋景點：名稱、子分類、說明、營業時間" aria-label="關鍵字查詢" autocomplete="off">';
   }
   var h='<div class="tabs" id="dsubs">'+DT.map(function(x){return '<button type="button" class="tab'+(x===t?' on':'')+'" data-dsub="'+x+'">'+DTL[x]+'</button>'}).join('')+'</div>'+
-    '<div class="adminbar" style="margin:12px 0">'+filt+(t==='spots'?'<button type="button" class="ghost" id="updRatings">批次更新評價、座標與營業時間（每次最多 30 筆）</button>':'')+'<span class="muted">修改後按該筆左邊的儲存圖示。新增景點時，貼上 Google 地圖連結會自動帶入完整資料。刪除國家、城市或地區會一併刪除底下的內容。</span></div>';
-  // 新增
-  var defaults={};
-  if(t==='cities'){defaults.country_id=AF.country||(DB.countries[0]&&DB.countries[0].id)}
-  if(t==='districts')defaults.city_id=AF.city;
-  if(t==='spots')defaults.district_id=AF.district;
-  h+='<div class="recs">'+recHtml(cols,defaults,t,true);
-  rows.forEach(function(r){h+=recHtml(cols,r,t,false)});
-  $('adminBody').innerHTML=h+'</div>';
+    '<div class="adminbar" style="margin:12px 0"><button type="button" class="ib addbtn" data-row-act="open" title="新增'+DTL[t]+'" aria-label="新增'+DTL[t]+'">'+AICON.add+'</button>'+filt+
+    (t==='spots'?'<button type="button" class="ghost" id="updRatings">批次更新評價、座標與營業時間（每次最多 30 筆）</button>':'')+
+    '<span class="muted" id="recCount"></span></div><p class="muted">修改後按該筆左邊的儲存圖示。刪除國家、城市或地區會一併刪除底下的內容。</p>'+
+    '<div class="recs" id="recs"></div>';
+  $('adminBody').innerHTML=h;
+  fillRecs();
 }
+// ===== 新增：按「＋」才跳出視窗 =====
+var CLOSE_ICON='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+function openAddModal(){
+  var t=DSUB,cols=colsFor(t).filter(function(c){return c[2]!=='auto'}),defaults={};
+  if(t==='cities')defaults.country_id=AF.country||(DB.countries[0]&&DB.countries[0].id);
+  if(t==='districts')defaults.city_id=AF.city;
+  if(t==='spots'){
+    var ds=DB.districts.filter(function(d){return d.city_id===AF.city});
+    defaults.district_id=AF.district!==''?AF.district:(ds[0]?String(ds[0].id):'');
+    // 景點：Google 地圖連結放最上面，貼上後自動帶入其他欄位
+    cols=cols.filter(function(c){return c[0]==='maps_url'}).concat(cols.filter(function(c){return c[0]!=='maps_url'}));
+  }
+  var f=cols.map(function(c){
+    return '<label class="rf'+(WIDE_COLS[c[0]]||c[2]==='lines'?' wide':'')+'"><span>'+esc(c[1])+'</span>'+cellHtml(c,defaults[c[0]],'new',true)+'</label>';
+  }).join('');
+  closeAddModal();
+  $('adminBody').insertAdjacentHTML('beforeend','<div class="modal-back" id="addModal"><div class="modal" role="dialog" aria-modal="true" aria-label="新增'+DTL[t]+'">'+
+    '<div class="modalhead"><b>新增'+DTL[t]+'</b>'+iconBtn('cancel','new','關閉',CLOSE_ICON)+'</div>'+
+    (t==='spots'?'<p class="muted">先貼上 Google 地圖的分享連結，離開欄位後會自動查詢，並帶入名稱、類型、子分類、說明、座標、評分、營業時間、每人費用、建議停留時間與地區。</p>':'')+
+    '<div class="rec new"><div class="recf">'+f+'</div></div>'+
+    '<div class="modalfoot">'+iconBtn('add','new','新增',AICON.add)+iconBtn('cancel','new','取消',CLOSE_ICON)+'</div></div></div>');
+  var first=document.querySelector('#addModal input,#addModal select');if(first)first.focus();
+}
+function closeAddModal(){var m=$('addModal');if(m)m.parentNode.removeChild(m)}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('addModal'))closeAddModal()});
+document.addEventListener('mousedown',function(e){if(e.target&&e.target.id==='addModal')closeAddModal()});
+var afqTimer=null;
+on('adminBody','input',function(e){
+  if(!e.target.dataset||!e.target.dataset.afq)return;
+  AF.q=e.target.value;clearTimeout(afqTimer);afqTimer=setTimeout(fillRecs,150);
+});
 // 圖示按鈕（左邊的功能列）
 var AICON={
   save:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>',
@@ -199,6 +257,8 @@ function readRow(t,rid,isNew){
 async function rowAction(b){
   var t=DSUB,a=b.dataset.rowAct,rid=b.dataset.r;
   try{
+    if(a==='open'){openAddModal();return}
+    if(a==='cancel'){closeAddModal();return}
     if(a==='refresh'){
       // 單筆更新：向 Google 查這一筆的評分、座標與營業時間。「地圖連結」欄若貼了 Google 地圖連結，以該連結的地點為準
       b.disabled=true;aMsg('更新中…');

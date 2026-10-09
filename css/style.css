@@ -396,3 +396,11 @@ button.iconbtn.spin svg{animation:rot 1s linear infinite}
 button.iconbtn.pv{width:24px;height:24px;border-radius:5px}
 button.iconbtn.pv.on{background:var(--accent);border-color:var(--accent)}
 button.iconbtn.pv:not(.on){opacity:.6}
+/* 管理後台：新增視窗與篩選列 */
+.ib.addbtn{width:38px;height:38px;background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.adminbar .afq{flex:1 1 220px;min-width:160px}
+.modal-back{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 12px}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:12px;width:100%;max-width:780px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.modalhead{display:flex;justify-content:space-between;align-items:center}
+.modalfoot{display:flex;gap:8px;justify-content:flex-end}
+.modal .rec{display:block;border:0;padding:0;background:transparent}
