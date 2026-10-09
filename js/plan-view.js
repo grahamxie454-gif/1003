@@ -97,10 +97,10 @@ function renderRes(p){
     if(d.off&&!d.tour)h+='<p class="note">今天休息，不安排景點與用餐；其餘景點會順延到其他天。</p>';
     else if(!d.rows.length)h+='<p class="note">當天沒有可安排的行程。</p>';
     h+='<ol class="tl" data-day="'+d.no+'" data-city="'+esc(d.city)+'"'+(d.off?' data-off="1"':'')+'>'+d.rows.map(function(r){return rowHtml(r,d,p)}).join('')+'</ol>';
-    if(d.last)h+=poolHtml(d,p);
     h+='</article>';
   });
   h+='</section>';
+  h+=poolSection(p);
   h+='<section class="tips">';
   var hp=p.hops.slice(1).filter(Boolean);
   h+='<h3>航班</h3><ul>'+flList().map(function(f,i){return '<li>第 '+(i+1)+' 段：'+esc(cityName(f.fromCity)||coName(f.fromCo))+' → '+esc(cityName(f.toCity)||coName(f.toCo))+'　'+esc(f.date||'')+(f.no?'　'+esc(f.no):'')+(f.from||f.to?'（'+esc(f.from||'')+' → '+esc(f.to||'')+'）':'')+(f.dep?'　'+esc(f.dep)+' 起飛':'')+(f.arr?'・'+esc(f.arr)+(f.plus>0?' '+plusTxt(f):'')+' 抵達':'')+'</li>'}).join('')+'</ul>';
@@ -148,7 +148,7 @@ function poolHtml(d,p){
       '<div class="mvbar">'+(days.length?'<select data-mv="'+esc(s.id)+'" aria-label="加入某一天"><option value="">加入某一天…</option>'+days.map(function(x){return '<option value="'+x.no+'">第 '+x.no+' 天</option>'}).join('')+'</select>':'')+
       '<button type="button" class="ghost sm x" data-act="rm" data-id="'+esc(s.id)+'" aria-label="移除並取消勾選">✕</button></div></div></li>';
   }).join('');
-  return '<div class="poolbox"><h4>未排入的項目（'+list.length+'）</h4><p class="hint">拖曳到上方任一天加入行程；把項目拖回這裡可移出行程；✕ 會取消勾選。</p><ol class="tl pool" data-day="pool" data-city="'+esc(d.city)+'">'+items+'</ol></div>';
+  return '<div class="poolbox'+(list.length?'':' empty')+'"><h4>未排入的項目・'+esc(C[d.city].n)+'（'+list.length+'）</h4><p class="hint">拖曳到任一天加入行程；把項目拖回這裡可移出行程；✕ 會取消勾選。</p><ol class="tl pool" data-day="pool" data-city="'+esc(d.city)+'">'+items+'</ol></div>';
 }
 function itemCtl(s,d,p,pinned){
   var same=p.days.filter(function(x){return x.city===d.city&&x.no!==d.no&&!x.off}),id=esc(s.id);
@@ -262,4 +262,17 @@ function pickBtn(r,d,mode){
   var ix=d.rows.slice(0,d.rows.indexOf(r)).filter(function(x){return (x.type==='sight'||x.type==='meal')&&x.s}).length;
   var tip=mode==='food'?'從同地區挑選餐廳（可依子分類篩選）':'從同地區挑選景點（先選風格，再選子分類）';
   return '<button type="button" class="ib" data-act="pickfree" data-no="'+d.no+'" data-idx="'+ix+'" data-mode="'+mode+'" title="'+tip+'" aria-label="'+tip+'">'+PK_ICON+'</button>';
+}
+
+// 未排入的項目：獨立成一個區塊（不屬於任何一天，選擇某一天時也一直顯示）；沒有未排入項目時整塊隱藏
+// （拖曳時會暫時顯示，讓項目可以拖回來移出行程）
+function poolSection(p){
+  var any=false,h='';
+  (p.cities||[]).forEach(function(k,i){
+    if(p.cities.indexOf(k)!==i)return;
+    var list=p.pool[k]||[];
+    if(list.length)any=true;
+    h+=poolHtml({city:k},p);
+  });
+  return '<section class="poolsec'+(any?'':' allempty')+'" id="poolSec" aria-label="未排入的項目">'+h+'</section>';
 }

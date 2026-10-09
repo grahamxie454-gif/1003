@@ -460,3 +460,8 @@ article.day[hidden]{display:none}
 .fpitem{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px 8px}
 .fpimg{width:64px;height:48px;border-radius:6px;object-fit:cover;background:var(--soft);flex:none}
 .fpinfo{flex:1;min-width:0}
+/* 未排入的項目區塊 */
+.poolsec{margin-top:12px;display:flex;flex-direction:column;gap:12px}
+.poolsec.allempty,.poolbox.empty{display:none}
+#res.dragging .poolsec.allempty{display:flex}
+#res.dragging .poolbox.empty{display:block}

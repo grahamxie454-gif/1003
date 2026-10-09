@@ -242,10 +242,11 @@ function clearMarks(){[].forEach.call(document.querySelectorAll('.dropbefore,.dr
 on('res','dragstart',function(e){
   var li=e.target.closest&&e.target.closest('li.sg');if(!li)return;
   DRAG={id:li.dataset.id,city:li.dataset.city};
+  $('res').classList.add('dragging');   // 拖曳時暫時顯示空的「未排入」區塊，才能把項目拖回去
   e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',li.dataset.id);
   setTimeout(function(){li.classList.add('dragging')},0);
 });
-on('res','dragend',function(){DRAG=null;clearMarks();[].forEach.call(document.querySelectorAll('.dragging'),function(x){x.classList.remove('dragging')})});
+on('res','dragend',function(){DRAG=null;$('res').classList.remove('dragging');clearMarks();[].forEach.call(document.querySelectorAll('.dragging'),function(x){x.classList.remove('dragging')})});
 on('res','dragover',function(e){
   if(!DRAG)return;
   var ol=e.target.closest('ol.tl');if(!ol||ol.dataset.city!==DRAG.city||ol.dataset.off)return;
