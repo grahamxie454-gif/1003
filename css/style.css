@@ -404,3 +404,5 @@ button.iconbtn.pv:not(.on){opacity:.6}
 .modalhead{display:flex;justify-content:space-between;align-items:center}
 .modalfoot{display:flex;gap:8px;justify-content:flex-end}
 .modal .rec{display:block;border:0;padding:0;background:transparent}
+.seas.wide{grid-column:1/-1}
+.rf b{font-size:14px;color:var(--ink,inherit)}
