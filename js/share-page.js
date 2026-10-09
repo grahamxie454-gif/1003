@@ -41,7 +41,24 @@ function buildItems(){
   });
 }
 
+// 景點圖片以資料庫目前的內容為準（分享快照只是行程儲存當下的複本，之後才補的圖片不會在裡面）；自訂景點沒有資料庫紀錄，用快照裡的連結
+var IMGMAP={};
+async function loadSpotImages(){
+  var ids=[],keys={};
+  ((SHARE.share_data&&SHARE.share_data.days)||[]).forEach(function(d){d.rows.forEach(function(r){
+    var m=r.k&&/^s:[a-z0-9_]+\|(\d+)$/.exec(r.k);
+    if(m){ids.push(+m[1]);keys[r.k]=+m[1]}
+  })});
+  if(!ids.length)return;
+  try{
+    var q=await sb.from('spots').select('id,images').in('id',ids.filter(function(v,i,a){return a.indexOf(v)===i}));
+    if(q.error||!q.data)return;
+    var byId={};q.data.forEach(function(x){byId[x.id]=x.images||''});
+    Object.keys(keys).forEach(function(k){IMGMAP[k]=byId[keys[k]]||''});
+  }catch(e){}
+}
 async function refresh(){
+  await loadSpotImages();
   var res=await Promise.all([loadPhotos(TID),sb.from('trip_notes').select('*').eq('trip_id',TID).order('created_at',{ascending:true})]);
   await loadPeople(TID);
   PHOTOS=res[0];
@@ -75,7 +92,7 @@ function renderShare(){
       var link=/^https?:\/\//i.test(r.l||'')?r.l:'';
       var ph=r.k?itemPhotos(r.k):[];
       // 第一排：景點圖片（點擊放大）；第二排：上傳的照片（相機圖示旁顯示張數）
-      var spotImgs=(r.t==='sight'||r.t==='meal')?thumbsHtml(r.im,r.n):'';
+      var spotImgs=(r.t==='sight'||r.t==='meal')?thumbsHtml(IMGMAP[r.k]||r.im,r.n):'';
       var tools=r.k?'<div class="mvbar phbar"><button type="button" class="ib phcam" data-ph-open="'+esc(r.k)+'" title="照片（'+ph.length+' 張）：查看'+(ph.length?'與編輯':'')+'" aria-label="照片 '+ph.length+' 張">'+SH_ICON.cam+'<span class="phn">'+ph.length+'</span></button>'+
         '<button type="button" class="ib" data-ph-open="'+esc(r.k)+'" data-ph-up="1" title="上傳照片" aria-label="上傳照片">'+SH_ICON.up+'</button>'+
         (ph.length?'<button type="button" class="ib" data-ph-open="'+esc(r.k)+'" title="編輯照片與註解" aria-label="編輯照片與註解">'+SH_ICON.edit+'</button>':'')+
