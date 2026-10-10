@@ -480,3 +480,8 @@ a.ib:hover{background:rgba(127,127,127,.2)}
 .toast .tclose{flex:none;background:transparent;border:0;color:var(--muted);cursor:pointer;padding:0 2px;font-size:14px}
 @keyframes toastin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 #saveSt{display:none}
+/* 左上角選單：浮動固定，不隨畫面捲動 */
+.menubtn{position:fixed;top:12px;left:12px;z-index:200;background:var(--surface);box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.menubtn[aria-expanded=true]{background:var(--accent)}
+.menupop{position:fixed;top:58px;left:12px;z-index:210;max-height:calc(100vh - 72px);overflow:auto}
+.menuwrap{padding-left:50px;min-height:40px}
