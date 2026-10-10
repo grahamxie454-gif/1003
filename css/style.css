@@ -485,3 +485,8 @@ a.ib:hover{background:rgba(127,127,127,.2)}
 .menubtn[aria-expanded=true]{background:var(--accent)}
 .menupop{position:fixed;top:58px;left:12px;z-index:210;max-height:calc(100vh - 72px);overflow:auto}
 .menuwrap{padding-left:50px;min-height:40px}
+/* 右上角：暱稱、改暱稱、登出也固定在視窗右上角 */
+.who{position:fixed;top:12px;right:12px;z-index:200;margin-left:0;max-width:calc(100vw - 76px);justify-content:flex-end;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px 6px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.topbar{min-height:40px}
+/* 登入後，頁面內容往下讓出固定按鈕的位置，才不會蓋住標題 */
+body:has(#app:not([hidden])) .wrap{padding-top:54px}
