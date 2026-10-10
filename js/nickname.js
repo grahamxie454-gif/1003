@@ -22,13 +22,13 @@ function nickEditOpen(open){
 }
 async function nickSave(){
   var v=$('nickIn').value.trim();
-  if(!v||v.length>20){$('nickMsg').textContent='請輸入 1–20 個字的暱稱。';return}
+  if(!v||v.length>20){toast('請輸入 1–20 個字的暱稱。','warn');return}
   $('nickSave').disabled=true;
   var r=await sb.rpc('set_nickname',{p_name:v});
   $('nickSave').disabled=false;
-  if(r.error){$('nickMsg').textContent='儲存失敗：'+r.error.message;return}
+  if(r.error){toast('儲存失敗：'+r.error.message,'err');return}
   ME.nickname=r.data;NICK[ME.id]=r.data;
-  showWho();nickEditOpen(false);
+  showWho();nickEditOpen(false);toast('已儲存暱稱。','ok');
   if(typeof onNickChanged==='function')onNickChanged();
 }
 on('nickEdit','click',function(){nickEditOpen(true)});

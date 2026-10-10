@@ -44,9 +44,9 @@ on('res','change',function(e){
 on('res','click',function(e){
   var b=e.target.closest('button[data-share]');
   if(!b||b.dataset.share!=='copy')return;
-  var u=$('shareUrl').value,st_=$('shareSt');
-  var ok=function(){st_.textContent='已複製連結'};
-  try{navigator.clipboard.writeText(u).then(ok,function(){$('shareUrl').select();st_.textContent='請按 Ctrl+C 複製'})}catch(err){$('shareUrl').select();st_.textContent='請按 Ctrl+C 複製'}
+  var u=$('shareUrl').value;
+  var ok=function(){toast('已複製分享連結。','ok')};
+  try{navigator.clipboard.writeText(u).then(ok,function(){$('shareUrl').select();toast('請按 Ctrl+C 複製連結。','warn')})}catch(err){$('shareUrl').select();toast('請按 Ctrl+C 複製連結。','warn')}
 });
 
 // 分享頁要和行程規劃顯示一樣：把每一列需要的資訊（說明、風格、營業時間、交通工具與轉乘分段…）一起放進快照

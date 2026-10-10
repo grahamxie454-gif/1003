@@ -206,10 +206,10 @@ function toText(p,tot){
   return L.join('\n');
 }
 function copyText(t){
-  var ok=function(){$('cs').textContent='已複製';$('fb').innerHTML=''};
+  var ok=function(){toast('已複製行程文字。','ok');$('fb').innerHTML=''};
   var bad=function(){
     $('fb').innerHTML='<textarea class="fallback" id="ta" readonly></textarea>';
-    var ta=$('ta');ta.value=t;ta.focus();ta.select();$('cs').textContent='請按住文字手動複製';
+    var ta=$('ta');ta.value=t;ta.focus();ta.select();toast('請按住文字手動複製。','warn');
   };
   try{navigator.clipboard.writeText(t).then(ok,bad)}catch(e){bad()}
 }

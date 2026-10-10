@@ -84,7 +84,7 @@ function leg(fq,tq,a,b,ms,at,estO){
   return out;
 }
 function setRouteMsg(t){
-  ROUTE_MSG=t;var el=$('routeStat');if(el)el.textContent=t;
+  ROUTE_MSG='';if(t)toast(t,/失敗|尚未|額度|無法|拒絕/.test(t)?'err':(/計算移動時間中|正在/.test(t)?'info':'ok'),{key:'route'});
   [].forEach.call(document.querySelectorAll('button[data-act=calcday]'),function(b){b.disabled=ROUTE_BUSY;b.classList.toggle('spin',ROUTE_BUSY&&+b.dataset.no===ROUTE_DAY)});
 }
 async function askRoutes(reqs){

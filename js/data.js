@@ -80,7 +80,7 @@ function openTrip(row){
 function buildTripSel(){
   $('tripSel').innerHTML=TRIPS.map(function(t){return '<option value="'+esc(t.id)+'"'+(TRIP&&t.id===TRIP.id?' selected':'')+'>'+esc(t.name)+'</option>'}).join('');
 }
-function setSave(t){$('saveSt').textContent=t}
+function setSave(t){if(t)toast(t,undefined,{key:'save'})}
 function save(){
   if(!TRIP)return;
   dirty=true;setSave('儲存中…');

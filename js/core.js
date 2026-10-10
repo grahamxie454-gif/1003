@@ -42,7 +42,7 @@ async function loadView(host,url){
   if(!r.ok)throw new Error('無法載入 '+url);
   host.innerHTML=await r.text();
 }
-var APP_VER='20261037';
+var APP_VER='20261039';
 
 // ===== Google 地圖：圖示與連結 =====
 // Maps JavaScript API 的瀏覽器金鑰（只用來顯示「當日所有地點」的地圖頁 map.html）。
@@ -97,4 +97,45 @@ function segsHtml(lg){
     var tip=(x.f&&x.t)?x.f+' → '+x.t:'';
     return '<span class="seg"'+(tip?' title="'+esc(tip)+'"':'')+'>'+modeIcon(x.m,16)+(x.n?'<b>'+esc(x.n)+'</b>':'')+'<em>'+x.min+' 分</em></span>';
   }).join('<span class="segsep">›</span>')+'</div>';
+}
+
+// ===== 吐司訊息：儲存、刪除、更新與錯誤等訊息，一律從畫面下方彈出，過一會兒自動消失 =====
+// toast(文字, 類型 ok|info|warn|err, {key, html, ms})：同一個 key 會取代前一則（例如「儲存中…」→「已儲存」）；沒填類型時依文字判斷。
+function toastType(t){
+  t=String(t||'');
+  if(/失敗|錯誤|無法|拒絕|衝突|沒有權限|不正確|過期|找不到|超出|不支援|不允許/.test(t))return 'err';
+  if(/請先|請輸入|請貼|請重新|請再|至少|尚未|不能|已固定|已經安排|格式|請確認|請選擇|請填/.test(t))return 'warn';
+  if(/已(儲存|刪除|更新|複製|新增|重新命名|取消|收錄|核准|退回|上傳|送出|寄)|完成|成功|儲存了/.test(t))return 'ok';
+  return 'info';
+}
+var TOAST_ICO={ok:'✓',info:'ℹ',warn:'!',err:'✕'};
+function toast(text,type,opt){
+  opt=opt||{};
+  if(!text)return;
+  type=type||toastType(text);
+  var box=document.getElementById('toasts');
+  if(!box){box=document.createElement('div');box.id='toasts';box.setAttribute('aria-live','polite');document.body.appendChild(box)}
+  var key=opt.key||'',el=key?box.querySelector('[data-tkey="'+key+'"]'):null;
+  if(!el){
+    el=document.createElement('div');
+    if(key)el.setAttribute('data-tkey',key);
+    el.innerHTML='<span class="ticon" aria-hidden="true"></span><span class="ttext"></span><button type="button" class="tclose" aria-label="關閉訊息">✕</button>';
+    el.querySelector('.tclose').onclick=function(){el.classList.add('out');setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},200)};
+    box.appendChild(el);
+    while(box.children.length>4)box.removeChild(box.firstChild);
+  }
+  el.className='toast '+type;
+  el.setAttribute('role',type==='err'?'alert':'status');
+  el.querySelector('.ticon').textContent=TOAST_ICO[type];
+  var tx=el.querySelector('.ttext');
+  if(opt.html)tx.innerHTML=text;else tx.textContent=text;
+  clearTimeout(el._t);
+  var ms=opt.ms||(type==='err'?9000:(type==='warn'?6500:(type==='ok'?3000:Math.min(9000,3500+String(text).length*60))));
+  if(opt.sticky)return el;
+  el._t=setTimeout(function(){if(el.parentNode){el.classList.add('out');setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},200)}},ms);
+  return el;
+}
+function toastClear(key){
+  var el=document.querySelector('#toasts [data-tkey="'+key+'"]');
+  if(el&&el.parentNode)el.parentNode.removeChild(el);
 }

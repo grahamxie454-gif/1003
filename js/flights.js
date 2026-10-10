@@ -183,7 +183,13 @@ function applyLookup(i,d){
 }
 
 // ----- 畫面 -----
-var FMSG={},FLBUSY={};
+// 航班的查詢結果與提示改用吐司框顯示（對 FMSG[i] 賦值就會彈出訊息；欄位下方只保留航班接續的檢查結果）
+var FMSG=new Proxy({},{set:function(o,k,v){
+  o[k]='';
+  if(v){var w=String(v)[0]==='!',t=String(v).replace(/^!/,'');toast(t,w?(toastType(t)==='err'?'err':'warn'):'ok',{key:'fl'+k})}
+  return true;
+}});
+var FLBUSY={};
 var FL_SVG='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
 var FL_PLUS=FL_SVG+'<path d="M12 5v14M5 12h14"/></svg>',FL_SEARCH=FL_SVG+'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>';
 function planSig(){var p=flightPlan();return JSON.stringify([p.ok,p.total,p.countries,p.counts])}

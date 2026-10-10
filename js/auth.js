@@ -1,6 +1,12 @@
 // ================= 登入與註冊 =================
 var authMode='login';
-function setMsg(el,text,err){el.hidden=!text;el.textContent=text||'';el.className='msg'+(err?' err':'')}
+function setMsg(el,text,err){
+  // 訊息一律用畫面下方的吐司框顯示（原本的訊息欄位不再使用）
+  var key=(el&&el.id)||'msg';
+  if(el){el.hidden=true;el.textContent=''}
+  if(!text){toastClear(key);return}
+  toast(text,err?'err':undefined,{key:key});
+}
 function authErr(m){
   m=String(m||'');
   if(/Invalid login/i.test(m))return '電子郵件或密碼錯誤。';

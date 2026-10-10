@@ -152,7 +152,6 @@ function renderModal(keepPending){
       '<div class="mvbar"><button type="button" class="ib" data-pend-del="'+i+'" title="移除這張" aria-label="移除這張">'+SH_ICON.x+'</button></div></div></div>';
   });
   if(MOD.pending.length)h+='<div class="mvbar"><button type="button" class="ib phcam" id="mUpload" title="上傳 '+MOD.pending.length+' 張" aria-label="上傳 '+MOD.pending.length+' 張">'+SH_ICON.up+'<span class="phn">'+MOD.pending.length+'</span></button></div>';
-  h+='<p class="status" id="mSt"></p>';
   $('mBody').innerHTML=h;
 }
 on('itin','click',async function(e){
@@ -169,7 +168,7 @@ on('itin','click',async function(e){
     b.disabled=true;
     var ins=await sb.from('trip_notes').insert({trip_id:TID,user_email:ME.email,day_no:+b.dataset.noteAdd,body:v});
     b.disabled=false;
-    if(!ins.error)await refresh();else alert('送出失敗：'+ins.error.message);
+    if(!ins.error)await refresh();else toast('送出失敗：'+ins.error.message,'err');
   }
 });
 on('mClose','click',closeModal);
@@ -190,7 +189,7 @@ on('mBody','input',function(e){
 on('mBody','click',async function(e){
   var b=e.target.closest('button');
   if(!b||!MOD)return;
-  var st_=$('mSt');
+  var st_=null;
   if(b.dataset.pendDel!==undefined){
     var gone=MOD.pending.splice(+b.dataset.pendDel,1)[0];
     URL.revokeObjectURL(gone.url);renderModal();
@@ -199,12 +198,12 @@ on('mBody','click',async function(e){
     b.disabled=true;
     var r=await sb.from('trip_photos').update({caption:inp.value.trim()||null}).eq('id',b.dataset.capSave);
     b.disabled=false;
-    if(r.error){st_.textContent='儲存失敗：'+r.error.message;return}
+    if(r.error){toast('儲存失敗：'+r.error.message,'err');return}
     await refresh();
-    $('mSt').textContent='註解已儲存。';
+    toast('已儲存註解。','ok');
   }else if(b.dataset.delPhoto){
     if(!b.dataset.sure){
-      b.dataset.sure='1';b.classList.add('armed');st_.textContent='再按一次刪除圖示，確認刪除這張照片。';
+      b.dataset.sure='1';b.classList.add('armed');toast('再按一次刪除圖示，確認刪除這張照片。','warn');
       setTimeout(function(){if(b.isConnected){delete b.dataset.sure;b.classList.remove('armed')}},4000);
       return;
     }
@@ -214,7 +213,7 @@ on('mBody','click',async function(e){
     b.disabled=true;
     var ok=0,fail=0,list=MOD.pending.slice();
     for(var i=0;i<list.length;i++){
-      st_.textContent='上傳中 '+(i+1)+' / '+list.length+'…';
+      toast('上傳中 '+(i+1)+' / '+list.length+'…','info',{key:'up',sticky:true});
       try{
         var pp=await prepPhoto(list[i].file);
         var path=(R2_PHOTO_URL?'r2:':'')+TID+'/'+crypto.randomUUID()+'.jpg';
@@ -228,11 +227,11 @@ on('mBody','click',async function(e){
     }
     await refresh();
     renderModal();
-    $('mSt').innerHTML='已上傳 '+ok+' 張'+(fail?'，失敗 '+fail+' 張（已保留在清單中，可再試一次）':'')+'。<a class="maplink" href="slideshow.html?trip='+TID+'" target="_blank" rel="noopener">開啟照片幻燈片（依拍照時間排序）</a>';
+    toast('已上傳 '+ok+' 張'+(fail?'，失敗 '+fail+' 張（已保留在清單中，可再試一次）':'')+'。<a class="maplink" href="slideshow.html?trip='+TID+'" target="_blank" rel="noopener">開啟照片幻燈片</a>',fail?'warn':'ok',{key:'up',html:true,ms:8000});
   }
 });
 async function deletePhoto(id,msgEl){
-  var say=function(t){var el=document.getElementById('mSt')||msgEl;if(el)el.textContent=t};
+  var say=function(t){toast(t,undefined,{key:'ph'})};
   var p=PHOTOS.filter(function(x){return x.id===id})[0];
   if(!p){say('找不到這張照片，請重新整理頁面。');return}
   if(p.user_id!==ME.id){say('只有上傳者能刪除這張照片。');return}

@@ -468,3 +468,15 @@ article.day[hidden]{display:none}
 a.ib{text-decoration:none;color:var(--ink,inherit)}
 a.ib:hover{background:rgba(127,127,127,.2)}
 .topbar .tabs{flex-wrap:nowrap}
+/* 吐司訊息 */
+#toasts{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:400;display:flex;flex-direction:column;gap:8px;align-items:center;width:min(560px,calc(100vw - 24px));pointer-events:none}
+.toast{pointer-events:auto;display:flex;align-items:flex-start;gap:10px;width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:14px;line-height:1.5;animation:toastin .22s ease-out}
+.toast.out{opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s}
+.toast .ticon{flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;background:#5f6b7a;margin-top:1px}
+.toast.ok .ticon{background:#2e9e4f}.toast.err .ticon{background:#d93025}.toast.warn .ticon{background:#d88a00}.toast.info .ticon{background:#1a73e8}
+.toast.ok{border-left:4px solid #2e9e4f}.toast.err{border-left:4px solid #d93025}.toast.warn{border-left:4px solid #d88a00}.toast.info{border-left:4px solid #1a73e8}
+.toast .ttext{flex:1;min-width:0;overflow-wrap:anywhere}
+.toast .ttext a{color:var(--accent)}
+.toast .tclose{flex:none;background:transparent;border:0;color:var(--muted);cursor:pointer;padding:0 2px;font-size:14px}
+@keyframes toastin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+#saveSt{display:none}
