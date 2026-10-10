@@ -492,3 +492,7 @@ a.ib:hover{background:rgba(127,127,127,.2)}
 body:has(#app:not([hidden])) .wrap{padding-top:54px}
 a.mi{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink,inherit);padding:9px 12px;border-radius:6px;font-weight:500;width:100%;box-sizing:border-box}
 a.mi:hover{background:rgba(127,127,127,.18)}
+/* 照片幻燈片：固定選單與選日期 */
+.slmenu{padding-left:0;min-height:0}
+.slidebar{padding-left:62px}
+.slsel{padding:6px 12px}
