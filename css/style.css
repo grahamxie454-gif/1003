@@ -490,3 +490,5 @@ a.ib:hover{background:rgba(127,127,127,.2)}
 .topbar{min-height:40px}
 /* 登入後，頁面內容往下讓出固定按鈕的位置，才不會蓋住標題 */
 body:has(#app:not([hidden])) .wrap{padding-top:54px}
+a.mi{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink,inherit);padding:9px 12px;border-radius:6px;font-weight:500;width:100%;box-sizing:border-box}
+a.mi:hover{background:rgba(127,127,127,.18)}

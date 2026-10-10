@@ -307,3 +307,9 @@ function shareRow(r){
   }
   return '<li class="tr '+cls+(r.o?' over':'')+'"><div class="tt">'+minStr(r.s)+(r.e>r.s?'<small>–'+minStr(r.e)+'</small>':'')+'</div><div class="tb">'+body+tools+'</div></li>';
 }
+
+// 左上角選單（返回行程規劃、照片幻燈片）
+function shMenu(open){$('menuPop').hidden=!open;$('menuBtn').setAttribute('aria-expanded',open?'true':'false')}
+on('menuBtn','click',function(e){e.stopPropagation();shMenu($('menuPop').hidden)});
+document.addEventListener('click',function(e){if(!$('menuPop').hidden&&!e.target.closest('.menuwrap'))shMenu(false)});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('menuPop').hidden)shMenu(false)});
